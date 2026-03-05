@@ -9,6 +9,7 @@ import '../screens/login_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/employee_portal_screen.dart';
 import '../screens/billing_screen.dart';
+import '../screens/accounting_screen.dart';
 import '../services/auth_providers.dart';
 
 // ─── Route names ─────────────────────────────────────────────────────────────
@@ -24,6 +25,7 @@ class Routes {
   static const company = '/settings/company';
   static const employeePortal = '/employee';
   static const billing = '/billing';
+  static const accounting = '/accounting';
 }
 
 // ─── Router provider ─────────────────────────────────────────────────────────
@@ -61,6 +63,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.billing,
         builder: (context, state) => const BillingScreen(),
+      ),
+      GoRoute(
+        path: Routes.accounting,
+        builder: (context, state) => const AccountingScreen(),
       ),
     ],
   );
