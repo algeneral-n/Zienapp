@@ -1,107 +1,82 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { TRANSLATIONS } from '../constants/translations';
-import type { Language, ThemeMode } from '../types';
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-export type ThemeVariant = 'default' | 'glass';
-type Theme = 'light' | 'dark' | 'system';
-
-const RTL_LANGUAGES: Language[] = ['ar', 'ur'];
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Language, ThemeMode, ThemeVariant } from '../types';
 
 interface ThemeContextType {
-  // Original API (HeaderControls, etc.)
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-
-  // Extended API (LandingPage, Header, EmployeePortal, etc.)
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
   mode: ThemeMode;
-  setMode: (m: ThemeMode) => void;
+  setMode: (mode: ThemeMode) => void;
   variant: ThemeVariant;
-  setVariant: (v: ThemeVariant) => void;
+  setVariant: (variant: ThemeVariant) => void;
   language: Language;
-  setLanguage: (l: Language) => void;
-  isRTL: boolean;
-
-  /** Translation helper — returns key's value for current language, falls back to `en` */
+  setLanguage: (lang: Language) => void;
   t: (key: string) => string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// ─── Provider ──────────────────────────────────────────────────────────────────
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeRaw] = useState<Theme>(() => {
-    return (localStorage.getItem('zien-theme') as Theme) || 'system';
+  const { t, i18n } = useTranslation();
+  
+  const [theme, setThemeState] = useState<ThemeMode>(() => {
+    return (localStorage.getItem('zien-theme') as ThemeMode) || ThemeMode.SYSTEM;
+  });
+  
+  const [variant, setVariant] = useState<ThemeVariant>(() => {
+    return (localStorage.getItem('zien-variant') as ThemeVariant) || ThemeVariant.PRISM;
   });
 
-  const [language, setLanguageRaw] = useState<Language>(() => {
-    return (localStorage.getItem('zien-language') as Language) || 'en';
-  });
+  const language = (i18n.language as Language) || 'en';
 
-  const [variant, setVariantRaw] = useState<ThemeVariant>(() => {
-    return (localStorage.getItem('zien-variant') as ThemeVariant) || 'default';
-  });
+  const setLanguage = (lang: Language) => {
+    i18n.changeLanguage(lang);
+    document.documentElement.dir = lang === 'ar' || lang === 'ur' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lang;
+  };
 
-  // ── Setters ────────────────────────────────────────────────────────────────
-  const setTheme = useCallback((t: Theme) => {
-    localStorage.setItem('zien-theme', t);
-    setThemeRaw(t);
-  }, []);
+  const setTheme = (newTheme: ThemeMode) => {
+    setThemeState(newTheme);
+  };
 
-  const setLanguage = useCallback((l: Language) => {
-    localStorage.setItem('zien-language', l);
-    setLanguageRaw(l);
-  }, []);
-
-  const setVariant = useCallback((v: ThemeVariant) => {
-    localStorage.setItem('zien-variant', v);
-    setVariantRaw(v);
-  }, []);
-
-  // Aliases for legacy consumers that use mode/setMode
-  const mode = theme as ThemeMode;
-  const setMode = useCallback((m: ThemeMode) => setTheme(m as Theme), [setTheme]);
-
-  const isRTL = RTL_LANGUAGES.includes(language);
-
-  // ── Apply theme class + dir to <html> ──────────────────────────────────────
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
 
-    if (theme === 'system') {
+    if (theme === ThemeMode.SYSTEM) {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       root.classList.add(systemTheme);
     } else {
       root.classList.add(theme);
     }
 
-    root.dir = isRTL ? 'rtl' : 'ltr';
-    root.lang = language;
-  }, [theme, language, isRTL]);
+    localStorage.setItem('zien-theme', theme);
+  }, [theme]);
+  
+  useEffect(() => {
+    const root = window.document.documentElement;
+    // Remove all variant classes
+    Object.values(ThemeVariant).forEach(v => root.classList.remove(`theme-${v}`));
+    root.classList.add(`theme-${variant}`);
+    localStorage.setItem('zien-variant', variant);
+  }, [variant]);
 
-  // ── Translation function ───────────────────────────────────────────────────
-  const t = useCallback(
-    (key: string): string => {
-      const dict = TRANSLATIONS[language] ?? TRANSLATIONS['en'] ?? {};
-      const fallback = TRANSLATIONS['en'] ?? {};
-      return dict[key] ?? fallback[key] ?? key;
-    },
-    [language],
-  );
+  useEffect(() => {
+    document.documentElement.dir = language === 'ar' || language === 'ur' ? 'rtl' : 'ltr';
+    document.documentElement.lang = language;
+  }, [language]);
 
-  // ── Memoised value ─────────────────────────────────────────────────────────
-  const value = useMemo<ThemeContextType>(
-    () => ({
-      theme, setTheme,
-      mode, setMode,
-      variant, setVariant,
-      language, setLanguage,
-      isRTL,
-      t,
-    }),
-    [theme, setTheme, mode, setMode, variant, setVariant, language, setLanguage, isRTL, t],
-  );
+  const value = {
+    theme,
+    setTheme,
+    mode: theme,
+    setMode: setTheme,
+    variant,
+    setVariant,
+    language,
+    setLanguage,
+    t
+  };
 
   return (
     <ThemeContext.Provider value={value}>
@@ -110,7 +85,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Hook ──────────────────────────────────────────────────────────────────────
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (context === undefined) {

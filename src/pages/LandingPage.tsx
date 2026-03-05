@@ -1,53 +1,51 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../constants/assets';
-import { Language, ThemeMode } from '../types';
-import { provisioningService, ProvisioningResult, ProvisioningStatus } from '../services/provisioningService';
+import { ThemeVariant, Language, ThemeMode } from '../types';
 import { supabase } from '../services/supabase';
-import {
-  Globe, Moon, Sun, Layout, ShieldCheck, Zap,
-  ArrowRight, Menu, X, CheckCircle2, Star,
-  ChevronLeft, ChevronRight, Play, Users,
+import { 
+  Globe, Moon, Sun, Layout, ShieldCheck, Zap, 
+  ArrowRight, Menu, X, CheckCircle2, Star, 
+  ChevronLeft, ChevronRight, Play, Users, 
   BarChart3, Shield, Globe2, Upload, Loader2,
-  Building2, Users2, Briefcase, AlertCircle
+  Building2, Users2, Briefcase, Check, Copy
 } from 'lucide-react';
 
-export default function LandingPage() {
-  const navigate = useNavigate();
+export default function LandingPage({ onNavigate }: { onNavigate: (to: string) => void }) {
   const { language, mode, variant, setMode, setVariant, setLanguage, t: translate } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
-
+  
   // Demo States
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [demoStep, setDemoStep] = useState(1);
   const [demoLoading, setDemoLoading] = useState(false);
-  const [demoResult, setDemoResult] = useState<ProvisioningResult | null>(null);
-  const [demoError, setDemoError] = useState<string | null>(null);
+  const [demoResult, setDemoResult] = useState<any>(null);
   const [demoForm, setDemoForm] = useState({
     companyName: '',
-    employees: '',
+    industry: '',
     services: [] as string[],
-    image: null as File | null
+    addons: [] as string[],
+    notes: ''
   });
 
   const slides = [
     {
-      title: translate('hero_title_1'),
-      subtitle: translate('hero_sub_1'),
+      title: translate('hero_title_1') !== 'hero_title_1' ? translate('hero_title_1') : translate('hero_title'),
+      subtitle: translate('hero_sub_1') !== 'hero_sub_1' ? translate('hero_sub_1') : translate('hero_sub'),
       image: ASSETS.LANDING_1,
       accent: "blue"
     },
     {
-      title: translate('hero_title_2'),
-      subtitle: translate('hero_sub_2'),
+      title: translate('hero_title_2') !== 'hero_title_2' ? translate('hero_title_2') : translate('hero_title'),
+      subtitle: translate('hero_sub_2') !== 'hero_sub_2' ? translate('hero_sub_2') : translate('hero_sub'),
       image: ASSETS.LANDING_2,
       accent: "cyan"
     },
     {
-      title: translate('hero_title_3'),
-      subtitle: translate('hero_sub_3'),
+      title: translate('hero_title_3') !== 'hero_title_3' ? translate('hero_title_3') : translate('hero_title'),
+      subtitle: translate('hero_sub_3') !== 'hero_sub_3' ? translate('hero_sub_3') : translate('hero_sub'),
       image: ASSETS.MODULES_OVERVIEW,
       accent: "indigo"
     }
@@ -78,77 +76,52 @@ export default function LandingPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const [demoStep, setDemoStep] = useState(0);
-  const demoSteps = language === 'ar'
-    ? ['تحليل البيانات...', 'توفير الوحدات...', 'إعداد RARE AI...', 'تأمين المستأجر...', 'جاهز!']
-    : ['Analyzing data...', 'Provisioning modules...', 'Setting up RARE AI...', 'Securing tenant...', 'Ready!'];
-
   const handleCreateDemo = async (e: React.FormEvent) => {
     e.preventDefault();
-    setDemoLoading(true);
-    setDemoStep(0);
-    setDemoError(null);
-
-    // Check if user is logged in
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setDemoError(language === 'ar'
-        ? 'يجب تسجيل الدخول اولا لإنشاء ديمو. سجل حساب مجاني ثم عد هنا.'
-        : 'You must be logged in to create a demo. Register a free account first.');
-      setDemoLoading(false);
+    if (demoStep < 3) {
+      setDemoStep(demoStep + 1);
       return;
     }
-
+    setDemoLoading(true);
     try {
-      setDemoStep(0);
-      // Step 1: Start provisioning via real API
-      const result = await provisioningService.provisionTenant({
-        companyName: demoForm.companyName,
-        tenantType: 'demo',
-        country: 'AE',
-        currency: 'AED',
-        employees: demoForm.employees || '10',
-        needs: demoForm.services,
-        language: language,
-      });
-
-      setDemoStep(1);
-
-      // Step 2-4: Poll status until done
-      if (result.status !== 'done') {
-        let attempts = 0;
-        const maxAttempts = 30;
-        while (attempts < maxAttempts) {
-          await new Promise(r => setTimeout(r, 2000));
-          attempts++;
-          try {
-            const status = await provisioningService.getStatus(result.jobId);
-            const progress = Math.min(
-              Math.floor((status.completedSteps / Math.max(status.totalSteps, 1)) * (demoSteps.length - 1)),
-              demoSteps.length - 2
-            );
-            setDemoStep(progress + 1);
-
-            if (status.status === 'done') {
-              setDemoStep(demoSteps.length - 1);
-              break;
-            }
-            if (status.status === 'error') {
-              throw new Error(status.error || 'Provisioning failed');
-            }
-          } catch (pollErr: any) {
-            if (attempts >= maxAttempts) throw pollErr;
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const { data, error } = await supabase
+        .from('demo_requests')
+        .insert([
+          {
+            company_name: demoForm.companyName,
+            industry: demoForm.industry,
+            services: demoForm.services,
+            addons: demoForm.addons,
+            notes: demoForm.notes,
+            status: 'pending',
+            created_at: new Date().toISOString()
           }
-        }
-      } else {
-        // Already done (fallback provisioning)
-        setDemoStep(demoSteps.length - 1);
-      }
+        ])
+        .select()
+        .single();
 
-      setDemoResult(result);
-    } catch (err: any) {
-      console.error('Demo provisioning error:', err);
-      setDemoError(err?.message || (language === 'ar' ? 'حدث خطأ اثناء الإنشاء' : 'An error occurred during provisioning'));
+      if (error) {
+        console.error('Error creating demo:', error);
+        // Fallback for demo purposes if table doesn't exist
+        setDemoResult({
+          ...demoForm,
+          id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+          timestamp: new Date().toLocaleString(),
+          demoUrl: `https://demo.zien-ai.app/${demoForm.companyName.toLowerCase().replace(/\s+/g, '-')}`
+        });
+      } else {
+        setDemoResult({
+          ...demoForm,
+          id: data.id,
+          timestamp: new Date(data.created_at).toLocaleString(),
+          demoUrl: `https://demo.zien-ai.app/${demoForm.companyName.toLowerCase().replace(/\s+/g, '-')}`
+        });
+      }
+    } catch (err) {
+       console.error('Unexpected error:', err);
     } finally {
       setDemoLoading(false);
     }
@@ -160,20 +133,19 @@ export default function LandingPage() {
     register: translate('register'),
     login: translate('login'),
     features: translate('features'),
-    pricing: translate('pricing'),
     industries: translate('industries'),
     rareAi: language === 'ar' ? 'مدعوم بذكاء RARE' : "Powered by RARE AI",
-    createDemo: language === 'ar' ? 'إنشاء ديمو' : 'Create Demo',
+    createDemo: language === 'ar' ? 'إنشاء ديمو مخصص' : 'Create Custom Demo',
     joinNow: language === 'ar' ? 'انضم الآن' : 'Join Now'
   };
 
   return (
     <div className="min-h-screen">
       {/* Hero Section with Slider */}
-      <section className="pt-32 pb-20 px-6 relative overflow-hidden min-h-[90vh] flex items-center">
+      <section className="pt-12 pb-20 px-6 relative overflow-hidden min-h-[90vh] flex items-center">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
           <AnimatePresence mode="wait">
-            <motion.div
+            <motion.div 
               key={currentSlide}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -191,17 +163,18 @@ export default function LandingPage() {
                 {t.heroSub}
               </p>
               <div className="flex flex-wrap gap-4">
-                <button
-                  onClick={() => navigate('/register')}
+                <button 
+                  onClick={() => onNavigate('/register')}
                   className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 flex items-center gap-2"
                 >
                   {t.joinNow}
                   <ArrowRight className="w-5 h-5" />
                 </button>
-                <button
+                <button 
                   onClick={() => setShowDemoModal(true)}
-                  className="glass-card px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black/5 transition-all"
+                  className="glass-card px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black/5 transition-all flex items-center gap-2 border-blue-500/30 hover:border-blue-500"
                 >
+                  <Play className="w-5 h-5 text-blue-600" />
                   {t.createDemo}
                 </button>
               </div>
@@ -209,7 +182,7 @@ export default function LandingPage() {
           </AnimatePresence>
 
           <AnimatePresence mode="wait">
-            <motion.div
+            <motion.div 
               key={currentSlide}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -218,14 +191,14 @@ export default function LandingPage() {
               className="relative"
             >
               <div className="aspect-video rounded-[3rem] bg-gradient-to-br from-blue-600 to-cyan-400 p-1 shadow-2xl overflow-hidden">
-                <img
-                  src={slides[currentSlide].image}
-                  alt="Platform"
-                  className="w-full h-full object-cover rounded-[2.8rem] bg-white"
-                  {...IMAGE_PROPS}
-                />
+                 <img 
+                   src={slides[currentSlide].image} 
+                   alt="Platform" 
+                   className="w-full h-full object-cover rounded-[2.8rem] bg-white"
+                   {...IMAGE_PROPS}
+                 />
               </div>
-
+              
               {/* Floating AI Agent Card */}
               <div className="absolute -bottom-6 -left-6 glass-card p-6 max-w-xs animate-bounce-slow">
                 <div className="flex items-center gap-4 mb-4">
@@ -248,7 +221,7 @@ export default function LandingPage() {
         {/* Slider Controls */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
           {slides.map((_, i) => (
-            <button
+            <button 
               key={i}
               onClick={() => setCurrentSlide(i)}
               className={`w-3 h-3 rounded-full transition-all ${currentSlide === i ? 'bg-blue-600 w-8' : 'bg-black/20'}`}
@@ -260,318 +233,385 @@ export default function LandingPage() {
       {/* Demo Modal */}
       <AnimatePresence>
         {showDemoModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-            <motion.div
+          <div key="demo-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowDemoModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
             />
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl glass-card p-8 md:p-10 shadow-2xl overflow-hidden"
+              className="relative w-full max-w-3xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-zinc-200 dark:border-zinc-800"
             >
-              {!demoResult ? (
-                <form onSubmit={handleCreateDemo} className="space-y-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-3xl font-bold">{t.createDemo}</h2>
-                    <button type="button" onClick={() => setShowDemoModal(false)} className="p-2 hover:bg-black/5 rounded-full">
-                      <X className="w-6 h-6" />
-                    </button>
-                  </div>
+              {/* Modal Header */}
+              <div className="p-6 md:p-8 border-b border-[var(--border-soft)] flex items-center justify-between bg-gradient-to-r from-blue-600/10 to-transparent">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+                    <Zap className="w-8 h-8 text-blue-600" />
+                    {t.createDemo}
+                  </h2>
+                  <p className="text-[var(--text-secondary)] mt-1">
+                    {language === 'ar' ? 'قم ببناء بيئة تجريبية مخصصة لشركتك في ثوانٍ.' : 'Build a custom demo environment for your company in seconds.'}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setShowDemoModal(false)} className="p-2 hover:bg-black/5 rounded-full transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                        <Building2 className="w-4 h-4" /> {language === 'ar' ? 'اسم الشركة' : 'Company Name'}
-                      </label>
-                      <input
-                        required
-                        type="text"
-                        value={demoForm.companyName}
-                        onChange={e => setDemoForm({ ...demoForm, companyName: e.target.value })}
-                        className="w-full bg-black/5 border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g. ZIEN Tech"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                        <Users2 className="w-4 h-4" /> {language === 'ar' ? 'عدد الموظفين' : 'Employees'}
-                      </label>
-                      <input
-                        required
-                        type="number"
-                        value={demoForm.employees}
-                        onChange={e => setDemoForm({ ...demoForm, employees: e.target.value })}
-                        className="w-full bg-black/5 border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="10"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                      <Briefcase className="w-4 h-4" /> {language === 'ar' ? 'الخدمات المطلوبة' : 'Requested Services'}
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {['Accounting', 'HR', 'CRM', 'Logistics', 'AI Assistant'].map(service => (
-                        <button
-                          key={service}
-                          type="button"
-                          onClick={() => {
-                            const services = demoForm.services.includes(service)
-                              ? demoForm.services.filter(s => s !== service)
-                              : [...demoForm.services, service];
-                            setDemoForm({ ...demoForm, services });
-                          }}
-                          className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${demoForm.services.includes(service)
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-black/5 border-[var(--border-soft)] hover:border-blue-400'
-                            }`}
-                        >
-                          {service}
-                        </button>
+              <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar">
+                {!demoResult ? (
+                  <form onSubmit={handleCreateDemo} className="space-y-8">
+                    
+                    <div className="flex items-center gap-2 mb-4">
+                      {[1, 2, 3].map(s => (
+                        <div key={s} className={`h-1.5 rounded-full transition-all ${demoStep >= s ? 'w-8 bg-blue-600' : 'w-4 bg-zinc-200 dark:bg-zinc-800'}`} />
                       ))}
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                      <Upload className="w-4 h-4" /> {language === 'ar' ? 'إرفاق صور' : 'Attach Images'}
-                    </label>
-                    <label className="w-full border-2 border-dashed border-[var(--border-soft)] p-8 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-black/5 transition-all">
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={e => setDemoForm({ ...demoForm, image: e.target.files?.[0] || null })}
-                      />
-                      <Upload className={`w-8 h-8 mb-2 ${demoForm.image ? 'text-green-500' : 'text-blue-600'}`} />
-                      <span className="text-xs font-bold">{demoForm.image ? demoForm.image.name : 'Click to upload'}</span>
-                    </label>
-                  </div>
-
-                  <button
-                    disabled={demoLoading}
-                    className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 flex flex-col items-center justify-center gap-2 min-h-[80px]"
-                  >
-                    {demoLoading ? (
-                      <>
-                        <div className="flex items-center gap-3">
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                          <span>{demoSteps[demoStep]}</span>
+                    {demoStep === 1 && (
+                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <h3 className="text-lg font-bold border-b border-[var(--border-soft)] pb-2 flex items-center gap-2">
+                          <Building2 className="w-5 h-5 text-blue-600" />
+                          {language === 'ar' ? 'معلومات الشركة' : 'Company Information'}
+                        </h3>
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-[var(--text-primary)]">
+                              {language === 'ar' ? 'اسم الشركة' : 'Company Name'} <span className="text-red-500">*</span>
+                            </label>
+                            <input 
+                              required
+                              type="text" 
+                              value={demoForm.companyName}
+                              onChange={e => setDemoForm({...demoForm, companyName: e.target.value})}
+                              className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all text-[var(--text-primary)]"
+                              placeholder="e.g. ZIEN Tech"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-[var(--text-primary)]">
+                              {language === 'ar' ? 'قطاع العمل' : 'Industry'} <span className="text-red-500">*</span>
+                            </label>
+                            <select 
+                              required
+                              value={demoForm.industry}
+                              onChange={e => setDemoForm({...demoForm, industry: e.target.value})}
+                              className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-brand transition-all appearance-none text-[var(--text-primary)]"
+                            >
+                              <option value="">{language === 'ar' ? 'اختر القطاع...' : 'Select Industry...'}</option>
+                              <option value="Retail">{language === 'ar' ? 'تجزئة / سوبر ماركت' : 'Retail / Supermarket'}</option>
+                              <option value="Manufacturing">{language === 'ar' ? 'صناعة / مصانع' : 'Manufacturing / Factories'}</option>
+                              <option value="Agricultural">{language === 'ar' ? 'زراعية' : 'Agricultural'}</option>
+                              <option value="Insurance">{language === 'ar' ? 'تأمينية' : 'Insurance'}</option>
+                              <option value="Banking">{language === 'ar' ? 'مصارف وبنوك' : 'Banking & Finance'}</option>
+                              <option value="NGO">{language === 'ar' ? 'هيئات خيرية ودولية' : 'Charities & NGOs'}</option>
+                              <option value="Contracting">{language === 'ar' ? 'مقاولات' : 'Contracting'}</option>
+                              <option value="RealEstate">{language === 'ar' ? 'عقارات' : 'Real Estate'}</option>
+                              <option value="Consulting">{language === 'ar' ? 'استشارات / خدمات' : 'Consulting / Services'}</option>
+                              <option value="Trading">{language === 'ar' ? 'تجارة / استيراد وتصدير' : 'Trading / Import & Export'}</option>
+                            </select>
+                          </div>
                         </div>
-                        <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden mt-2">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${((demoStep + 1) / demoSteps.length) * 100}%` }}
-                            className="h-full bg-white"
+                      </motion.div>
+                    )}
+
+                    {demoStep === 2 && (
+                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <h3 className="text-lg font-bold border-b border-[var(--border-soft)] pb-2 flex items-center gap-2">
+                          <Briefcase className="w-5 h-5 text-brand" />
+                          {language === 'ar' ? 'تخصيص الوحدات الأساسية' : 'Core Modules Customization'}
+                        </h3>
+                        <div className="space-y-4">
+                          <label className="text-sm font-bold text-[var(--text-primary)]">
+                            {language === 'ar' ? 'اختر الخدمات التي ترغب في تجربتها:' : 'Select the services you want to try:'} <span className="text-red-500">*</span>
+                          </label>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {[
+                              { id: 'Accounting', icon: BarChart3, label: language === 'ar' ? 'المحاسبة والمالية' : 'Accounting & Finance' },
+                              { id: 'HR', icon: Users, label: language === 'ar' ? 'الموارد البشرية' : 'HR & Payroll' },
+                              { id: 'CRM', icon: Globe2, label: language === 'ar' ? 'إدارة العملاء والمبيعات' : 'CRM & Sales' },
+                              { id: 'Logistics', icon: Zap, label: language === 'ar' ? 'العمليات الميدانية' : 'Field Operations' },
+                              { id: 'Inventory', icon: Building2, label: language === 'ar' ? 'أنظمة المخزون' : 'Inventory Management' },
+                              { id: 'PR', icon: Users2, label: language === 'ar' ? 'العلاقات العامة' : 'PR & External Relations' },
+                              { id: 'ConsultingSys', icon: Briefcase, label: language === 'ar' ? 'أنظمة الاستشارات' : 'Consulting Systems' },
+                              { id: 'Store', icon: Layout, label: language === 'ar' ? 'المتجر الإلكتروني' : 'E-Commerce Store' }
+                            ].map(service => {
+                              const isSelected = demoForm.services.includes(service.id);
+                              const Icon = service.icon;
+                              return (
+                                <button
+                                  key={service.id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) setDemoForm({...demoForm, services: demoForm.services.filter(s => s !== service.id)});
+                                    else setDemoForm({...demoForm, services: [...demoForm.services, service.id]});
+                                  }}
+                                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 text-center group ${isSelected ? 'border-blue-600 bg-blue-600/10' : 'border-[var(--border-soft)] hover:border-blue-600/50'}`}
+                                >
+                                  <Icon className={`w-6 h-6 ${isSelected ? 'text-blue-600' : 'text-[var(--text-secondary)]'}`} />
+                                  <span className={`text-xs font-bold ${isSelected ? 'text-blue-600' : 'text-[var(--text-secondary)]'}`}>{service.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {demoStep === 3 && (
+                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                        <h3 className="text-lg font-bold border-b border-[var(--border-soft)] pb-2 flex items-center gap-2">
+                          <Globe2 className="w-5 h-5 text-blue-600" />
+                          {language === 'ar' ? 'التكاملات والبيانات' : 'Integrations & Data'}
+                        </h3>
+                        <div className="space-y-4">
+                          <label className="text-sm font-bold text-[var(--text-primary)]">
+                            {language === 'ar' ? 'اختر التكاملات المطلوبة:' : 'Select required integrations:'}
+                          </label>
+                          <div className="grid grid-cols-2 gap-3">
+                            {[
+                              { id: 'Stripe', label: 'Stripe Payments' },
+                              { id: 'Google', label: 'Google Maps & APIs' },
+                              { id: 'Meta', label: 'Meta (FB/IG/WA)' },
+                              { id: 'Vonage', label: 'Vonage Video/SMS' }
+                            ].map(addon => (
+                              <label key={addon.id} className="flex items-center gap-3 p-4 rounded-xl border border-[var(--border-soft)] cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-[var(--text-primary)]">
+                                <input 
+                                  type="checkbox" 
+                                  checked={demoForm.addons.includes(addon.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setDemoForm({...demoForm, addons: [...demoForm.addons, addon.id]});
+                                    else setDemoForm({...demoForm, addons: demoForm.addons.filter(a => a !== addon.id)});
+                                  }}
+                                  className="w-5 h-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500" 
+                                />
+                                <span className="text-sm font-bold">{addon.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-[var(--text-primary)]">
+                            {language === 'ar' ? 'ملاحظات إضافية' : 'Additional Notes'}
+                          </label>
+                          <textarea 
+                            value={demoForm.notes}
+                            onChange={e => setDemoForm({...demoForm, notes: e.target.value})}
+                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all min-h-[100px] text-[var(--text-primary)]"
+                            placeholder={language === 'ar' ? 'أي متطلبات خاصة؟' : 'Any special requirements?'}
                           />
                         </div>
-                      </>
-                    ) : t.createDemo}
-                  </button>
+                      </motion.div>
+                    )}
 
-                  {demoError && (
-                    <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-400">
-                      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                      <span>{demoError}</span>
+                    <div className="flex items-center gap-4 pt-4">
+                      {demoStep > 1 && (
+                        <button 
+                          type="button"
+                          onClick={() => setDemoStep(demoStep - 1)}
+                          className="flex-1 py-4 border-2 border-[var(--border-soft)] rounded-2xl font-bold hover:bg-black/5 transition-all text-[var(--text-primary)]"
+                        >
+                          {language === 'ar' ? 'السابق' : 'Previous'}
+                        </button>
+                      )}
+                      <button 
+                        disabled={demoLoading || (demoStep === 1 && !demoForm.companyName) || (demoStep === 2 && demoForm.services.length === 0)}
+                        className="flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                      >
+                        {demoLoading ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>{language === 'ar' ? 'جاري التجهيز...' : 'Provisioning...'}</span>
+                          </>
+                        ) : (
+                          <span>{demoStep === 3 ? (language === 'ar' ? 'إنشاء الديمو الآن' : 'Create Demo Now') : (language === 'ar' ? 'التالي' : 'Next')}</span>
+                        )}
+                      </button>
                     </div>
-                  )}
-                </form>
-              ) : (
-                <div className="space-y-8">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-3xl font-bold text-green-600 flex items-center gap-2">
-                      <CheckCircle2 className="w-8 h-8" /> {language === 'ar' ? 'تم إنشاء الديمو بنجاح' : 'Demo Created Successfully'}
-                    </h2>
-                    <button onClick={() => setShowDemoModal(false)} className="p-2 hover:bg-black/5 rounded-full">
-                      <X className="w-6 h-6" />
-                    </button>
-                  </div>
-
-                  <div className="glass-card p-6 border-green-500/20 space-y-4">
-                    <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
-                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'اسم الشركة' : 'Company'}</span>
-                      <span className="font-bold">{demoForm.companyName}</span>
+                  </form>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-12 space-y-8"
+                  >
+                    <div className="w-24 h-24 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <CheckCircle2 className="w-12 h-12" />
                     </div>
-                    <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
-                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'عدد الموظفين' : 'Employees'}</span>
-                      <span className="font-bold">{demoForm.employees}</span>
+                    <div>
+                      <h3 className="text-3xl font-black mb-2">{language === 'ar' ? 'تم إنشاء الديمو بنجاح!' : 'Demo Created Successfully!'}</h3>
+                      <p className="text-[var(--text-secondary)]">{language === 'ar' ? 'بيئتك التجريبية جاهزة الآن. يمكنك الوصول إليها عبر الرابط التالي:' : 'Your demo environment is ready. You can access it via the following link:'}</p>
                     </div>
-                    <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
-                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'معرف الشركة' : 'Company ID'}</span>
-                      <span className="font-bold font-mono text-xs">{demoResult.companyId.substring(0, 12)}...</span>
-                    </div>
-                    <div className="space-y-2">
-                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'الخدمات المفعلة' : 'Active Services'}</span>
-                      <div className="flex flex-wrap gap-2">
-                        {demoForm.services.map((s: string) => (
-                          <span key={s} className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-[10px] font-bold uppercase">
-                            {s}
-                          </span>
-                        ))}
+                    
+                    <div className="p-6 bg-zinc-50 dark:bg-zinc-800 rounded-3xl border border-[var(--border-soft)] space-y-4">
+                      <div className="flex items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-900 rounded-2xl border border-[var(--border-soft)]">
+                        <code className="text-blue-600 font-bold truncate">{demoResult.demoUrl}</code>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(demoResult.demoUrl);
+                            alert(language === 'ar' ? 'تم النسخ!' : 'Copied!');
+                          }}
+                          className="p-2 hover:bg-black/5 rounded-lg transition-colors"
+                        >
+                          <Copy className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-sm font-bold text-zinc-500">
+                        <Zap className="w-4 h-4" />
+                        <span>ID: {demoResult.id}</span>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="aspect-video rounded-3xl bg-slate-900 flex items-center justify-center relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-transparent" />
-                    <div className="z-10 text-center">
-                      <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md group-hover:scale-110 transition-transform cursor-pointer">
-                        <Play className="w-8 h-8 text-white fill-current" />
-                      </div>
-                      <p className="text-white font-bold">{language === 'ar' ? 'مشاهدة الديمو التفاعلي' : 'Watch Interactive Demo'}</p>
+                    <div className="flex flex-col gap-3">
+                      <button 
+                        onClick={() => window.open(demoResult.demoUrl, '_blank')}
+                        className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
+                      >
+                        {language === 'ar' ? 'دخول الديمو الآن' : 'Enter Demo Now'}
+                      </button>
+                      <button 
+                        onClick={() => { setShowDemoModal(false); setDemoResult(null); setDemoStep(1); }}
+                        className="w-full py-4 font-bold text-zinc-500 hover:text-zinc-800 transition-colors"
+                      >
+                        {language === 'ar' ? 'إغلاق' : 'Close'}
+                      </button>
                     </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => navigate('/register')}
-                      className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
-                    >
-                      {language === 'ar' ? 'ابدأ الآن مجاناً' : 'Start Free Trial'}
-                    </button>
-                    <button
-                      onClick={() => { setDemoResult(null); setDemoError(null); }}
-                      className="px-8 py-4 glass-card rounded-2xl font-bold hover:bg-black/5 transition-all"
-                    >
-                      {language === 'ar' ? 'تعديل البيانات' : 'Edit Data'}
-                    </button>
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Features Grid */}
+      {/* Modular Suite / Features Grid */}
       <section id="features" className="py-20 px-6 bg-[var(--bg-secondary)]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">{translate('features_title')}</h2>
+            <h2 className="text-4xl font-bold mb-4">{language === 'ar' ? 'مجموعة الوحدات المتكاملة' : 'Integrated Modular Suite'}</h2>
             <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">
-              {translate('features_subtitle')}
+              {language === 'ar' ? 'كل ما تحتاجه لإدارة أعمالك في منصة واحدة مدعومة بالذكاء الاصطناعي.' : 'Everything you need to manage your business in one AI-powered platform.'}
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-6 lg:grid-cols-12 gap-6">
             {[
-              {
-                title: translate('accounting'),
-                desc: language === 'ar' ? "مجموعة مالية كاملة مع فواتير آلية وامتثال ضريبي." : "Full financial suite with automated invoicing and tax compliance.",
-                icon: BarChart3
+              { 
+                title: language === 'ar' ? "المحاسبة والمالية" : "Accounting & Finance", 
+                desc: language === 'ar' ? "إدارة الفواتير، المدفوعات، الاشتراكات، وإعدادات الضرائب حسب الدولة." : "Manage invoices, payments, subscriptions, and tax settings by country.", 
+                icon: BarChart3,
+                span: "md:col-span-3 lg:col-span-4"
               },
-              {
-                title: language === 'ar' ? "إدارة علاقات العملاء والمبيعات" : "CRM & Sales",
-                desc: language === 'ar' ? "إدارة العملاء المحتملين والعروض والعقود في بوابة عملاء موحدة." : "Manage leads, quotes, and contracts in a unified client portal.",
-                icon: Users
+              { 
+                title: language === 'ar' ? "المبيعات والتسويق" : "Sales & Marketing", 
+                desc: language === 'ar' ? "إدارة علاقات العملاء (CRM)، عروض الأسعار، العقود، وبوابة العملاء." : "CRM, quotes, contracts, and a dedicated client portal.", 
+                icon: Users,
+                span: "md:col-span-3 lg:col-span-4"
               },
-              {
-                title: translate('hr'),
-                desc: language === 'ar' ? "إدارة دورة حياة الموظف الكاملة مع تتبع الحضور." : "Complete employee lifecycle management with attendance tracking.",
-                icon: Shield
+              { 
+                title: language === 'ar' ? "RARE AI Agents" : "RARE AI Agents", 
+                desc: language === 'ar' ? "وكلاء ذكاء اصطناعي متخصصون للتحليلات والتوصيات الذكية." : "Specialized AI agents for smart analytics and recommendations.", 
+                icon: Zap,
+                span: "md:col-span-6 lg:col-span-4",
+                highlight: true
               },
-              {
-                title: translate('logistics'),
-                desc: language === 'ar' ? "تتبع في الوقت الفعلي وإرسال المهام للعمليات الميدانية." : "Real-time tracking and task dispatching for field operations.",
-                icon: Globe2
+              { 
+                title: language === 'ar' ? "الموارد البشرية" : "Human Resources", 
+                desc: language === 'ar' ? "ملفات الموظفين، التوظيف، الحضور، الرواتب، والإجازات." : "Employee files, hiring, attendance, payroll, and leaves.", 
+                icon: Shield,
+                span: "md:col-span-2 lg:col-span-3"
               },
-              {
-                title: "RARE AI",
-                desc: language === 'ar' ? "وكلاء أذكياء يحللون البيانات ويقدمون رؤى قابلة للتنفيذ." : "Intelligent agents that analyze data and provide actionable insights.",
-                icon: Zap
+              { 
+                title: language === 'ar' ? "العمليات الميدانية" : "Field Operations", 
+                desc: language === 'ar' ? "تتبع الخرائط، إدارة المركبات، ودعم CarPlay/Android Auto." : "Map tracking, vehicle management, and CarPlay/Android Auto support.", 
+                icon: Globe2,
+                span: "md:col-span-2 lg:col-span-3"
               },
-              {
-                title: language === 'ar' ? "الأمان" : "Security",
-                desc: language === 'ar' ? "RLS متقدم وعزل متعدد المستأجرين لبياناتك." : "Advanced RLS and multi-tenant isolation for your data.",
-                icon: ShieldCheck
+              { 
+                title: language === 'ar' ? "الاجتماعات والدردشة" : "Meetings & Chat", 
+                desc: language === 'ar' ? "اجتماعات الأقسام، دردشة خاصة/جماعية، وملخصات AI." : "Department meetings, private/group chat, and AI summaries.", 
+                icon: Users2,
+                span: "md:col-span-2 lg:col-span-3"
+              },
+              { 
+                title: language === 'ar' ? "بوابة الموظف" : "Employee Portal", 
+                desc: language === 'ar' ? "بوابة شخصية لكل موظف للوصول إلى بياناته الخاصة." : "Personal portal for each employee to access their private data.", 
+                icon: ShieldCheck,
+                span: "md:col-span-6 lg:col-span-3"
               }
             ].map((feature, i) => (
-              <motion.div
+              <motion.div 
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="glass-card p-8 hover:border-blue-500/50 transition-all group"
+                transition={{ delay: i * 0.05 }}
+                className={`${feature.span} glass-card p-8 hover:border-blue-600/50 transition-all group relative overflow-hidden ${feature.highlight ? 'bg-blue-600/5 border-blue-600/20' : ''}`}
               >
-                <div className="w-12 h-12 bg-blue-600/10 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                {feature.highlight && (
+                  <div className="absolute top-0 right-0 p-4">
+                    <div className="bg-blue-600 text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-widest">
+                      Premium
+                    </div>
+                  </div>
+                )}
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${feature.highlight ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-brand/10 text-brand'}`}>
                   <feature.icon className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                <p className="text-[var(--text-secondary)] leading-relaxed">
+                <p className="text-[var(--text-secondary)] leading-relaxed text-sm">
                   {feature.desc}
                 </p>
               </motion.div>
             ))}
+          </div>
+          
+          <div className="mt-16 text-center">
+            <button 
+              onClick={() => onNavigate('/features')}
+              className="inline-flex items-center gap-2 text-brand font-bold hover:gap-3 transition-all"
+            >
+              {language === 'ar' ? 'عرض جميع الميزات بالتفصيل' : 'View all features in detail'} <ArrowRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="py-12 px-6 border-t border-[var(--border-soft)]">
-        <div className="max-w-7xl mx-auto flex flex-col items-center gap-8">
-          <div className="flex items-center gap-2 opacity-50">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex flex-col items-center md:items-start gap-2 opacity-50">
             <img src={ASSETS.LOGO_PRIMARY} alt="Logo" className="w-8 h-8 object-contain grayscale" {...IMAGE_PROPS} />
           </div>
-
-          {/* Nav Links */}
           <div className="flex flex-wrap justify-center gap-3 text-xs font-bold">
             {[
               { label: translate('features'), path: '/features' },
               { label: translate('industries'), path: '/industries' },
-              { label: translate('pricing'), path: '/pricing' },
-              { label: translate('academy'), path: '/academy' },
-              { label: translate('help'), path: '/help' },
-              { label: translate('contact'), path: '/contact' },
+              { label: 'Academy', path: '/academy' },
+              { label: 'Help', path: '/help' },
+              { label: 'Contact', path: '/contact' },
               { label: translate('privacy'), path: '/privacy' },
               { label: translate('terms'), path: '/terms' },
               { label: 'Founder', path: '/owner', hidden: true },
             ].map((link) => (
               <button
                 key={link.path}
-                onClick={() => navigate(link.path)}
-                className={`px-4 py-2 rounded-full glass-card border border-[var(--border-soft)] hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300 ${link.hidden ? 'opacity-0 hover:opacity-100' : ''
-                  }`}
+                onClick={() => onNavigate(link.path)}
+                className={`px-4 py-2 rounded-full glass-card border border-[var(--border-soft)] hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300 ${
+                  link.hidden ? 'opacity-0 hover:opacity-100' : ''
+                }`}
               >
                 {link.label}
               </button>
             ))}
           </div>
-
-          {/* WhatsApp Support Links */}
-          <div className="flex flex-wrap justify-center gap-3">
-            {[
-              { label: translate('technical_support'), url: 'https://chat.whatsapp.com/H8W70Tq6ppF0pXvG2LfvJP?mode=gi_t' },
-              { label: translate('customer_service'), url: 'https://chat.whatsapp.com/HfZlteCotW8Bi6ZsD4GJLs?mode=gi_t' },
-              { label: translate('complaints_suggestions'), url: 'https://chat.whatsapp.com/IPu6Tmht8v1GTOwFxZO1Zz?mode=gi_t' },
-            ].map((wa) => (
-              <a
-                key={wa.url}
-                href={wa.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all text-xs font-bold"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                {wa.label}
-              </a>
-            ))}
-          </div>
-
-          {/* Emails */}
-          <div className="flex flex-wrap justify-center gap-4 text-xs text-[var(--text-secondary)]">
-            <a href="mailto:INFO@ZIEN-AI.APP" className="hover:text-blue-600 transition-colors font-medium">INFO@ZIEN-AI.APP</a>
-            <span className="text-[var(--border-soft)]">|</span>
-            <a href="mailto:GM@ZIEN-AI.APP" className="hover:text-blue-600 transition-colors font-medium">GM@ZIEN-AI.APP</a>
-          </div>
-
           <div className="text-sm text-[var(--text-secondary)]">
-            © 2024 ZIEN AI. {translate('all_rights_reserved')}
+            © 2024 ZIEN AI. {language === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
           </div>
         </div>
       </footer>

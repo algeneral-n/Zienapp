@@ -1,124 +1,227 @@
-import React from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Globe, Moon, Sun, Monitor, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { LogIn, UserPlus, ArrowLeft, Menu as MenuIcon, X, Search, Globe, LayoutDashboard, Settings, LogOut, Building2, BarChart3, Users, Wallet, Truck, GraduationCap, Zap } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../constants/assets';
+import { HeaderControls } from './HeaderControls';
+import { motion, AnimatePresence } from 'motion/react';
 
-export default function Header() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const showBackButton = location.pathname !== '/' && location.pathname !== '';
-  const { language, setLanguage, mode, setMode, t: translate } = useTheme();
+interface HeaderProps {
+  onNavigate: (to: string) => void;
+  onLogout?: () => void;
+  showBackButton?: boolean;
+  user?: any;
+}
 
-  const languages = [
-    { code: 'en', name: 'English' },
-    { code: 'ar', name: 'العربية' },
-    { code: 'fr', name: 'Français' },
-    { code: 'es', name: 'Español' },
-    { code: 'de', name: 'Deutsch' },
-    { code: 'it', name: 'Italiano' },
-    { code: 'tr', name: 'Türkçe' },
-    { code: 'ru', name: 'Русский' },
-    { code: 'zh', name: '中文' },
-    { code: 'ja', name: '日本語' },
-    { code: 'ko', name: '한국어' },
-    { code: 'pt', name: 'Português' },
-    { code: 'hi', name: 'हिन्दी' },
-    { code: 'bn', name: 'বাংলা' },
-    { code: 'ur', name: 'اردو' }
+export default function Header({ onNavigate, onLogout, showBackButton, user }: HeaderProps) {
+  const { language, t: translate } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const publicLinks = [
+    { label: translate('features'), path: '/features' },
+    { label: translate('faq'), path: '/faq' },
+    { label: translate('academy'), path: '/academy' },
+    { label: translate('help'), path: '/help' },
+    { label: translate('contact'), path: '/contact' },
   ];
 
+  const userLinks = user?.role === 'founder' ? [
+    { label: language === 'ar' ? 'إدارة الشركات' : 'Tenant Management', path: '/owner', icon: Building2 },
+    { label: language === 'ar' ? 'إدارة الوحدات' : 'Modules Provisioning', path: '/owner/modules', icon: LayoutDashboard },
+    { label: language === 'ar' ? 'طلبات العرض' : 'Demo Requests', path: '/owner/demos', icon: Search },
+    { label: language === 'ar' ? 'بناء الذكاء الاصطناعي' : 'AI Builder', path: '/owner/ai', icon: Zap },
+    { label: language === 'ar' ? 'التسويق' : 'Marketing', path: '/owner/marketing', icon: Globe },
+    { label: language === 'ar' ? 'الإعدادات' : 'Settings', path: '/owner/settings', icon: Settings },
+  ] : [
+    { label: language === 'ar' ? 'لوحة التحكم' : 'Dashboard', path: '/portal', icon: LayoutDashboard },
+    { label: language === 'ar' ? 'المحاسبة' : 'Accounting', path: '/portal/accounting', icon: BarChart3 },
+    { label: language === 'ar' ? 'الموارد البشرية' : 'HR & People', path: '/portal/hr', icon: Users },
+    { label: language === 'ar' ? 'الرواتب' : 'Payroll', path: '/portal/payroll', icon: Wallet },
+    { label: language === 'ar' ? 'اللوجستيات' : 'Logistics', path: '/portal/logistics', icon: Truck },
+    { label: language === 'ar' ? 'المركز الأكاديمي' : 'Academic Center', path: '/portal/academic', icon: GraduationCap },
+    { label: language === 'ar' ? 'الإعدادات' : 'Settings', path: '/portal/settings', icon: Settings },
+  ];
+
+  const handleSearch = (type: 'google' | 'platform') => {
+    if (type === 'google') {
+      window.open('https://www.google.com/search?q=ZIEN+Platform', '_blank');
+    } else {
+      // Internal search logic could go here
+      alert(language === 'ar' ? 'البحث الداخلي قيد التطوير' : 'Internal search is under development');
+    }
+    setIsSearchOpen(false);
+  };
+
   return (
-    <nav className="fixed top-0 w-full z-50 glass-card rounded-none border-x-0 border-t-0 px-4 md:px-8 py-1 flex items-center justify-between backdrop-blur-2xl bg-white/80 dark:bg-black/80 shadow-2xl shadow-blue-500/5">
-      <div className="flex items-center gap-2">
+    <nav className="fixed top-0 w-full z-50 bg-[var(--bg-primary)] border-b border-[var(--border-soft)] px-4 md:px-8 py-2 flex items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.1)]">
+      <div className="flex items-center gap-4">
         {showBackButton && (
-          <button
-            onClick={() => window.history.back()}
-            className="p-2 hover:bg-black/5 rounded-full transition-all"
-            title={translate('back')}
+          <button 
+            onClick={() => onNavigate('/')}
+            className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all shadow-[0_2px_10px_rgba(0,0,0,0.1)]"
+            title={language === 'ar' ? 'العودة' : 'Go Back'}
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className={`w-6 h-6 ${language === 'ar' ? 'rotate-180' : ''}`} />
           </button>
         )}
-        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => navigate('/')}>
+        <button 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all shadow-[0_2px_10px_rgba(0,0,0,0.1)]"
+        >
+          {isMenuOpen ? <X className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
+        </button>
+
+        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => onNavigate('/')}>
           <div className="relative">
-            <div className="absolute inset-0 bg-blue-500 blur-2xl opacity-0 group-hover:opacity-20 transition-opacity"></div>
-            <img src={ASSETS.LOGO_PRIMARY} alt="Logo" className="w-24 h-24 object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500" {...IMAGE_PROPS} />
+            <div className="absolute inset-0 bg-brand blur-2xl opacity-0 group-hover:opacity-20 transition-opacity"></div>
+            <img src={ASSETS.LOGO_PRIMARY} alt="Logo" className="w-24 h-24 sm:w-28 sm:h-28 object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)] group-hover:scale-105 transition-transform duration-500" {...IMAGE_PROPS} />
           </div>
         </div>
-      </div>
-
-      <div className="hidden lg:flex items-center gap-1 font-bold text-[10px] uppercase tracking-widest">
-        {[
-          { label: translate('features'), path: '/features' },
-          { label: translate('faq'), path: '/faq' },
-          { label: translate('academy'), path: '/academy' },
-          { label: translate('help'), path: '/help' },
-          { label: translate('contact'), path: '/contact' },
-        ].map((item) => (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className="px-5 py-3 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-500 border border-transparent hover:shadow-lg hover:shadow-blue-600/20"
-          >
-            {item.label}
-          </button>
-        ))}
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <div className="hidden sm:flex items-center gap-2">
-          <div className="relative group">
-            <button className="p-2 hover:bg-black/5 rounded-full transition-all">
-              <Globe className="w-5 h-5" />
-            </button>
-            <div className="absolute right-0 mt-2 w-48 glass-card opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 max-h-96 overflow-y-auto">
-              {languages.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => setLanguage(lang.code as any)}
-                  className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors text-sm font-medium ${language === lang.code ? 'text-blue-600 bg-blue-50/50' : ''}`}
-                >
-                  {lang.name}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="relative">
+          <button 
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all shadow-[0_2px_10px_rgba(0,0,0,0.1)]"
+          >
+            <Search className="w-5 h-5" />
+          </button>
 
-          <div className="flex bg-black/5 p-1 rounded-full">
-            {[
-              { id: 'light', icon: Sun },
-              { id: 'dark', icon: Moon },
-              { id: 'system', icon: Monitor }
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setMode(t.id as any)}
-                className={`p-1.5 rounded-full transition-all ${mode === t.id ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+          <AnimatePresence>
+            {isSearchOpen && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.2)] p-2 flex flex-col gap-2"
               >
-                <t.icon className="w-4 h-4" />
-              </button>
-            ))}
-          </div>
+                <button 
+                  onClick={() => handleSearch('google')}
+                  className="flex items-center gap-3 p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl transition-colors text-sm font-bold shadow-[0_2px_10px_rgba(0,0,0,0.05)]"
+                >
+                  <Globe className="w-4 h-4 text-blue-500" />
+                  {language === 'ar' ? 'بحث جوجل' : 'Google Search'}
+                </button>
+                <button 
+                  onClick={() => handleSearch('platform')}
+                  className="flex items-center gap-3 p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl transition-colors text-sm font-bold shadow-[0_2px_10px_rgba(0,0,0,0.05)]"
+                >
+                  <Search className="w-4 h-4 text-brand" />
+                  {language === 'ar' ? 'بحث منصة زين' : 'ZIEN Platform Search'}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/login')}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 font-bold text-xs uppercase tracking-wider hover:text-blue-600 transition-colors"
-          >
-            <LogIn className="w-4 h-4" />
-            {translate('login')}
-          </button>
-          <button
-            onClick={() => navigate('/register')}
-            className="bg-blue-600 text-white px-6 py-3 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
-          >
-            <UserPlus className="w-4 h-4" />
-            {translate('register')}
-          </button>
+          <HeaderControls />
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!user ? (
+            <>
+              <button 
+                onClick={() => onNavigate('/login')}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 font-bold text-xs uppercase tracking-wider hover:text-brand transition-colors shadow-[0_2px_10px_rgba(0,0,0,0.1)] rounded-2xl"
+              >
+                <LogIn className="w-4 h-4" />
+                {translate('login')}
+              </button>
+              <button 
+                onClick={() => onNavigate('/register')}
+                className="bg-brand text-white px-4 sm:px-6 py-2 sm:py-3 rounded-3xl font-bold text-xs uppercase tracking-wider hover:bg-brand-hover transition-all shadow-[0_4px_15px_rgba(0,0,0,0.2)] flex items-center gap-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span className="hidden sm:inline">{translate('register')}</span>
+              </button>
+            </>
+          ) : (
+            <button 
+              onClick={() => {
+                // Handle logout logic here if needed, or navigate to profile
+                onNavigate(user.role === 'founder' ? '/owner' : '/portal');
+              }}
+              className="bg-brand text-white px-4 sm:px-6 py-2 sm:py-3 rounded-3xl font-bold text-xs uppercase tracking-wider hover:bg-brand-hover transition-all shadow-[0_4px_15px_rgba(0,0,0,0.2)] flex items-center gap-2"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span className="hidden sm:inline">{language === 'ar' ? 'لوحة التحكم' : 'Dashboard'}</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Main Menu Dropdown */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full left-0 w-full md:w-80 md:left-4 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.2)] flex flex-col p-4 gap-2 overflow-hidden"
+          >
+            {user ? (
+              <>
+                <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                  {language === 'ar' ? 'خدمات المستخدم' : 'User Services'}
+                </div>
+                {userLinks.map((item) => (
+                  <button
+                    key={item.path}
+                    onClick={() => {
+                      onNavigate(item.path);
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 font-bold text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl transition-colors shadow-[0_2px_10px_rgba(0,0,0,0.05)]"
+                  >
+                    <item.icon className="w-4 h-4" />
+                    {item.label}
+                  </button>
+                ))}
+                <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-2" />
+                <button
+                  onClick={() => {
+                    if (onLogout) onLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 font-bold text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-colors shadow-[0_2px_10px_rgba(0,0,0,0.05)]"
+                >
+                  <LogOut className="w-4 h-4" />
+                  {language === 'ar' ? 'تسجيل الخروج' : 'Logout'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                  {language === 'ar' ? 'القائمة الرئيسية' : 'Main Menu'}
+                </div>
+                {publicLinks.map((item) => (
+                  <button
+                    key={item.path}
+                    onClick={() => {
+                      onNavigate(item.path);
+                      setIsMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 font-bold text-sm uppercase tracking-widest hover:bg-brand-light dark:hover:bg-brand-muted rounded-2xl transition-colors shadow-[0_2px_10px_rgba(0,0,0,0.05)]"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+                
+                <div className="sm:hidden h-px bg-[var(--border-soft)] my-2" />
+                <button 
+                  onClick={() => { onNavigate('/login'); setIsMenuOpen(false); }}
+                  className="sm:hidden flex items-center gap-2 px-4 py-3 font-bold text-sm uppercase tracking-widest hover:bg-brand-light dark:hover:bg-brand-muted rounded-2xl transition-colors shadow-[0_2px_10px_rgba(0,0,0,0.05)]"
+                >
+                  <LogIn className="w-5 h-5" />
+                  {translate('login')}
+                </button>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }

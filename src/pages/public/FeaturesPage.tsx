@@ -1,81 +1,159 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeProvider';
-import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
-import { CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, Video, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, Video, ArrowRight, Layout, ShieldCheck, Users2 } from 'lucide-react';
 
-export default function FeaturesPage() {
+export default function FeaturesPage({ onNavigate }: { onNavigate: (to: string) => void }) {
   const { language, t: translate } = useTheme();
-  const navigate = useNavigate();
   
   const mainFeatures = [
     { 
+      id: 'accounting',
       icon: BarChart3, 
-      slug: 'accounting',
       title: language === 'ar' ? "المحاسبة والمالية" : "Accounting & Finance", 
-      desc: language === 'ar' ? "الفواتير الآلية، تتبع الضرائب، والتقارير المالية." : "Automated invoicing, tax tracking, and financial reporting.", 
+      desc: language === 'ar' ? "إدارة الفواتير، المدفوعات، الاشتراكات، وإعدادات الضرائب حسب الدولة." : "Manage invoices, payments, subscriptions, and tax settings by country.", 
       image: "https://lh3.googleusercontent.com/p/AF1QipM4Z8Hvn9cMYSRqtQNgp3ZlnnyHqSRIDaSQAKDN=s1360-w1360-h1020-rw",
-      bullets: ['accounting_bullet_1', 'accounting_bullet_2', 'accounting_bullet_3'],
+      bullets: language === 'ar' ? [
+        "إصدار فواتير ذكية وتتبع المدفوعات",
+        "إدارة الضرائب المتعددة والامتثال المحلي",
+        "تقارير مالية وتحليلات فورية"
+      ] : [
+        "Smart invoicing and payment tracking",
+        "Multi-tax management and local compliance",
+        "Real-time financial reporting and analytics"
+      ]
     },
     { 
+      id: 'sales',
       icon: Users, 
-      slug: 'crm',
-      title: language === 'ar' ? "إدارة علاقات العملاء والمبيعات" : "CRM & Sales", 
-      desc: language === 'ar' ? "إدارة خطوط الأنابيب، تتبع العملاء المحتملين، وبوابة العملاء." : "Pipeline management, lead tracking, and client portal.", 
+      title: language === 'ar' ? "المبيعات والتسويق" : "Sales & Marketing", 
+      desc: language === 'ar' ? "إدارة علاقات العملاء (CRM)، عروض الأسعار، العقود، وبوابة العملاء." : "CRM, quotes, contracts, and a dedicated client portal.", 
       image: "https://lh3.googleusercontent.com/p/AF1QipOxcyDh5pI5H6Es3o-98m8D9fynSp8fBCvvrW_g=s1360-w1360-h1020-rw",
-      bullets: ['crm_bullet_1', 'crm_bullet_2', 'crm_bullet_3'],
+      bullets: language === 'ar' ? [
+        "إدارة مسار المبيعات والعملاء المحتملين",
+        "إنشاء عروض أسعار وعقود احترافية",
+        "بوابة مخصصة للعملاء للتواصل والمتابعة"
+      ] : [
+        "Sales pipeline and lead management",
+        "Professional quotes and contract generation",
+        "Dedicated client portal for communication"
+      ]
     },
     { 
+      id: 'hr',
       icon: Shield, 
-      slug: 'hr',
-      title: language === 'ar' ? "الموارد البشرية والرواتب" : "HR & Payroll", 
-      desc: language === 'ar' ? "الحضور، إدارة الإجازات، ومعالجة الرواتب الآمنة." : "Attendance, leave management, and secure payroll processing.", 
+      title: language === 'ar' ? "الموارد البشرية" : "Human Resources", 
+      desc: language === 'ar' ? "ملفات الموظفين، التوظيف، الحضور، الرواتب، والإجازات." : "Employee files, hiring, attendance, payroll, and leaves.", 
       image: "https://lh3.googleusercontent.com/p/AF1QipO9w_lR54InzNIU6W8D9AH8XRFzLL6SUwVPdJcN=s1360-w1360-h1020-rw",
-      bullets: ['hr_bullet_1', 'hr_bullet_2', 'hr_bullet_3'],
+      bullets: language === 'ar' ? [
+        "إدارة شاملة لملفات الموظفين",
+        "تتبع الحضور والانصراف آلياً",
+        "معالجة الرواتب وإدارة طلبات الإجازات"
+      ] : [
+        "Comprehensive employee file management",
+        "Automated attendance tracking",
+        "Payroll processing and leave management"
+      ]
     },
     { 
-      icon: Zap, 
-      slug: 'rare-ai',
-      title: language === 'ar' ? "وكلاء RARE AI" : "RARE AI Agents", 
-      desc: language === 'ar' ? "مساعدون أذكياء لكل قسم." : "Intelligent assistants for every department.", 
-      image: "https://www.cyberark.com/wp-content/uploads/2025/03/ai-agents-collaborative-intelligence1.jpg",
-      bullets: ['rare_bullet_1', 'rare_bullet_2', 'rare_bullet_3'],
-    },
-    { 
+      id: 'fleet',
       icon: Globe, 
-      slug: 'logistics',
-      title: language === 'ar' ? "الخدمات اللوجستية والأسطول" : "Logistics & Fleet", 
-      desc: language === 'ar' ? "تتبع في الوقت الفعلي وإرسال المهام للعمليات الميدانية." : "Real-time tracking and task dispatching for field operations.", 
+      title: language === 'ar' ? "العمليات الميدانية والأسطول" : "Field Agents & Fleet", 
+      desc: language === 'ar' ? "تتبع الخرائط، إدارة المركبات، ودعم CarPlay/Android Auto." : "Map tracking, vehicle management, and CarPlay/Android Auto support.", 
       image: "https://lh3.googleusercontent.com/p/AF1QipOO2HzMRuorxrjfQkOsJ_3ZfKUVWT5x718CeF6s=s1360-w1360-h1020-rw",
-      bullets: ['logistics_bullet_1', 'logistics_bullet_2', 'logistics_bullet_3'],
+      bullets: language === 'ar' ? [
+        "تتبع حي للمركبات والوكلاء الميدانيين",
+        "تكامل مع CarPlay و Android Auto",
+        "إدارة مهام الصيانة وجدولة الرحلات"
+      ] : [
+        "Live tracking of vehicles and field agents",
+        "CarPlay and Android Auto integration",
+        "Maintenance task management and trip scheduling"
+      ]
+    },
+    { 
+      id: 'ai',
+      icon: Zap, 
+      title: "RARE AI Agents", 
+      desc: language === 'ar' ? "وكلاء ذكاء اصطناعي متخصصون (محاسبة، مبيعات، موارد بشرية، إلخ) للتحليلات والتوصيات." : "Specialized AI agents (Accounting, Sales, HR, etc.) for analytics and recommendations.", 
+      image: "https://www.cyberark.com/wp-content/uploads/2025/03/ai-agents-collaborative-intelligence1.jpg",
+      bullets: language === 'ar' ? [
+        "مساعد ذكي لكل قسم في الشركة",
+        "تحليلات تنبؤية وتوصيات استراتيجية",
+        "أتمتة المهام الروتينية وصياغة التقارير"
+      ] : [
+        "Smart assistant for every company department",
+        "Predictive analytics and strategic recommendations",
+        "Routine task automation and report drafting"
+      ]
     },
   ];
 
   const secondaryFeatures = [
     { 
-      icon: Briefcase, 
-      slug: 'project-management',
-      title: language === 'ar' ? "إدارة المشاريع" : "Project Management", 
-      desc: language === 'ar' ? "تتبع المهام، الموافقات، والتعاون الجماعي." : "Task tracking, approvals, and team collaboration.",
-      image: "https://lh3.googleusercontent.com/p/AF1QipPwN6JEeKaXorclLqLX6pWvPluB__YEcTvMo6Ef=s1360-w1360-h1020-rw",
-      bullets: ['pm_bullet_1', 'pm_bullet_2', 'pm_bullet_3'],
-    },
-    { 
-      icon: ShoppingBag, 
-      slug: 'global-store',
-      title: language === 'ar' ? "المتجر العالمي" : "Global Store", 
-      desc: language === 'ar' ? "تكامل التجارة الإلكترونية المرتبط بمخزونك." : "E-commerce integration linked to your inventory.",
-      image: "https://lh3.googleusercontent.com/p/AF1QipMPZljVEc-2ZIfQBXj4-jbm2U-Lwng67FH5wfDL=s1360-w1360-h1020-rw",
-      bullets: ['store_bullet_1', 'store_bullet_2', 'store_bullet_3'],
-    },
-    { 
-      icon: MessageSquare, 
-      slug: 'meetings-chat',
+      id: 'meetings',
+      icon: Users2, 
       title: language === 'ar' ? "الاجتماعات والدردشة" : "Meetings & Chat", 
-      desc: language === 'ar' ? "اتصالات موحدة مع ملخصات مدعومة بالذكاء الاصطناعي." : "Unified communication with AI-powered summaries.",
+      desc: language === 'ar' ? "اجتماعات الأقسام، دردشة خاصة/جماعية، وملخصات مدعومة بالذكاء الاصطناعي." : "Department meetings, private/group chat, and AI-powered summaries.",
       image: "https://lh3.googleusercontent.com/p/AF1QipPGjbkIguKi4eV3p_wr4Js4-O_Hv-AkhlGWz88-=s1360-w1360-h1020-rw",
-      bullets: ['meetings_bullet_1', 'meetings_bullet_2', 'meetings_bullet_3'],
+      bullets: language === 'ar' ? [
+        "مكالمات فيديو وصوت عالية الجودة",
+        "مساحات عمل جماعية ودردشة فورية",
+        "تلخيص الاجتماعات تلقائياً بالذكاء الاصطناعي"
+      ] : [
+        "High-quality video and audio calls",
+        "Team workspaces and instant messaging",
+        "Automatic AI-powered meeting summaries"
+      ]
+    },
+    { 
+      id: 'admin',
+      icon: Briefcase, 
+      title: language === 'ar' ? "المهام الإدارية والشكاوى" : "Admin Tasks & Complaints", 
+      desc: language === 'ar' ? "إدارة المهام، الأوامر الإدارية، المرفقات، ونظام الشكاوى." : "Task management, administrative orders, attachments, and complaints system.",
+      image: "https://lh3.googleusercontent.com/p/AF1QipPwN6JEeKaXorclLqLX6pWvPluB__YEcTvMo6Ef=s1360-w1360-h1020-rw",
+      bullets: language === 'ar' ? [
+        "تتبع المهام وتعيين المسؤوليات",
+        "إدارة الأوامر الإدارية والتعاميم",
+        "نظام متكامل لمعالجة الشكاوى والاقتراحات"
+      ] : [
+        "Task tracking and responsibility assignment",
+        "Management of administrative orders and circulars",
+        "Integrated system for handling complaints and suggestions"
+      ]
+    },
+    { 
+      id: 'store',
+      icon: Layout, 
+      title: language === 'ar' ? "المتجر المخصص" : "Customized Store", 
+      desc: language === 'ar' ? "متجر مخصص للمستأجر مرتبط ببوابة العملاء للمنتجات والخدمات." : "Tenant-customized store linked to client portal for products/services.",
+      image: "https://lh3.googleusercontent.com/p/AF1QipMPZljVEc-2ZIfQBXj4-jbm2U-Lwng67FH5wfDL=s1360-w1360-h1020-rw",
+      bullets: language === 'ar' ? [
+        "واجهة متجر قابلة للتخصيص بالكامل",
+        "إدارة المنتجات والخدمات والأسعار",
+        "تكامل مباشر مع بوابة العملاء والمدفوعات"
+      ] : [
+        "Fully customizable storefront interface",
+        "Product, service, and pricing management",
+        "Direct integration with client portal and payments"
+      ]
+    },
+    { 
+      id: 'portal',
+      icon: ShieldCheck, 
+      title: language === 'ar' ? "بوابة الموظف" : "Employee Portal", 
+      desc: language === 'ar' ? "بوابة شخصية لكل موظف للوصول إلى الحضور، الإجازات، والرواتب." : "Personal portal for each employee to access attendance, leaves, and payroll.",
+      image: "https://picsum.photos/seed/portal/1360/1020",
+      bullets: language === 'ar' ? [
+        "لوحة تحكم شخصية لكل موظف",
+        "تقديم ومتابعة طلبات الإجازات والمغادرات",
+        "الوصول إلى قسائم الرواتب والوثائق الشخصية"
+      ] : [
+        "Personalized dashboard for every employee",
+        "Submit and track leave and departure requests",
+        "Access to payslips and personal documents"
+      ]
     },
   ];
 
@@ -87,7 +165,7 @@ export default function FeaturesPage() {
         viewport={{ once: true }}
         className="flex-1 space-y-8"
       >
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-400 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+        <div className="w-16 h-16 bg-gradient-to-br from-brand to-brand-light text-white rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20">
           <f.icon className="w-8 h-8" />
         </div>
         <h2 className="text-4xl font-bold tracking-tight">{f.title}</h2>
@@ -95,18 +173,15 @@ export default function FeaturesPage() {
           {f.desc}
         </p>
         <ul className="space-y-4">
-          {f.bullets.map((bulletKey: string, idx: number) => (
+          {f.bullets.map((bullet: string, idx: number) => (
             <li key={idx} className="flex items-center gap-3 font-medium">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              {translate(bulletKey)}
+              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <span>{bullet}</span>
             </li>
           ))}
         </ul>
-        <button 
-          onClick={() => navigate(`/features/${f.slug}`)}
-          className="flex items-center gap-2 text-blue-600 font-bold hover:gap-3 transition-all"
-        >
-          {translate('learn_more_about')} {f.title} <ArrowRight className="w-5 h-5" />
+        <button onClick={() => onNavigate(`/features/${f.id}`)} className="inline-flex items-center gap-2 text-brand font-bold hover:gap-3 transition-all">
+          {language === 'ar' ? `تعرف على المزيد حول ${f.title}` : `Learn more about ${f.title}`} <ArrowRight className="w-5 h-5" />
         </button>
       </motion.div>
       
@@ -116,7 +191,7 @@ export default function FeaturesPage() {
         viewport={{ once: true }}
         className="flex-1 w-full"
       >
-        <div className="glass-card p-4 rounded-[2.5rem] shadow-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
+        <div className="glass-card p-4 rounded-[2.5rem] shadow-2xl bg-gradient-to-br from-brand/10 to-brand-light/10 border-brand/20">
           <img 
             src={f.image} 
             alt={f.title} 
@@ -129,18 +204,20 @@ export default function FeaturesPage() {
   );
 
   return (
-    <div className="pt-32 pb-20 px-6 bg-[var(--bg-primary)] min-h-screen">
+    <div className="pt-12 pb-20 px-6 bg-[var(--bg-primary)] min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-20">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-bold mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-light text-brand text-sm font-bold mb-6">
             <Zap className="w-4 h-4 fill-current" />
-            {translate('enterprise_grade')}
+            {language === 'ar' ? 'ميزات على مستوى المؤسسات' : 'Enterprise Grade Features'}
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 tracking-tight">
-            {translate('everything_to_scale')}
+            {language === 'ar' ? 'كل ما تحتاجه للتوسع' : 'Everything you need to scale'}
           </h1>
           <p className="text-xl text-[var(--text-secondary)] max-w-3xl mx-auto leading-relaxed">
-            {translate('features_hero_desc')}
+            {language === 'ar' 
+              ? 'مجموعة شاملة من الأدوات المصممة للتعامل مع كل جانب من جوانب عمليات عملك بدقة مدفوعة بالذكاء الاصطناعي.' 
+              : 'A comprehensive suite of tools designed to handle every aspect of your business operations with AI-driven precision.'}
           </p>
         </div>
 
@@ -152,8 +229,8 @@ export default function FeaturesPage() {
         {/* Secondary Feature Sections */}
         <div className="mt-40 space-y-32">
           <div className="text-center">
-            <h2 className="text-4xl font-bold mb-6">{translate('more_solutions')}</h2>
-            <div className="w-24 h-1 bg-blue-600 mx-auto rounded-full"></div>
+            <h2 className="text-4xl font-bold mb-6">{language === 'ar' ? 'المزيد من الحلول المتكاملة' : 'More Integrated Solutions'}</h2>
+            <div className="w-24 h-1 bg-brand mx-auto rounded-full"></div>
           </div>
           {secondaryFeatures.map((f, i) => renderFeature(f, i + mainFeatures.length))}
         </div>

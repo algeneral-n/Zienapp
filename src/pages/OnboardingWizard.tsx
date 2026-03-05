@@ -1,179 +1,172 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  Building2, User, ShieldCheck, CreditCard,
-  Check, ArrowRight, ArrowLeft, Upload,
-  Briefcase, Zap, Shield, Loader2,
-  Store, Factory, HardHat, Eye, EyeOff, CheckCircle2,
+import { 
+  Building2, User, ShieldCheck, CreditCard, 
+  Check, ArrowRight, ArrowLeft, Upload, 
+  Briefcase, Globe, FileText, Zap, Shield, Loader2,
+  Plug, Lock, CheckCircle2, Settings, HelpCircle, Mail, Key
 } from 'lucide-react';
 import { useTheme } from '../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../constants/assets';
 import { supabase } from '../services/supabase';
-import { provisioningService, type ProvisioningResult, type ProvisioningStatus } from '../services/provisioningService';
-import { getPlans, orchestratePayment, type Plan } from '../services/billingService';
-
-const industryIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  store: Store,
-  factory: Factory,
-  'hard-hat': HardHat,
-  briefcase: Briefcase,
-  building: Building2,
-};
-
-// ─── Available modules per industry ─────────────────────────────────────────
-const INDUSTRY_MODULES: Record<string, { code: string; name_en: string; name_ar: string; default: boolean }[]> = {
-  supermarket: [
-    { code: 'hr', name_en: 'HR & Employees', name_ar: 'الموارد البشرية', default: true },
-    { code: 'accounting', name_en: 'Accounting', name_ar: 'المحاسبة', default: true },
-    { code: 'store', name_en: 'Store & POS', name_ar: 'المتجر ونقاط البيع', default: true },
-    { code: 'inventory', name_en: 'Inventory', name_ar: 'إدارة المخزون', default: true },
-    { code: 'crm', name_en: 'CRM', name_ar: 'إدارة العملاء', default: false },
-    { code: 'integrations', name_en: 'Integrations', name_ar: 'التكاملات', default: false },
-  ],
-  industrial: [
-    { code: 'hr', name_en: 'HR & Employees', name_ar: 'الموارد البشرية', default: true },
-    { code: 'accounting', name_en: 'Accounting', name_ar: 'المحاسبة', default: true },
-    { code: 'inventory', name_en: 'Inventory', name_ar: 'إدارة المخزون', default: true },
-    { code: 'projects', name_en: 'Projects', name_ar: 'إدارة المشاريع', default: true },
-    { code: 'quality', name_en: 'Quality Control', name_ar: 'مراقبة الجودة', default: false },
-    { code: 'integrations', name_en: 'Integrations', name_ar: 'التكاملات', default: false },
-  ],
-  engineering: [
-    { code: 'hr', name_en: 'HR & Employees', name_ar: 'الموارد البشرية', default: true },
-    { code: 'accounting', name_en: 'Accounting', name_ar: 'المحاسبة', default: true },
-    { code: 'projects', name_en: 'Projects', name_ar: 'إدارة المشاريع', default: true },
-    { code: 'crm', name_en: 'CRM', name_ar: 'إدارة العملاء', default: true },
-    { code: 'documents', name_en: 'Documents', name_ar: 'إدارة الوثائق', default: false },
-    { code: 'integrations', name_en: 'Integrations', name_ar: 'التكاملات', default: false },
-  ],
-  trading: [
-    { code: 'hr', name_en: 'HR & Employees', name_ar: 'الموارد البشرية', default: true },
-    { code: 'accounting', name_en: 'Accounting', name_ar: 'المحاسبة', default: true },
-    { code: 'store', name_en: 'Store & POS', name_ar: 'المتجر ونقاط البيع', default: true },
-    { code: 'crm', name_en: 'CRM', name_ar: 'إدارة العملاء', default: true },
-    { code: 'inventory', name_en: 'Inventory', name_ar: 'إدارة المخزون', default: false },
-    { code: 'integrations', name_en: 'Integrations', name_ar: 'التكاملات', default: false },
-  ],
-  commercial: [
-    { code: 'hr', name_en: 'HR & Employees', name_ar: 'الموارد البشرية', default: true },
-    { code: 'accounting', name_en: 'Accounting', name_ar: 'المحاسبة', default: true },
-    { code: 'store', name_en: 'Store & POS', name_ar: 'المتجر ونقاط البيع', default: true },
-    { code: 'crm', name_en: 'CRM', name_ar: 'إدارة العملاء', default: true },
-    { code: 'inventory', name_en: 'Inventory', name_ar: 'إدارة المخزون', default: true },
-    { code: 'integrations', name_en: 'Integrations', name_ar: 'التكاملات', default: false },
-  ],
-};
-
-// Pricing plans are now fetched dynamically from the billing API
+import { provisioningService, ProvisioningResult } from '../services/provisioningService';
 
 export default function OnboardingWizard() {
   const { language, t: translate } = useTheme();
 
   const steps = [
     { id: 'company', title: language === 'ar' ? 'معلومات الشركة' : 'Company Info', icon: Building2 },
-    { id: 'manager', title: language === 'ar' ? 'حساب المدير' : 'GM Account', icon: User },
-    { id: 'industry', title: language === 'ar' ? 'القطاع والوحدات' : 'Industry & Modules', icon: Zap },
-    { id: 'docs', title: language === 'ar' ? 'رفع المستندات' : 'Upload Docs', icon: Upload },
-    { id: 'billing', title: language === 'ar' ? 'الخطة والدفع' : 'Plan & Payment', icon: CreditCard },
-    { id: 'terms', title: language === 'ar' ? 'الشروط والتأكيد' : 'Terms & Confirm', icon: ShieldCheck },
+    { id: 'type', title: language === 'ar' ? 'نوع النشاط' : 'Industry Type', icon: Briefcase },
+    { id: 'questions', title: language === 'ar' ? 'تخصيص ذكي' : 'Smart Setup', icon: HelpCircle },
+    { id: 'services', title: language === 'ar' ? 'الخدمات' : 'Services', icon: Settings },
+    { id: 'integrations', title: language === 'ar' ? 'الربط' : 'Integrations', icon: Plug },
+    { id: 'payment', title: language === 'ar' ? 'الدفع والمستندات' : 'Payment & Docs', icon: CreditCard },
+    { id: 'auth', title: language === 'ar' ? 'التوثيق' : 'Verification', icon: Key },
   ];
 
-  const industries = [
-    { id: 'supermarket', name: language === 'ar' ? 'سوبر ماركت / تجزئة' : 'Supermarket / Retail', icon: 'store' },
-    { id: 'industrial', name: language === 'ar' ? 'صناعي / مصنع' : 'Industrial / Factory', icon: 'factory' },
-    { id: 'engineering', name: language === 'ar' ? 'استشارات هندسية' : 'Engineering Consultancy', icon: 'hard-hat' },
-    { id: 'trading', name: language === 'ar' ? 'شركة تجارية' : 'Trading Company', icon: 'briefcase' },
-    { id: 'commercial', name: language === 'ar' ? 'مركز تجاري / مول' : 'Commercial Center / Mall', icon: 'building' },
+  const companyTypes = [
+    { id: 'commercial', name: language === 'ar' ? 'تجارية' : 'Commercial', icon: '🏢' },
+    { id: 'industrial', name: language === 'ar' ? 'صناعية' : 'Industrial', icon: '🏭' },
+    { id: 'service', name: language === 'ar' ? 'خدمية' : 'Service', icon: '🤝' },
+    { id: 'consulting', name: language === 'ar' ? 'استشارية' : 'Consulting', icon: '💼' },
+    { id: 'trading', name: language === 'ar' ? 'تجارة عامة' : 'General Trading', icon: '🚢' },
+    { id: 'supermarket', name: language === 'ar' ? 'سوبر ماركت' : 'Supermarket', icon: '🛒' },
+    { id: 'building_materials', name: language === 'ar' ? 'مواد بناء' : 'Building Materials', icon: '🧱' },
+    { id: 'inventory_sales', name: language === 'ar' ? 'نظام مخزون وبيع' : 'Inventory & Sales', icon: '📦' },
+    { id: 'ngo', name: language === 'ar' ? 'هيئات ومنظمات' : 'NGOs', icon: '🌍' },
+    { id: 'mall', name: language === 'ar' ? 'مول تجاري' : 'Mall', icon: '🏬' },
+    { id: 'bank', name: language === 'ar' ? 'بنك' : 'Bank', icon: '🏦' },
+    { id: 'exchange', name: language === 'ar' ? 'صرافة' : 'Exchange', icon: '💱' },
+  ];
+
+  const subTypes: Record<string, {id: string, name: string}[]> = {
+    commercial: [
+      { id: 'retail', name: language === 'ar' ? 'تجزئة' : 'Retail' },
+      { id: 'wholesale', name: language === 'ar' ? 'جملة' : 'Wholesale' },
+      { id: 'ecommerce', name: language === 'ar' ? 'تجارة إلكترونية' : 'E-commerce' },
+    ],
+    industrial: [
+      { id: 'manufacturing', name: language === 'ar' ? 'تصنيع' : 'Manufacturing' },
+      { id: 'assembly', name: language === 'ar' ? 'تجميع' : 'Assembly' },
+      { id: 'packaging', name: language === 'ar' ? 'تعبئة وتغليف' : 'Packaging' },
+    ],
+    service: [
+      { id: 'maintenance', name: language === 'ar' ? 'صيانة' : 'Maintenance' },
+      { id: 'cleaning', name: language === 'ar' ? 'تنظيف' : 'Cleaning' },
+      { id: 'delivery', name: language === 'ar' ? 'توصيل' : 'Delivery' },
+    ]
+  };
+
+  const availableModules = [
+    { id: 'accounting', name: language === 'ar' ? 'المحاسبة والمالية' : 'Accounting & Finance', icon: '📊', basePrice: 50 },
+    { id: 'hr', name: language === 'ar' ? 'الموارد البشرية' : 'HR & Payroll', icon: '👥', basePrice: 40 },
+    { id: 'crm', name: language === 'ar' ? 'إدارة العملاء والمبيعات' : 'CRM & Sales', icon: '🤝', basePrice: 60 },
+    { id: 'inventory', name: language === 'ar' ? 'أنظمة المخزون' : 'Inventory Management', icon: '📦', basePrice: 45 },
+    { id: 'logistics', name: language === 'ar' ? 'العمليات الميدانية' : 'Field Operations', icon: '🚚', basePrice: 55 },
+    { id: 'pr', name: language === 'ar' ? 'العلاقات العامة' : 'PR & External Relations', icon: '📢', basePrice: 30 },
+    { id: 'consulting', name: language === 'ar' ? 'أنظمة الاستشارات' : 'Consulting Systems', icon: '💼', basePrice: 40 },
+    { id: 'store', name: language === 'ar' ? 'المتجر الإلكتروني' : 'E-Commerce Store', icon: '🛍️', basePrice: 70 },
+  ];
+
+  const availableIntegrations = [
+    { id: 'google_workspace', name: 'Google Workspace (Gmail, Drive)', desc: language === 'ar' ? 'ربط البريد والملفات' : 'Email & Files', price: 49, icon: '📧' },
+    { id: 'google_gemini', name: 'Google Gemini AI', desc: language === 'ar' ? 'ذكاء اصطناعي متقدم' : 'Advanced AI', price: 99, icon: '✨' },
+    { id: 'google_cloud_storage', name: 'Google Cloud Storage', desc: language === 'ar' ? 'تخزين سحابي آمن' : 'Secure Cloud Storage', price: 29, icon: '☁️' },
+    { id: 'stripe', name: 'Stripe', desc: language === 'ar' ? 'بوابة الدفع الإلكتروني' : 'Online Payment Gateway', price: 0, icon: '💳' },
+    { id: 'google_pay', name: 'Google Pay', desc: language === 'ar' ? 'دفع عبر جوجل' : 'Pay via Google', price: 0, icon: '📱' },
+    { id: 'apple_pay', name: 'Apple Pay', desc: language === 'ar' ? 'دفع عبر أبل' : 'Pay via Apple', price: 0, icon: '🍎' },
+    { id: 'openai', name: 'OpenAI Advanced', desc: language === 'ar' ? 'نماذج ذكاء اصطناعي' : 'AI Models', price: 149, icon: '🧠' },
+  ];
+
+  const smartQuestions = [
+    {
+      id: 'q1',
+      text: language === 'ar' ? 'هل تتعامل مع مبيعات دولية؟' : 'Do you handle international sales?',
+      options: [
+        { text: language === 'ar' ? 'نعم، بشكل يومي' : 'Yes, daily', action: () => addModule('crm') },
+        { text: language === 'ar' ? 'أحياناً' : 'Sometimes', action: () => addModule('crm') },
+        { text: language === 'ar' ? 'لا، محلي فقط' : 'No, local only', action: () => {} }
+      ]
+    },
+    {
+      id: 'q2',
+      text: language === 'ar' ? 'هل لديك فريق عمل ميداني؟' : 'Do you have a field team?',
+      options: [
+        { text: language === 'ar' ? 'نعم، فريق كبير' : 'Yes, a large team', action: () => addModule('logistics') },
+        { text: language === 'ar' ? 'لا، عمل مكتبي' : 'No, office based', action: () => {} }
+      ]
+    }
   ];
 
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [provisioningResult, setProvisioningResult] = useState<ProvisioningResult | null>(null);
-  const [provisioningStatus, setProvisioningStatus] = useState<ProvisioningStatus | null>(null);
-  const [selectedModules, setSelectedModules] = useState<string[]>([]);
-  const [employeeCount, setEmployeeCount] = useState('1-10');
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [fetchingPlans, setFetchingPlans] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
+  
   const [formData, setFormData] = useState({
     companyName: '',
-    companyNameAr: '',
-    tradeLicenseNumber: '',
-    country: '',
-    city: '',
-    industry: '',
+    registrationNumber: '',
+    address: '',
+    nationality: '',
+    ownersNames: '',
     gmName: '',
     gmEmail: '',
-    gmPassword: '',
-    gmPasswordConfirm: '',
-    agreedToTerms: false,
-    plan: 'pro',
+    employeeCount: '',
+    requiredUsersCount: '',
+    
+    industry: '',
+    subIndustry: '',
+    
+    modules: [] as string[],
+    integrations: [] as string[],
+    
+    billingCycle: 'monthly' as 'monthly' | 'yearly',
+    
     licenseFile: null as File | null,
     idFile: null as File | null,
+    
+    verificationCode: '',
+    newPassword: '',
+    confirmPassword: ''
   });
 
-  // Auto-select default modules when industry changes
-  useEffect(() => {
-    if (formData.industry && INDUSTRY_MODULES[formData.industry]) {
-      const defaults = INDUSTRY_MODULES[formData.industry].filter(m => m.default).map(m => m.code);
-      setSelectedModules(defaults);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [isProvisioningSim, setIsProvisioningSim] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+
+  const addModule = (moduleId: string) => {
+    if (!formData.modules.includes(moduleId)) {
+      setFormData(prev => ({ ...prev, modules: [...prev.modules, moduleId] }));
     }
-  }, [formData.industry]);
+  };
 
-  // Poll provisioning status
-  useEffect(() => {
-    if (!provisioningResult || provisioningResult.status === 'done' || provisioningResult.status === 'error') return;
-    const interval = setInterval(async () => {
-      try {
-        const status = await provisioningService.getStatus(provisioningResult.jobId);
-        setProvisioningStatus(status);
-        if (status.status === 'done' || status.status === 'error') clearInterval(interval);
-      } catch { /* ignore polling errors */ }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [provisioningResult]);
+  const calculateTotal = () => {
+    const users = parseInt(formData.requiredUsersCount) || 1;
+    const baseUserPrice = 20; // Base price per user
+    
+    const modulesPrice = formData.modules.reduce((total, modId) => {
+      const mod = availableModules.find(m => m.id === modId);
+      return total + (mod?.basePrice || 0);
+    }, 0);
 
-  // Fetch plans from billing API on mount
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setFetchingPlans(true);
-      try {
-        const { plans: fetched } = await getPlans();
-        if (!cancelled) setPlans(fetched.filter(p => p.is_active));
-      } catch {
-        if (!cancelled) setPlans([]);
-      } finally {
-        if (!cancelled) setFetchingPlans(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Dynamic pricing from API plans
-  const selectedPlan = plans.find(p => p.code === formData.plan) || plans[0];
-  const planPrice = selectedPlan
-    ? (billingCycle === 'yearly' ? selectedPlan.price_yearly : selectedPlan.price_monthly)
-    : 0;
-  const planCurrency = selectedPlan?.currency || 'AED';
-
-  const toggleModule = (code: string) => {
-    setSelectedModules(prev => prev.includes(code) ? prev.filter(m => m !== code) : [...prev, code]);
+    const integrationsPrice = formData.integrations.reduce((total, intId) => {
+      const integration = availableIntegrations.find(i => i.id === intId);
+      return total + (integration?.price || 0);
+    }, 0);
+    
+    let monthlyTotal = (users * baseUserPrice) + modulesPrice + integrationsPrice;
+    
+    if (formData.billingCycle === 'yearly') {
+      return Math.round((monthlyTotal * 12) * 0.8); // 20% discount for yearly
+    }
+    return monthlyTotal;
   };
 
   const validateStep = () => {
+    setError('');
     switch (currentStep) {
       case 0:
-        if (!formData.companyName || !formData.tradeLicenseNumber || !formData.country || !formData.city) {
-          setError(language === 'ar' ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
-          return false;
-        }
-        break;
-      case 1:
-        if (!formData.gmName || !formData.gmEmail || !formData.gmPassword) {
+        if (!formData.companyName || !formData.registrationNumber || !formData.address || !formData.nationality || !formData.ownersNames || !formData.gmName || !formData.gmEmail || !formData.employeeCount || !formData.requiredUsersCount) {
           setError(language === 'ar' ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
           return false;
         }
@@ -181,47 +174,63 @@ export default function OnboardingWizard() {
           setError(language === 'ar' ? 'بريد إلكتروني غير صالح' : 'Invalid email address');
           return false;
         }
-        if (formData.gmPassword.length < 8) {
-          setError(language === 'ar' ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' : 'Password must be at least 8 characters');
+        break;
+      case 1:
+        if (!formData.industry) {
+          setError(language === 'ar' ? 'يرجى اختيار نوع النشاط' : 'Please select an industry type');
           return false;
         }
-        if (formData.gmPassword !== formData.gmPasswordConfirm) {
-          setError(language === 'ar' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
+        if (subTypes[formData.industry] && !formData.subIndustry) {
+          setError(language === 'ar' ? 'يرجى اختيار النشاط الفرعي' : 'Please select a sub-industry');
           return false;
         }
         break;
-      case 2:
-        if (!formData.industry) {
-          setError(language === 'ar' ? 'يرجى اختيار قطاع العمل' : 'Please select an industry');
-          return false;
-        }
-        if (selectedModules.length === 0) {
+      case 3:
+        if (formData.modules.length === 0) {
           setError(language === 'ar' ? 'يرجى اختيار وحدة واحدة على الأقل' : 'Please select at least one module');
           return false;
         }
         break;
-      case 3: break; // docs are optional
-      case 4:
-        if (!formData.plan) {
-          setError(language === 'ar' ? 'يرجى اختيار خطة' : 'Please select a plan');
+      case 5:
+        if (!formData.licenseFile || !formData.idFile) {
+          setError(language === 'ar' ? 'يرجى رفع المستندات المطلوبة' : 'Please upload required documents');
           return false;
         }
         break;
-      case 5:
-        if (!formData.agreedToTerms) {
-          setError(language === 'ar' ? 'يجب الموافقة على الشروط للمتابعة' : 'You must agree to terms to continue');
+      case 6:
+        if (!verificationSent) {
+          // Need to send verification first
+          return false;
+        }
+        if (!formData.verificationCode || !formData.newPassword || !formData.confirmPassword) {
+          setError(language === 'ar' ? 'يرجى ملء جميع الحقول' : 'Please fill all fields');
+          return false;
+        }
+        if (formData.newPassword !== formData.confirmPassword) {
+          setError(language === 'ar' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
           return false;
         }
         break;
     }
-    setError('');
     return true;
   };
 
   const nextStep = async () => {
     if (!validateStep()) return;
-    if (currentStep === steps.length - 1) {
-      await handleCompleteRegistration();
+    
+    if (currentStep === 1) {
+      // Start simulated provisioning and questions
+      setIsProvisioningSim(true);
+      // Auto-select some base modules based on industry
+      const baseModules = ['accounting', 'hr'];
+      setFormData(prev => ({ ...prev, modules: [...new Set([...prev.modules, ...baseModules])] }));
+    }
+    
+    if (currentStep === 5) {
+      // Handle Payment and Document submission
+      await handlePaymentAndDocs();
+    } else if (currentStep === 6) {
+      await handleFinalAuth();
     } else {
       setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
     }
@@ -232,395 +241,448 @@ export default function OnboardingWizard() {
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
-  /** Upload a file to Supabase Storage */
-  const uploadFile = async (file: File, companyId: string, docType: string): Promise<string | null> => {
-    const ext = file.name.split('.').pop() || 'pdf';
-    const path = `${companyId}/${docType}_${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from('company-docs').upload(path, file, { upsert: true });
-    if (upErr) { console.error(`Upload ${docType}:`, upErr.message); return null; }
-    return path;
+  const handleQuestionAnswer = (action: () => void) => {
+    action();
+    if (currentQuestionIndex < smartQuestions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    } else {
+      setIsProvisioningSim(false);
+      nextStep();
+    }
   };
 
-  const handleCompleteRegistration = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      // 1. Create Auth User
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: formData.gmEmail,
-        password: formData.gmPassword,
-        options: { data: { full_name: formData.gmName, phone: phoneNumber || undefined } },
-      });
-      if (signUpError) throw new Error(signUpError.message);
-      if (!authData.user) throw new Error(language === 'ar' ? 'فشل إنشاء الحساب' : 'Account creation failed');
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
 
-      // 2. Create / upsert profile
-      await supabase.from('profiles').upsert({
-        id: authData.user.id,
-        full_name: formData.gmName,
-        display_name: formData.gmName.split(' ')[0],
-        email: formData.gmEmail,
-        phone: phoneNumber || null,
-        is_active: true,
-      }, { onConflict: 'id' });
-
-      // 3. Create company record
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name_ar: formData.companyNameAr || formData.companyName,
-          name_en: formData.companyName,
-          owner_user_id: authData.user.id,
-          country: formData.country,
+    if (success && sessionId) {
+      // Restore state
+      const savedState = localStorage.getItem('zien_onboarding_state');
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        setFormData(parsedState);
+        setCurrentStep(6); // Move to auth step
+        
+        // Provision Tenant
+        provisioningService.provisionTenant({
+          companyName: parsedState.companyName,
+          tenantType: parsedState.industry,
+          country: parsedState.nationality,
           currency: 'AED',
-          status: 'provisioning',
-          city: formData.city,
-          industry: formData.industry,
-          employee_count: employeeCount,
-          trade_license_number: formData.tradeLicenseNumber,
+          employees: parsedState.employeeCount,
+          needs: parsedState.integrations,
+          language: language
+        }).then(result => {
+          setProvisioningResult(result);
+        });
+      }
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (canceled) {
+      setError(language === 'ar' ? 'تم إلغاء عملية الدفع' : 'Payment was canceled');
+      const savedState = localStorage.getItem('zien_onboarding_state');
+      if (savedState) {
+        setFormData(JSON.parse(savedState));
+        setCurrentStep(5);
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [language]);
+
+  const handlePaymentAndDocs = async () => {
+    setLoading(true);
+    try {
+      const amount = calculateTotal();
+      
+      // Save current state to local storage before redirecting
+      localStorage.setItem('zien_onboarding_state', JSON.stringify(formData));
+
+      // Call Stripe Checkout
+      const response = await fetch('/api/billing/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planName: 'Custom Build',
+          amount: amount,
+          companyName: formData.companyName,
+          email: formData.gmEmail,
+          billingCycle: formData.billingCycle
         })
-        .select()
-        .single();
-      if (companyError) throw new Error(`Company creation failed: ${companyError.message}`);
-
-      // 4. Create owner membership
-      await supabase.from('company_members').insert({
-        company_id: company.id,
-        user_id: authData.user.id,
-        role: 'company_gm',
-        status: 'active',
-        is_primary: true,
       });
-
-      // 5. Upload documents
-      if (formData.licenseFile) {
-        const licensePath = await uploadFile(formData.licenseFile, company.id, 'trade_license');
-        if (licensePath) {
-          await supabase.from('companies').update({ trade_license_url: licensePath }).eq('id', company.id);
-        }
+      
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Failed to initialize payment');
       }
-      if (formData.idFile) {
-        await uploadFile(formData.idFile, company.id, 'gm_id');
-      }
-
-      // 6. Start V2 provisioning (blueprint → plan → execute)
-      const empCount = parseInt(employeeCount, 10) || 5;
-      const businessSize = empCount > 200 ? 'enterprise' : empCount > 50 ? 'large' : empCount > 10 ? 'medium' : 'small';
-      const v2Result = await provisioningService.startV2({
-        companyId: company.id,
-        country: formData.country,
-        industry: formData.industry,
-        employeeCount: empCount,
-        requestedModules: selectedModules,
-        businessSize: businessSize as 'micro' | 'small' | 'medium' | 'large' | 'enterprise',
-      });
-
-      // 7. Orchestrate payment (region-aware gateway selection)
-      const regionMap: Record<string, string> = { UAE: 'AE', 'Saudi Arabia': 'SA', Egypt: 'EG', Bahrain: 'BH', Oman: 'OM', Qatar: 'QA', Kuwait: 'KW' };
-      const region = regionMap[formData.country] || 'GLOBAL';
-      try {
-        const payResult = await orchestratePayment(
-          company.id,
-          formData.plan,
-          region as 'AE' | 'SA' | 'EG' | 'BH' | 'OM' | 'QA' | 'KW' | 'GLOBAL',
-          billingCycle,
-          `${window.location.origin}/dashboard?payment=success`,
-          `${window.location.origin}/dashboard?payment=cancelled`,
-        );
-        if (payResult.url) {
-          window.location.href = payResult.url;
-          return;
-        }
-      } catch (payErr) {
-        console.warn('Payment orchestration skipped:', payErr);
-      }
-
-      // 8. Show provisioning status
-      setProvisioningResult({
-        tenantId: company.id,
-        companyId: company.id,
-        jobId: v2Result.jobId,
-        status: v2Result.status as ProvisioningResult['status'],
-      });
     } catch (err: any) {
-      setError(err.message || (language === 'ar' ? 'فشل التسجيل. حاول مرة أخرى.' : 'Registration failed. Please try again.'));
+      setError(err.message || 'Payment failed. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const sendVerificationCode = async () => {
+    setLoading(true);
+    try {
+      // Simulate checking email in Founder DB and sending code
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setVerificationSent(true);
+    } catch (err) {
+      setError(language === 'ar' ? 'فشل إرسال رمز التحقق' : 'Failed to send verification code');
     } finally {
       setLoading(false);
     }
   };
 
-  // ─── Provisioning Status Screen ───────────────────────────────────────────
-
-  const renderProvisioningStatus = () => {
-    if (!provisioningResult) return null;
-    const isDone = provisioningResult.status === 'done' || provisioningStatus?.status === 'done';
-    const isError = provisioningResult.status === 'error' || provisioningStatus?.status === 'error';
-
-    return (
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-8 py-12">
-        <div className={`w-24 h-24 ${isDone ? 'bg-emerald-600/10 text-emerald-600' : isError ? 'bg-red-600/10 text-red-600' : 'bg-blue-600/10 text-blue-600'} rounded-full flex items-center justify-center mx-auto mb-8`}>
-          {isDone ? <CheckCircle2 className="w-12 h-12" /> : isError ? <Shield className="w-12 h-12" /> : <Loader2 className="w-12 h-12 animate-spin" />}
-        </div>
-        <h2 className="text-3xl font-bold">
-          {isDone ? (language === 'ar' ? 'تم تجهيز بيئة عملك بنجاح!' : 'Your Workspace is Ready!') :
-            isError ? (language === 'ar' ? 'حدث خطأ أثناء التجهيز' : 'Provisioning Error') :
-              (language === 'ar' ? 'جاري تجهيز بيئة عملك' : 'Provisioning Your Workspace')}
-        </h2>
-        <p className="text-[var(--text-secondary)] max-w-md mx-auto">
-          {isDone ? (language === 'ar' ? 'تم تفعيل جميع الوحدات وإنشاء الأدوار. يمكنك الآن تسجيل الدخول.' : 'All modules activated and roles created. You can now sign in.') :
-            isError ? (provisioningStatus?.error || (language === 'ar' ? 'يرجى المحاولة مرة أخرى أو التواصل مع الدعم.' : 'Please try again or contact support.')) :
-              (language === 'ar' ? 'نحن نقوم بتفعيل الوحدات وإنشاء الأدوار وزرع البيانات.' : 'Activating modules, creating roles, and seeding default data.')}
-        </p>
-        <div className="glass-card p-6 max-w-sm mx-auto text-left space-y-3">
-          {[
-            { label: language === 'ar' ? 'إنشاء الحساب' : 'Account Created', done: true },
-            { label: language === 'ar' ? 'إنشاء الشركة' : 'Company Created', done: true },
-            { label: language === 'ar' ? 'تفعيل الوحدات' : 'Activating Modules', done: isDone },
-            { label: language === 'ar' ? 'زرع البيانات' : 'Seeding Data', done: isDone },
-          ].map((item, i) => (
-            <div key={i} className={`flex items-center gap-3 text-sm font-bold ${item.done ? 'text-emerald-600' : i === 2 && !isDone ? 'text-blue-600' : 'opacity-40'}`}>
-              {item.done ? <Check className="w-4 h-4" /> : i === 2 && !isDone ? <Loader2 className="w-4 h-4 animate-spin" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
-              {item.label}
-            </div>
-          ))}
-        </div>
-        {isDone && (
-          <button onClick={() => window.location.href = '/login'} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20">
-            {language === 'ar' ? 'تسجيل الدخول' : 'Sign In Now'}
-          </button>
-        )}
-      </motion.div>
-    );
+  const handleFinalAuth = async () => {
+    setLoading(true);
+    try {
+      // Simulate verifying code and setting password
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      window.location.href = '/dashboard';
+    } catch (err) {
+      setError(language === 'ar' ? 'رمز التحقق غير صحيح' : 'Invalid verification code');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  // ─── Step Renderer ────────────────────────────────────────────────────────
 
   const renderStep = () => {
     switch (currentStep) {
-      // ═══ STEP 0: Company Info ═══
       case 0:
         return (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-            <div className="flex flex-col md:flex-row gap-8 items-center">
-              <div className="flex-1 space-y-6">
-                <h2 className="text-3xl font-bold">{language === 'ar' ? 'أخبرنا عن شركتك' : 'Tell us about your company'}</h2>
-                <p className="text-[var(--text-secondary)] text-sm">{language === 'ar' ? 'ستكون هذه المعلومات أساس بيئة عملك على ZIEN' : 'This information will form the foundation of your ZIEN workspace'}</p>
-                <div className="grid gap-4">
-                  <input type="text" placeholder={language === 'ar' ? 'اسم الشركة (بالإنجليزية)' : 'Company Name (English)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.companyName} onChange={e => setFormData({ ...formData, companyName: e.target.value })} />
-                  <input type="text" placeholder={language === 'ar' ? 'اسم الشركة (بالعربية)' : 'Company Name (Arabic - optional)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" dir="rtl" value={formData.companyNameAr} onChange={e => setFormData({ ...formData, companyNameAr: e.target.value })} />
-                  <input type="text" placeholder={translate('license_number')} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.tradeLicenseNumber} onChange={e => setFormData({ ...formData, tradeLicenseNumber: e.target.value })} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="text" placeholder={language === 'ar' ? 'الدولة' : 'Country'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} />
-                    <input type="text" placeholder={language === 'ar' ? 'المدينة' : 'City'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} />
-                  </div>
-                  <select value={employeeCount} onChange={e => setEmployeeCount(e.target.value)} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="1-10">{language === 'ar' ? '1-10 موظفين' : '1-10 Employees'}</option>
-                    <option value="11-50">{language === 'ar' ? '11-50 موظف' : '11-50 Employees'}</option>
-                    <option value="51-200">{language === 'ar' ? '51-200 موظف' : '51-200 Employees'}</option>
-                    <option value="201+">{language === 'ar' ? '+201 موظف' : '201+ Employees'}</option>
-                  </select>
-                </div>
-              </div>
-              <div className="hidden md:block w-64 h-64 glass-card p-6 rounded-[3rem] overflow-hidden shadow-2xl relative group">
-                <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors" />
-                <img src={ASSETS.LOGO_SHIELD} alt="ZIEN Shield" className="w-full h-full object-contain relative z-10 drop-shadow-2xl animate-float" {...IMAGE_PROPS} />
-              </div>
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+            <h2 className="text-3xl font-bold">{language === 'ar' ? 'معلومات الشركة والمدير' : 'Company & Manager Info'}</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <input type="text" placeholder={language === 'ar' ? 'اسم الشركة' : 'Company Name'} className="glass-input" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
+              <input type="text" placeholder={language === 'ar' ? 'رقم التسجيل / الرخصة' : 'Registration Number'} className="glass-input" value={formData.registrationNumber} onChange={e => setFormData({...formData, registrationNumber: e.target.value})} />
+              <input type="text" placeholder={language === 'ar' ? 'العنوان' : 'Address'} className="glass-input md:col-span-2" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+              <input type="text" placeholder={language === 'ar' ? 'الجنسية / بلد التأسيس' : 'Nationality / Country'} className="glass-input" value={formData.nationality} onChange={e => setFormData({...formData, nationality: e.target.value})} />
+              <input type="text" placeholder={language === 'ar' ? 'أسماء الملاك' : 'Owners Names'} className="glass-input" value={formData.ownersNames} onChange={e => setFormData({...formData, ownersNames: e.target.value})} />
+              <input type="text" placeholder={language === 'ar' ? 'المدير المسؤول' : 'General Manager Name'} className="glass-input" value={formData.gmName} onChange={e => setFormData({...formData, gmName: e.target.value})} />
+              <input type="email" placeholder={language === 'ar' ? 'البريد الإلكتروني للمدير' : 'GM Email'} className="glass-input" value={formData.gmEmail} onChange={e => setFormData({...formData, gmEmail: e.target.value})} />
+              <input type="number" placeholder={language === 'ar' ? 'عدد الموظفين' : 'Employee Count'} className="glass-input" value={formData.employeeCount} onChange={e => setFormData({...formData, employeeCount: e.target.value})} />
+              <input type="number" placeholder={language === 'ar' ? 'عدد المستخدمين المطلوب للنظام' : 'Required Users Count'} className="glass-input" value={formData.requiredUsersCount} onChange={e => setFormData({...formData, requiredUsersCount: e.target.value})} />
             </div>
           </motion.div>
         );
-
-      // ═══ STEP 1: GM Account ═══
       case 1:
         return (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <h2 className="text-3xl font-bold">{language === 'ar' ? 'حساب المدير العام' : 'General Manager Account'}</h2>
-            <p className="text-[var(--text-secondary)] text-sm">{language === 'ar' ? 'سيكون هذا حساب المدير العام مع صلاحيات كاملة' : 'This will be the GM account with full company permissions'}</p>
-            <div className="grid gap-4">
-              <input type="text" placeholder={language === 'ar' ? 'الاسم الكامل' : 'Full Name'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.gmName} onChange={e => setFormData({ ...formData, gmName: e.target.value })} />
-              <input type="email" placeholder={language === 'ar' ? 'البريد الإلكتروني الرسمي' : 'Official Email'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.gmEmail} onChange={e => setFormData({ ...formData, gmEmail: e.target.value })} />
-              <input type="tel" placeholder={language === 'ar' ? 'رقم الهاتف (اختياري)' : 'Phone Number (optional)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
-              <div className="relative">
-                <input type={showPassword ? 'text' : 'password'} placeholder={language === 'ar' ? 'كلمة المرور (8 أحرف على الأقل)' : 'Password (min 8 characters)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 pr-12" value={formData.gmPassword} onChange={e => setFormData({ ...formData, gmPassword: e.target.value })} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-blue-600">
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            <h2 className="text-3xl font-bold">{language === 'ar' ? 'نوع نشاط الشركة' : 'Company Industry Type'}</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {companyTypes.map(type => (
+                <button 
+                  key={type.id}
+                  onClick={() => setFormData({...formData, industry: type.id, subIndustry: ''})}
+                  className={`p-4 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-2 ${
+                    formData.industry === type.id ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-md' : 'border-[var(--border-soft)] hover:border-blue-300'
+                  }`}
+                >
+                  <span className="text-3xl">{type.icon}</span>
+                  <span className="font-bold text-sm leading-tight">{type.name}</span>
                 </button>
+              ))}
+            </div>
+
+            {formData.industry && subTypes[formData.industry] && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="pt-6 border-t border-[var(--border-soft)]">
+                <h3 className="font-bold text-lg mb-4">{language === 'ar' ? 'النشاط الفرعي' : 'Sub-Industry'}</h3>
+                <div className="flex flex-wrap gap-3">
+                  {subTypes[formData.industry].map(sub => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setFormData({...formData, subIndustry: sub.id})}
+                      className={`px-6 py-3 rounded-full border-2 font-bold transition-all ${
+                        formData.subIndustry === sub.id ? 'border-blue-600 bg-blue-600 text-white' : 'border-[var(--border-soft)] hover:border-blue-300'
+                      }`}
+                    >
+                      {sub.name}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        );
+      case 2:
+        return (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12 space-y-8">
+            <div className="relative w-32 h-32 mx-auto">
+              <div className="absolute inset-0 border-4 border-blue-200 rounded-full animate-ping opacity-20"></div>
+              <div className="absolute inset-2 border-4 border-blue-400 rounded-full animate-spin border-t-transparent"></div>
+              <div className="absolute inset-0 flex items-center justify-center text-blue-600">
+                <Zap size={40} />
               </div>
-              <input type="password" placeholder={language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.gmPasswordConfirm} onChange={e => setFormData({ ...formData, gmPasswordConfirm: e.target.value })} />
-              {formData.gmPassword && formData.gmPassword.length >= 8 && formData.gmPassword === formData.gmPasswordConfirm && (
-                <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold"><Check size={14} /> {language === 'ar' ? 'كلمة المرور متطابقة' : 'Passwords match'}</div>
-              )}
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold mb-2">{language === 'ar' ? 'جاري تجهيز الخدمات الأساسية...' : 'Auto-provisioning core services...'}</h2>
+              <p className="text-[var(--text-secondary)]">{language === 'ar' ? 'يرجى الإجابة على هذه الأسئلة لتخصيص بيئتك بدقة' : 'Please answer these questions to fine-tune your environment'}</p>
+            </div>
+            
+            <div className="max-w-xl mx-auto glass-card p-8 text-left">
+              <h3 className="text-xl font-bold mb-6">{smartQuestions[currentQuestionIndex].text}</h3>
+              <div className="space-y-3">
+                {smartQuestions[currentQuestionIndex].options.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleQuestionAnswer(opt.action)}
+                    className="w-full p-4 rounded-xl border border-[var(--border-soft)] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left font-medium flex items-center justify-between group"
+                  >
+                    {opt.text}
+                    <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500" />
+                  </button>
+                ))}
+              </div>
             </div>
           </motion.div>
         );
-
-      // ═══ STEP 2: Industry & Modules ═══
-      case 2:
+      case 3:
         return (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <h2 className="text-3xl font-bold">{language === 'ar' ? 'القطاع والوحدات' : 'Industry & Modules'}</h2>
-            <p className="text-[var(--text-secondary)] text-sm">{language === 'ar' ? 'اختر قطاعك وسنختار الوحدات المناسبة تلقائياً.' : "Select your industry and we'll auto-select recommended modules."}</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {industries.map(ind => {
-                const IconComp = industryIconMap[ind.icon];
+            <h2 className="text-3xl font-bold">{language === 'ar' ? 'الخدمات المخصصة لك' : 'Provisioned Services'}</h2>
+            <p className="text-[var(--text-secondary)]">{language === 'ar' ? 'تم اختيار هذه الخدمات بناءً على نشاطك وإجاباتك. يمكنك تعديلها.' : 'These services were selected based on your industry and answers. You can customize them.'}</p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {availableModules.map(mod => {
+                const isSelected = formData.modules.includes(mod.id);
                 return (
-                  <button key={ind.id} onClick={() => setFormData({ ...formData, industry: ind.id })} className={`p-4 rounded-2xl border-2 text-center transition-all ${formData.industry === ind.id ? 'border-blue-600 bg-blue-50 dark:bg-blue-600/10' : 'border-[var(--border-soft)] hover:border-blue-300'}`}>
-                    {IconComp && <IconComp className="w-6 h-6 text-blue-600 mx-auto mb-2" />}
-                    <span className="font-bold text-xs block">{ind.name}</span>
+                  <button 
+                    key={mod.id}
+                    onClick={() => {
+                      const newModules = isSelected 
+                        ? formData.modules.filter(id => id !== mod.id)
+                        : [...formData.modules, mod.id];
+                      setFormData({...formData, modules: newModules});
+                    }}
+                    className={`p-4 rounded-xl border-2 text-left transition-all flex flex-col gap-3 ${
+                      isSelected ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-md' : 'border-[var(--border-soft)] hover:border-blue-300'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="text-2xl">{mod.icon}</span>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-[var(--border-soft)]'}`}>
+                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="font-bold text-sm leading-tight block">{mod.name}</span>
+                      <span className="text-xs text-blue-600 font-bold mt-1 block">+{mod.basePrice} AED</span>
+                    </div>
                   </button>
                 );
               })}
             </div>
-            {formData.industry && INDUSTRY_MODULES[formData.industry] && (
-              <div className="mt-6">
-                <h3 className="font-bold text-sm mb-3">{language === 'ar' ? 'الوحدات المتاحة' : 'Available Modules'}</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {INDUSTRY_MODULES[formData.industry].map(mod => (
-                    <label key={mod.code} className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedModules.includes(mod.code) ? 'border-blue-600 bg-blue-50 dark:bg-blue-600/10' : 'border-[var(--border-soft)] hover:border-blue-300'}`}>
-                      <input type="checkbox" checked={selectedModules.includes(mod.code)} onChange={() => toggleModule(mod.code)} className="w-5 h-5 rounded accent-blue-600" />
-                      <div>
-                        <span className="font-bold text-sm block">{language === 'ar' ? mod.name_ar : mod.name_en}</span>
-                        {mod.default && <span className="text-[10px] text-blue-600 font-bold uppercase">{language === 'ar' ? 'موصى به' : 'Recommended'}</span>}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                <p className="text-xs text-[var(--text-secondary)] mt-3">{language === 'ar' ? `${selectedModules.length} وحدات محددة` : `${selectedModules.length} modules selected`}</p>
-              </div>
-            )}
           </motion.div>
         );
-
-      // ═══ STEP 3: Upload Docs ═══
-      case 3:
-        return (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <h2 className="text-3xl font-bold">{language === 'ar' ? 'رفع المستندات' : 'Upload Documents'}</h2>
-            <p className="text-[var(--text-secondary)] text-sm">{language === 'ar' ? 'هذه المستندات اختيارية لكنها تسرع عملية التحقق.' : 'These documents are optional but speed up verification.'}</p>
-            <div className="grid gap-6">
-              <label className="glass-card p-8 border-dashed border-2 border-blue-200 text-center cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-600/5 transition-all block rounded-2xl">
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFormData({ ...formData, licenseFile: e.target.files?.[0] || null })} />
-                <Upload className={`w-10 h-10 mx-auto mb-4 ${formData.licenseFile ? 'text-emerald-500' : 'text-blue-600'}`} />
-                <div className="font-bold">{formData.licenseFile ? formData.licenseFile.name : (language === 'ar' ? 'الرخصة التجارية' : 'Trade License')}</div>
-                <div className="text-xs text-[var(--text-secondary)] mt-1">PDF, JPG, PNG ({language === 'ar' ? 'حد أقصى 10MB' : 'Max 10MB'})</div>
-              </label>
-              <label className="glass-card p-8 border-dashed border-2 border-blue-200 text-center cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-600/5 transition-all block rounded-2xl">
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFormData({ ...formData, idFile: e.target.files?.[0] || null })} />
-                <User className={`w-10 h-10 mx-auto mb-4 ${formData.idFile ? 'text-emerald-500' : 'text-blue-600'}`} />
-                <div className="font-bold">{formData.idFile ? formData.idFile.name : (language === 'ar' ? 'هوية المدير العام' : 'GM Identity (Passport/ID)')}</div>
-                <div className="text-xs text-[var(--text-secondary)] mt-1">PDF, JPG, PNG ({language === 'ar' ? 'حد أقصى 10MB' : 'Max 10MB'})</div>
-              </label>
-            </div>
-          </motion.div>
-        );
-
-      // ═══ STEP 4: Plan & Payment ═══
       case 4:
         return (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <h2 className="text-3xl font-bold">{language === 'ar' ? 'اختر خطتك' : 'Choose Your Plan'}</h2>
-            {/* Billing Cycle Toggle */}
-            <div className="flex items-center justify-center gap-3">
-              <button onClick={() => setBillingCycle('monthly')} className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${billingCycle === 'monthly' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'glass-card hover:border-blue-300'}`}>
-                {language === 'ar' ? 'شهري' : 'Monthly'}
-              </button>
-              <button onClick={() => setBillingCycle('yearly')} className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${billingCycle === 'yearly' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'glass-card hover:border-blue-300'}`}>
-                {language === 'ar' ? 'سنوي (وفّر أكثر)' : 'Yearly (Save more)'}
-              </button>
+            <h2 className="text-3xl font-bold">{language === 'ar' ? 'أنظمة الربط والتكامل' : 'Integrations'}</h2>
+            <p className="text-[var(--text-secondary)]">{language === 'ar' ? 'اختر الأنظمة الإضافية التي ترغب بربطها ببيئة عملك.' : 'Select additional systems to integrate with your workspace.'}</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {availableIntegrations.map(integration => {
+                const isSelected = formData.integrations.includes(integration.id);
+                return (
+                  <button 
+                    key={integration.id}
+                    onClick={() => {
+                      const newIntegrations = isSelected 
+                        ? formData.integrations.filter(id => id !== integration.id)
+                        : [...formData.integrations, integration.id];
+                      setFormData({...formData, integrations: newIntegrations});
+                    }}
+                    className={`p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all ${
+                      isSelected ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-[var(--border-soft)] hover:border-blue-300'
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-[var(--border-soft)]'}`}>
+                      {isSelected && <Check className="w-4 h-4 text-white" />}
+                    </div>
+                    <div className="text-3xl">{integration.icon}</div>
+                    <div className="flex-1">
+                      <span className="font-bold block">{integration.name}</span>
+                      <span className="text-xs text-[var(--text-secondary)]">{integration.desc}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-blue-600">{integration.price === 0 ? (language === 'ar' ? 'مجاني' : 'Free') : `+${integration.price}`}</span>
+                      {integration.price > 0 && <span className="text-xs text-[var(--text-secondary)] block">AED/mo</span>}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-            {/* Plan Cards */}
-            {fetchingPlans ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-              </div>
-            ) : plans.length > 0 ? (
-              <div className="grid gap-4">
-                {plans.map(plan => {
-                  const price = billingCycle === 'yearly' ? plan.price_yearly : plan.price_monthly;
-                  return (
-                    <button key={plan.code} onClick={() => setFormData({ ...formData, plan: plan.code })} className={`p-6 rounded-2xl border-2 text-left transition-all ${formData.plan === plan.code ? 'border-blue-600 bg-blue-50 dark:bg-blue-600/10' : 'border-[var(--border-soft)] hover:border-blue-300'}`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-bold text-xl block">{language === 'ar' ? plan.name_ar : plan.name_en}</span>
-                          <div className="flex gap-4 mt-2 text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                            <span>{plan.max_users} {language === 'ar' ? 'مستخدم' : 'users'}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-2xl font-bold block">{price} {plan.currency}</span>
-                          <span className="text-xs text-[var(--text-secondary)]">/ {billingCycle === 'yearly' ? (language === 'ar' ? 'سنة' : 'year') : (language === 'ar' ? 'شهر' : 'month')}</span>
-                        </div>
-                      </div>
+          </motion.div>
+        );
+      case 5:
+        return (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold mb-2">{language === 'ar' ? 'التسعير والدفع' : 'Pricing & Payment'}</h2>
+              <p className="text-[var(--text-secondary)]">{language === 'ar' ? 'تسعير ديناميكي بناءً على اختياراتك وعدد المستخدمين.' : 'Dynamic pricing based on your selections and user count.'}</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Summary */}
+              <div className="space-y-6">
+                <div className="glass-card p-6 rounded-2xl border-[var(--border-soft)]">
+                  <h3 className="font-bold text-lg mb-4">{language === 'ar' ? 'ملخص الاشتراك' : 'Subscription Summary'}</h3>
+                  
+                  <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl mb-6">
+                    <button 
+                      onClick={() => setFormData({...formData, billingCycle: 'monthly'})}
+                      className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${formData.billingCycle === 'monthly' ? 'bg-white dark:bg-zinc-800 shadow-sm' : 'text-[var(--text-secondary)]'}`}
+                    >
+                      {language === 'ar' ? 'شهري' : 'Monthly'}
                     </button>
-                  );
-                })}
+                    <button 
+                      onClick={() => setFormData({...formData, billingCycle: 'yearly'})}
+                      className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${formData.billingCycle === 'yearly' ? 'bg-white dark:bg-zinc-800 shadow-sm text-green-600' : 'text-[var(--text-secondary)]'}`}
+                    >
+                      {language === 'ar' ? 'سنوي (خصم 20%)' : 'Yearly (20% off)'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">{language === 'ar' ? 'المستخدمين' : 'Users'} ({formData.requiredUsersCount})</span>
+                      <span className="font-bold">{parseInt(formData.requiredUsersCount) * 20} AED</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">{language === 'ar' ? 'الخدمات' : 'Modules'} ({formData.modules.length})</span>
+                      <span className="font-bold">{formData.modules.reduce((sum, id) => sum + (availableModules.find(m => m.id === id)?.basePrice || 0), 0)} AED</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">{language === 'ar' ? 'الربط' : 'Integrations'} ({formData.integrations.length})</span>
+                      <span className="font-bold">{formData.integrations.reduce((sum, id) => sum + (availableIntegrations.find(i => i.id === id)?.price || 0), 0)} AED</span>
+                    </div>
+                    
+                    <div className="border-t border-[var(--border-soft)] pt-4 mt-4 flex justify-between items-end">
+                      <span className="font-bold text-lg">{language === 'ar' ? 'الإجمالي' : 'Total'}</span>
+                      <div className="text-right">
+                        <span className="font-black text-3xl text-blue-600">{calculateTotal()}</span>
+                        <span className="text-sm text-[var(--text-secondary)] font-bold ml-1">AED / {formData.billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-bold">{language === 'ar' ? 'المستندات المطلوبة' : 'Required Documents'}</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="glass-card p-4 border-dashed border-2 border-blue-200 text-center cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all block rounded-xl">
+                      <input type="file" className="hidden" onChange={e => setFormData({...formData, licenseFile: e.target.files?.[0] || null})} />
+                      <FileText className={`w-6 h-6 mx-auto mb-2 ${formData.licenseFile ? 'text-green-500' : 'text-blue-600'}`} />
+                      <div className="text-xs font-bold">{formData.licenseFile ? formData.licenseFile.name : (language === 'ar' ? 'الرخصة' : 'License')}</div>
+                    </label>
+                    <label className="glass-card p-4 border-dashed border-2 border-blue-200 text-center cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all block rounded-xl">
+                      <input type="file" className="hidden" onChange={e => setFormData({...formData, idFile: e.target.files?.[0] || null})} />
+                      <User className={`w-6 h-6 mx-auto mb-2 ${formData.idFile ? 'text-green-500' : 'text-blue-600'}`} />
+                      <div className="text-xs font-bold">{formData.idFile ? formData.idFile.name : (language === 'ar' ? 'هوية المدير' : 'GM ID')}</div>
+                    </label>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-8 text-[var(--text-secondary)]">
-                <p>{language === 'ar' ? 'لم يتم تحميل الخطط. سيتم احتساب السعر عند التسجيل.' : 'Plans could not be loaded. Pricing will be calculated on registration.'}</p>
-              </div>
-            )}
-            {/* Cost Summary */}
-            <div className="glass-card p-6 rounded-2xl space-y-3">
-              <h3 className="font-bold text-sm uppercase tracking-widest text-zinc-500">{language === 'ar' ? 'ملخص التكلفة' : 'Cost Summary'}</h3>
-              <div className="flex justify-between text-sm">
-                <span>{selectedPlan ? (language === 'ar' ? selectedPlan.name_ar : selectedPlan.name_en) : formData.plan}</span>
-                <span className="font-bold">{planPrice} {planCurrency}</span>
-              </div>
-              <div className="flex justify-between text-sm text-[var(--text-secondary)]">
-                <span>{selectedModules.length} {language === 'ar' ? 'وحدات' : 'modules'}</span>
-                <span className="text-xs">{billingCycle === 'yearly' ? (language === 'ar' ? 'فوترة سنوية' : 'Billed yearly') : (language === 'ar' ? 'فوترة شهرية' : 'Billed monthly')}</span>
-              </div>
-              <div className="border-t border-[var(--border-soft)] pt-3 flex justify-between font-bold text-lg">
-                <span>{billingCycle === 'yearly' ? (language === 'ar' ? 'الإجمالي السنوي' : 'Yearly Total') : (language === 'ar' ? 'الإجمالي الشهري' : 'Monthly Total')}</span>
-                <span className="text-blue-600">{planPrice} {planCurrency}</span>
+
+              {/* Payment Methods */}
+              <div className="space-y-4">
+                <h3 className="font-bold text-lg mb-4">{language === 'ar' ? 'طريقة الدفع' : 'Payment Method'}</h3>
+                
+                <button className="w-full p-4 glass-card rounded-xl border border-[var(--border-soft)] hover:border-blue-500 flex items-center justify-center gap-3 font-bold transition-all">
+                  <span className="text-2xl">📱</span> Pay with Google Pay
+                </button>
+                <button className="w-full p-4 glass-card rounded-xl border border-[var(--border-soft)] hover:border-blue-500 flex items-center justify-center gap-3 font-bold transition-all">
+                  <span className="text-2xl">🍎</span> Pay with Apple Pay
+                </button>
+                
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[var(--border-soft)]"></div></div>
+                  <div className="relative flex justify-center"><span className="bg-[var(--bg-primary)] px-4 text-xs text-[var(--text-secondary)] uppercase font-bold">OR</span></div>
+                </div>
+
+                <div className="glass-card p-6 rounded-xl border-[var(--border-soft)] space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <CreditCard className="w-5 h-5 text-blue-600" />
+                    <span className="font-bold">Credit Card (Stripe)</span>
+                  </div>
+                  <p className="text-sm text-[var(--text-secondary)] mb-4">
+                    {language === 'ar' ? 'سيتم توجيهك إلى بوابة الدفع الآمنة لإتمام العملية.' : 'You will be redirected to a secure payment gateway to complete your transaction.'}
+                  </p>
+                  <button 
+                    onClick={handlePaymentAndDocs}
+                    disabled={loading}
+                    className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all flex justify-center items-center gap-2"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (language === 'ar' ? `دفع ${calculateTotal()} درهم` : `Pay ${calculateTotal()} AED`)}
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
         );
-
-      // ═══ STEP 5: Terms & Confirm ═══
-      case 5:
+      case 6:
         return (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <h2 className="text-3xl font-bold">{language === 'ar' ? 'مراجعة وتأكيد' : 'Review & Confirm'}</h2>
-            <div className="glass-card p-6 rounded-2xl space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto space-y-8 py-8">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ShieldCheck className="w-10 h-10" />
+              </div>
+              <h2 className="text-3xl font-bold mb-2">{language === 'ar' ? 'توثيق الحساب' : 'Account Verification'}</h2>
+              <p className="text-[var(--text-secondary)]">
+                {language === 'ar' 
+                  ? 'تم إرسال الفاتورة والمستندات للمراجعة. يرجى توثيق بريدك الإلكتروني لإنشاء كلمة المرور والدخول كمدير عام.' 
+                  : 'Invoice and docs sent for review. Please verify your email to create a password and login as GM.'}
+              </p>
+            </div>
+
+            {!verificationSent ? (
+              <div className="glass-card p-6 rounded-2xl space-y-4 text-center">
+                <Mail className="w-8 h-8 mx-auto text-blue-500 mb-2" />
+                <p className="font-bold">{formData.gmEmail}</p>
+                <button 
+                  onClick={sendVerificationCode}
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all flex justify-center items-center gap-2"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (language === 'ar' ? 'إرسال رمز التحقق' : 'Send Verification Code')}
+                </button>
+              </div>
+            ) : (
+              <div className="glass-card p-6 rounded-2xl space-y-4">
                 <div>
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block">{language === 'ar' ? 'الشركة' : 'Company'}</span>
-                  <span className="font-bold">{formData.companyName}</span>
+                  <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase">{language === 'ar' ? 'رمز التحقق' : 'Verification Code'}</label>
+                  <input 
+                    type="text" 
+                    placeholder="123456" 
+                    className="glass-input text-center text-2xl tracking-[0.5em] font-mono" 
+                    value={formData.verificationCode}
+                    onChange={e => setFormData({...formData, verificationCode: e.target.value})}
+                  />
                 </div>
                 <div>
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block">{language === 'ar' ? 'القطاع' : 'Industry'}</span>
-                  <span className="font-bold capitalize">{formData.industry}</span>
+                  <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase">{language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}</label>
+                  <input 
+                    type="password" 
+                    className="glass-input" 
+                    value={formData.newPassword}
+                    onChange={e => setFormData({...formData, newPassword: e.target.value})}
+                  />
                 </div>
                 <div>
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block">{language === 'ar' ? 'المدير' : 'GM'}</span>
-                  <span className="font-bold">{formData.gmName}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block">{language === 'ar' ? 'الخطة' : 'Plan'}</span>
-                  <span className="font-bold">{selectedPlan ? (language === 'ar' ? selectedPlan.name_ar : selectedPlan.name_en) : formData.plan} — {planPrice} {planCurrency}/{billingCycle === 'yearly' ? (language === 'ar' ? 'سنة' : 'yr') : (language === 'ar' ? 'شهر' : 'mo')}</span>
+                  <label className="block text-xs font-bold text-[var(--text-secondary)] mb-2 uppercase">{language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'}</label>
+                  <input 
+                    type="password" 
+                    className="glass-input" 
+                    value={formData.confirmPassword}
+                    onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
+                  />
                 </div>
               </div>
-              <div>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold block mb-1">{language === 'ar' ? 'الوحدات' : 'Modules'}</span>
-                <div className="flex flex-wrap gap-2">
-                  {selectedModules.map(code => (
-                    <span key={code} className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-600/10">{code}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="glass-card p-6 h-40 overflow-y-auto text-xs text-[var(--text-secondary)] leading-relaxed rounded-2xl">
-              <p className="mb-3 font-bold text-[var(--text-primary)]">{language === 'ar' ? '1. عزل البيانات وأمنها' : '1. Data Isolation & Security'}</p>
-              <p className="mb-4">{language === 'ar' ? 'تطبق ZIEN عزلاً صارماً بآلية RLS. بياناتك محمية ولا يمكن لأي مستأجر آخر الوصول إليها.' : 'ZIEN employs strict RLS isolation. Your data is protected and never accessible to other tenants.'}</p>
-              <p className="mb-3 font-bold text-[var(--text-primary)]">{language === 'ar' ? '2. سياسة الخصوصية' : '2. Privacy Policy'}</p>
-              <p>{language === 'ar' ? 'لا نبيع بياناتك. جميع المعلومات تُستخدم فقط لتقديم وتحسين خدماتنا.' : 'We do not sell your data. All information is used solely for providing and improving our services.'}</p>
-            </div>
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" className="w-6 h-6 rounded-lg accent-blue-600" checked={formData.agreedToTerms} onChange={e => setFormData({ ...formData, agreedToTerms: e.target.checked })} />
-              <span className="font-medium group-hover:text-blue-600 transition-colors">{language === 'ar' ? 'أوافق على الشروط والسياسات وأؤكد صحة البيانات' : 'I agree to the terms & policies and confirm the data is accurate'}</span>
-            </label>
+            )}
           </motion.div>
         );
       default:
@@ -628,52 +690,98 @@ export default function OnboardingWizard() {
     }
   };
 
-  // ─── Main Render ──────────────────────────────────────────────────────────
-
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] py-20 px-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-[var(--bg-primary)] py-24 px-6">
+      <div className="max-w-6xl mx-auto">
+        
+        {/* Custom Styles for Inputs to keep it clean */}
+        <style dangerouslySetInnerHTML={{__html: `
+          .glass-input {
+            width: 100%;
+            background: rgba(0,0,0,0.03);
+            border: 1px solid var(--border-soft);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            outline: none;
+            transition: all 0.2s;
+          }
+          .dark .glass-input {
+            background: rgba(255,255,255,0.05);
+          }
+          .glass-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
+          }
+        `}} />
+
         {/* Progress Bar */}
-        <div className="flex items-center justify-between mb-12 relative">
-          <div className="absolute top-1/2 left-0 w-full h-1 bg-white -translate-y-1/2 z-0" />
-          <div className="absolute top-1/2 left-0 h-1 bg-blue-600 -translate-y-1/2 z-0 transition-all duration-500" style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }} />
+        <div className="flex items-center justify-between mb-12 relative px-4 md:px-0 overflow-x-auto pb-8 hide-scrollbar">
+          <div className="absolute top-5 left-4 md:left-0 right-4 md:right-0 h-1 bg-black/10 dark:bg-white/10 z-0 rounded-full min-w-[600px]" />
+          <div 
+            className="absolute top-5 left-4 md:left-0 h-1 bg-blue-600 z-0 transition-all duration-500 rounded-full" 
+            style={{ width: `calc(${(currentStep / (steps.length - 1)) * 100}% - ${currentStep === 0 ? 0 : 2}rem)`, minWidth: currentStep > 0 ? '50px' : '0' }}
+          />
+          
           {steps.map((step, i) => {
             const Icon = step.icon;
             const isActive = i <= currentStep;
             return (
-              <div key={step.id} className="relative z-10 flex flex-col items-center gap-2">
-                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white text-gray-400'}`}>
-                  {i < currentStep ? <Check className="w-5 h-5 md:w-6 md:h-6" /> : <Icon className="w-5 h-5 md:w-6 md:h-6" />}
+              <div key={step.id} className="relative z-10 flex flex-col items-center gap-3 min-w-[80px]">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-4 border-[var(--bg-primary)] ${
+                  isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-gray-200 dark:bg-zinc-800 text-gray-400'
+                }`}>
+                  {i < currentStep ? <Check className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                 </div>
-                <span className={`text-[10px] md:text-xs font-bold hidden sm:block ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>{step.title}</span>
+                <span className={`text-[10px] font-bold whitespace-nowrap text-center ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+                  {step.title}
+                </span>
               </div>
             );
           })}
         </div>
 
-        <div className="glass-card p-8 md:p-12 min-h-[500px] flex flex-col border-blue-500/10 shadow-[0_20px_50px_rgba(59,130,246,0.1)] relative">
-          {provisioningResult ? renderProvisioningStatus() : (
-            <>
-              {currentStep > 0 && (
-                <button onClick={prevStep} className="absolute top-4 left-4 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all z-20" title={language === 'ar' ? 'رجوع' : 'Back'}>
-                  <ArrowLeft className="w-6 h-6" />
+        <div className="glass-card p-6 md:p-12 min-h-[500px] flex flex-col border-blue-500/10 shadow-[0_20px_50px_rgba(59,130,246,0.1)] relative">
+          {currentStep > 0 && !isProvisioningSim && currentStep !== 6 && (
+            <button 
+              onClick={prevStep}
+              className="absolute top-6 left-6 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all z-20"
+              title={language === 'ar' ? 'رجوع' : 'Back'}
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+          )}
+          
+          <div className="flex-1 mt-8 md:mt-0">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep + (isProvisioningSim ? '-sim' : '')}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {!isProvisioningSim && (
+            <div className="flex items-center justify-end mt-12 pt-8 border-t border-[var(--border-soft)]">
+              {error && <p className="text-red-500 text-xs font-bold mr-auto">{error}</p>}
+              {currentStep !== 5 && (
+                <button 
+                  onClick={nextStep}
+                  disabled={loading || (currentStep === 6 && !verificationSent)}
+                  className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 
+                    currentStep === 6 ? (language === 'ar' ? 'دخول للنظام' : 'Enter System') :
+                    (language === 'ar' ? 'متابعة' : 'Continue')}
+                  {!loading && currentStep !== 6 && <ArrowRight className="w-5 h-5" />}
+                  {!loading && currentStep === 6 && <CheckCircle2 className="w-5 h-5" />}
                 </button>
               )}
-              <div className="flex-1">
-                <AnimatePresence mode="wait">
-                  <motion.div key={currentStep} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
-                    {renderStep()}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-              <div className="flex items-center justify-end mt-12 pt-8 border-t border-[var(--border-soft)]">
-                {error && <p className="text-red-500 text-xs font-bold mr-auto">{error}</p>}
-                <button onClick={nextStep} disabled={loading} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 disabled:opacity-50">
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (currentStep === steps.length - 1 ? (language === 'ar' ? 'إكمال التسجيل' : 'Complete Registration') : (language === 'ar' ? 'متابعة' : 'Continue'))}
-                  {!loading && <ArrowRight className="w-5 h-5" />}
-                </button>
-              </div>
-            </>
+            </div>
           )}
         </div>
       </div>

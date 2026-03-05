@@ -1,72 +1,100 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
+  
+  --color-primary: #10b981; /* Emerald 500 */
+  --color-primary-dark: #059669; /* Emerald 600 */
 
-  --color-primary: #2563eb;
-  /* Blue 600 - ZIEN Blue */
-  --color-primary-dark: #1d4ed8;
-  /* Blue 700 */
-
+  --color-brand: var(--color-brand-val);
+  --color-brand-hover: var(--color-brand-hover-val);
+  --color-brand-light: var(--color-brand-light-val);
+  --color-brand-muted: var(--color-brand-muted-val);
+  
   --radius-xl: 0.75rem;
   --radius-2xl: 1rem;
 }
 
-/* ─── CSS Variables used by components (LandingPage, EmployeePortal, etc.) ── */
-:root,
-html.light {
-  --bg-primary: #ffffff;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --border-soft: #e2e8f0;
-  --surface-1: #ffffff;
-}
-
-html.dark {
-  --bg-primary: #020617;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --border-soft: #1e293b;
-  --surface-1: #0f172a;
-}
-
 @layer base {
-  body {
-    @apply font-sans text-slate-900 bg-white dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --surface-1: #ffffff;
+    --surface-2: #f1f5f9;
+    --border-soft: rgba(0, 0, 0, 0.1);
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --color-brand-val: #2563eb;
+    --color-brand-hover-val: #1d4ed8;
+    --color-brand-light-val: #eff6ff;
+    --color-brand-muted-val: rgba(37, 99, 235, 0.2);
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-display tracking-tight;
+  .dark {
+    --bg-primary: #020617;
+    --bg-secondary: #0f172a;
+    --surface-1: #0f172a;
+    --surface-2: #1e293b;
+    --border-soft: rgba(255, 255, 255, 0.1);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --color-brand-val: #3b82f6;
+    --color-brand-hover-val: #2563eb;
+    --color-brand-light-val: rgba(59, 130, 246, 0.1);
+    --color-brand-muted-val: rgba(59, 130, 246, 0.2);
+  }
+
+  .theme-dark-green {
+    --bg-primary: #022c22;
+    --bg-secondary: #064e3b;
+    --surface-1: #065f46;
+    --surface-2: #047857;
+    --border-soft: rgba(255, 255, 255, 0.3);
+    --text-primary: #ffffff;
+    --text-secondary: #ecfdf5;
+    --color-primary: #10b981;
+    --color-primary-dark: #059669;
+    --color-brand-val: #10b981;
+    --color-brand-hover-val: #059669;
+    --color-brand-light-val: rgba(16, 185, 129, 0.1);
+    --color-brand-muted-val: rgba(16, 185, 129, 0.2);
+  }
+
+  body {
+    @apply font-sans text-[var(--text-primary)] bg-[var(--bg-primary)] transition-colors duration-300;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight text-[var(--text-primary)];
+  }
+
+  button, 
+  .card, 
+  .glass-card,
+  input,
+  select,
+  textarea,
+  form {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+    border-radius: 1.5rem !important; /* Force rounded corners everywhere */
+  }
+
+  /* Specific exclusions for buttons that should be fully rounded (circles) */
+  button.rounded-full {
+    border-radius: 9999px !important;
+  }
+
+  svg {
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5)) !important;
   }
 }
 
 .glass {
   @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-slate-800/50;
-}
-
-.glass-card {
-  border-radius: 1.25rem;
-  backdrop-filter: blur(12px);
-}
-
-html.light .glass-card,
-:root .glass-card {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-}
-
-html.dark .glass-card {
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(30, 41, 59, 0.6);
 }
 
 .btn-primary {
@@ -75,4 +103,89 @@ html.dark .glass-card {
 
 .btn-secondary {
   @apply px-6 py-3 bg-slate-100 text-slate-900 rounded-xl font-medium hover:bg-slate-200 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700 transition-all active:scale-95;
+}
+
+/* Override blue colors in dark-green theme */
+.theme-dark-green .text-blue-600,
+.theme-dark-green .text-blue-500,
+.theme-dark-green .text-blue-700,
+.theme-dark-green .text-blue-400,
+.theme-dark-green .text-blue-300,
+.theme-dark-green .text-blue-200,
+.theme-dark-green .text-blue-100 {
+  color: var(--color-brand) !important;
+}
+
+.theme-dark-green .bg-blue-600,
+.theme-dark-green .bg-blue-500,
+.theme-dark-green .bg-blue-700,
+.theme-dark-green .bg-blue-800,
+.theme-dark-green .bg-blue-900 {
+  background-color: var(--color-brand) !important;
+}
+
+.theme-dark-green .hover\:bg-blue-700:hover,
+.theme-dark-green .hover\:bg-blue-600:hover,
+.theme-dark-green .hover\:bg-blue-500:hover {
+  background-color: var(--color-brand-hover) !important;
+}
+
+.theme-dark-green .bg-blue-50,
+.theme-dark-green .bg-blue-100,
+.theme-dark-green .bg-blue-200 {
+  background-color: var(--color-brand-light) !important;
+}
+
+.theme-dark-green .hover\:bg-blue-50:hover,
+.theme-dark-green .hover\:bg-blue-100:hover {
+  background-color: var(--color-brand-muted) !important;
+}
+
+.theme-dark-green .border-blue-600,
+.theme-dark-green .border-blue-500,
+.theme-dark-green .border-blue-400,
+.theme-dark-green .border-blue-300,
+.theme-dark-green .border-blue-200,
+.theme-dark-green .border-blue-100 {
+  border-color: var(--color-brand) !important;
+}
+
+.theme-dark-green .hover\:border-blue-600:hover,
+.theme-dark-green .hover\:border-blue-500:hover,
+.theme-dark-green .hover\:border-blue-300:hover {
+  border-color: var(--color-brand-hover) !important;
+}
+
+.theme-dark-green .shadow-blue-600\/20,
+.theme-dark-green .shadow-blue-600\/30,
+.theme-dark-green .shadow-blue-500\/20,
+.theme-dark-green .shadow-blue-500\/5 {
+  --tw-shadow-color: var(--color-brand-muted) !important;
+  --tw-shadow: var(--tw-shadow-colored) !important;
+}
+
+.theme-dark-green .from-blue-600,
+.theme-dark-green .from-blue-900,
+.theme-dark-green .from-blue-500 {
+  --tw-gradient-from: var(--color-brand) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(16 185 129 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.theme-dark-green .via-blue-800 {
+  --tw-gradient-to: rgb(16 185 129 / 0)  var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--color-brand-hover) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+.theme-dark-green .to-blue-400 {
+  --tw-gradient-to: var(--color-brand-light) var(--tw-gradient-to-position) !important;
+}
+
+.theme-dark-green .ring-blue-500,
+.theme-dark-green .focus\:ring-blue-500:focus {
+  --tw-ring-color: var(--color-brand) !important;
+}
+
+.theme-dark-green .accent-blue-600 {
+  accent-color: var(--color-brand) !important;
 }

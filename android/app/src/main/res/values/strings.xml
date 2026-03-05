@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ZIEN</string>
+    <string name="title_activity_main">ZIEN</string>
+    <string name="package_name">com.zien.app</string>
+    <string name="custom_url_scheme">com.zien.app</string>
+</resources>

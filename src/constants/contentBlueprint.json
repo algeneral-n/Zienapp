@@ -1,0 +1,120 @@
+
+{
+  "tracks": [
+    {
+      "id": "track-onboarding",
+      "title_key": "academy_track_onboarding_title",
+      "description_key": "academy_track_onboarding_desc",
+      "image": "https://lh3.googleusercontent.com/p/AF1QipPwN6JEeKaXorclLqLX6pWvPluB__YEcTvMo6Ef=s1360-w1360-h1020-rw",
+      "target_roles": ["company_gm", "executive_secretary"],
+      "module_code": "provisioning",
+      "language": "en"
+    },
+    {
+      "id": "track-rbac",
+      "title_key": "academy_track_rbac_title",
+      "description_key": "academy_track_rbac_desc",
+      "image": "https://picsum.photos/seed/portal/1360/1020",
+      "target_roles": ["company_gm", "department_manager"],
+      "module_code": "access_roles",
+      "language": "en"
+    },
+    {
+      "id": "track-accounting",
+      "title_key": "academy_track_accounting_title",
+      "description_key": "academy_track_accounting_desc",
+      "image": "https://lh3.googleusercontent.com/p/AF1QipM4Z8Hvn9cMYSRqtQNgp3ZlnnyHqSRIDaSQAKDN=s1360-w1360-h1020-rw",
+      "target_roles": ["accountant", "company_gm"],
+      "module_code": "accounting",
+      "language": "en"
+    },
+    {
+      "id": "track-hr",
+      "title_key": "academy_track_hr_title",
+      "description_key": "academy_track_hr_desc",
+      "image": "https://lh3.googleusercontent.com/p/AF1QipO9w_lR54InzNIU6W8D9AH8XRFzLL6SUwVPdJcN=s1360-w1360-h1020-rw",
+      "target_roles": ["hr_manager", "department_manager"],
+      "module_code": "hr",
+      "language": "en"
+    }
+  ],
+  "courses": [
+    {
+      "id": "course-onboarding-1",
+      "track_id": "track-onboarding",
+      "title_key": "course_onboarding_1_title",
+      "description_key": "course_onboarding_1_desc",
+      "order_index": 1,
+      "language": "en"
+    },
+    {
+      "id": "course-rbac-1",
+      "track_id": "track-rbac",
+      "title_key": "course_rbac_1_title",
+      "description_key": "course_rbac_1_desc",
+      "order_index": 1,
+      "language": "en"
+    }
+  ],
+  "lessons": [
+    {
+      "id": "lesson-onboarding-1-1",
+      "course_id": "course-onboarding-1",
+      "title_key": "lesson_onboarding_1_1_title",
+      "objective_key": "lesson_onboarding_1_1_obj",
+      "order_index": 1,
+      "target_roles": ["company_gm"],
+      "prerequisites": [],
+      "steps": [
+        {
+          "title_key": "step_onboarding_1_1_1_title",
+          "body_key": "step_onboarding_1_1_1_body",
+          "expected_result_key": "step_onboarding_1_1_1_result",
+          "common_mistake_key": "step_onboarding_1_1_1_mistake"
+        },
+        {
+          "title_key": "step_onboarding_1_1_2_title",
+          "body_key": "step_onboarding_1_1_2_body",
+          "expected_result_key": "step_onboarding_1_1_2_result",
+          "common_mistake_key": "step_onboarding_1_1_2_mistake"
+        },
+        {
+          "title_key": "step_onboarding_1_1_3_title",
+          "body_key": "step_onboarding_1_1_3_body",
+          "expected_result_key": "step_onboarding_1_1_3_result",
+          "common_mistake_key": "step_onboarding_1_1_3_mistake"
+        }
+      ],
+      "completion_rule": { "video_watch": true, "quiz_score": 80 },
+      "language": "en"
+    }
+  ],
+  "faqs": [
+    {
+      "id": "faq-provisioning-1",
+      "category": "provisioning",
+      "slug": "how-to-onboard",
+      "question_key": "faq_provisioning_1_q",
+      "short_answer_key": "faq_provisioning_1_sa",
+      "full_answer_key": "faq_provisioning_1_fa",
+      "tags": ["provisioning", "onboarding"],
+      "role_scope": ["company_gm"],
+      "module_code": "provisioning",
+      "language": "en",
+      "version": 1
+    }
+  ],
+  "prompts": [
+    {
+      "id": "prompt-accounting-explain",
+      "module_code": "accounting",
+      "prompt_type": "explain",
+      "agent_type": "RARE Accounting",
+      "mode": "assistant",
+      "required_level": 1,
+      "inputs_schema": { "topic": "string" },
+      "output_schema": { "explanation": "string", "steps": "array" },
+      "prompt_template": "Explain the following accounting topic in simple terms: {{topic}}"
+    }
+  ]
+}

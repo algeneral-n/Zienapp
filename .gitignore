@@ -6,7 +6,3 @@ coverage/
 *.log
 .env*
 !.env.example
-worker/node_modules/
-worker/dist/
-*.OLD
-*.DELETED

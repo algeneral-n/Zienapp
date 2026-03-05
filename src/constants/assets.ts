@@ -6,7 +6,9 @@
 
 export const ASSETS = {
   // Logos
-  LOGO_PRIMARY: "https://lh3.googleusercontent.com/p/AF1QipOSvb6mNsga8rsEZHXdW3O8qur9f6rOjecMJC_U=w243-h203-n-k-no-nu",
+  LOGO_PRIMARY: "https://lh3.googleusercontent.com/rI8eSWYt8_a8gWjXxe7Z6Qwq2p45PRp7xq7xVWZXk-r8JvQEpL364jnesskhOW1hFKNE92p3-CrrLlaMLQ=s265-w265-h265",
+  LOGO_ICON: "https://lh3.googleusercontent.com/o6uaA9g4Sz0uJfsoegwWL9zDwZUMLNd1J_lttDdzDtkIsXPH1Ty45Wm38VdGbreD9iJ-t0fZL1L-8CzAtA=s265-w265-h265",
+  SPLASH_SCREEN: "https://mir-s3-cdn-cf.behance.net/project_modules/1400/a5d1cf107423421.5fa6dce7b96d7.gif",
   LOGO_GOLD: "/input_file_16.png",
   LOGO_WHITE: "/input_file_11.png",
   LOGO_SHIELD: "https://lh3.googleusercontent.com/p/AF1QipNm7hVlbynpufJ0AYs8CZUtmCmUhV38ehv17oi2=w243-h203-n-k-no-nu",

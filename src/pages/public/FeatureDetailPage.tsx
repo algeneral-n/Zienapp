@@ -1,343 +1,247 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
-import { ArrowLeft, CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, ArrowRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, Video, Layout, ShieldCheck, Users2 } from 'lucide-react';
 
-const FEATURE_DATA: Record<string, {
-  icon: any;
-  titleEn: string;
-  titleAr: string;
-  descEn: string;
-  descAr: string;
-  bullets: string[];
-  image: string;
-  detailsEn: string[];
-  detailsAr: string[];
-}> = {
-  accounting: {
-    icon: BarChart3,
-    titleEn: "Accounting & Finance",
-    titleAr: "المحاسبة والمالية",
-    descEn: "A complete financial management suite designed for modern enterprises. From automated invoicing to tax compliance, every financial process is streamlined and AI-enhanced.",
-    descAr: "مجموعة إدارة مالية كاملة مصممة للمؤسسات الحديثة. من الفوترة الآلية إلى الامتثال الضريبي، كل عملية مالية مبسطة ومعززة بالذكاء الاصطناعي.",
-    bullets: ['accounting_bullet_1', 'accounting_bullet_2', 'accounting_bullet_3'],
-    image: "https://lh3.googleusercontent.com/p/AF1QipM4Z8Hvn9cMYSRqtQNgp3ZlnnyHqSRIDaSQAKDN=s1360-w1360-h1020-rw",
-    detailsEn: [
-      "Generate professional invoices and receipts automatically with customizable templates",
-      "Track expenses, revenue, and profit margins in real-time dashboards",
-      "Multi-currency support with live exchange rates for international operations",
-      "Automated VAT calculation and tax reporting compliant with UAE regulations",
-      "Bank reconciliation and payment gateway integrations",
-      "AI-powered financial forecasting and anomaly detection by RARE",
-    ],
-    detailsAr: [
-      "إنشاء فواتير وإيصالات احترافية تلقائياً مع قوالب قابلة للتخصيص",
-      "تتبع المصروفات والإيرادات وهوامش الربح في لوحات معلومات فورية",
-      "دعم متعدد العملات مع أسعار صرف حية للعمليات الدولية",
-      "حساب ضريبة القيمة المضافة تلقائياً وتقارير ضريبية متوافقة مع لوائح الإمارات",
-      "تسوية بنكية وتكامل مع بوابات الدفع",
-      "تنبؤات مالية واكتشاف الشذوذ بالذكاء الاصطناعي من RARE",
-    ],
-  },
-  crm: {
-    icon: Users,
-    titleEn: "CRM & Sales",
-    titleAr: "إدارة علاقات العملاء والمبيعات",
-    descEn: "Manage your entire sales pipeline from lead capture to deal closure. Built-in client portal keeps customers engaged and informed.",
-    descAr: "إدارة خط مبيعاتك بالكامل من التقاط العملاء المحتملين إلى إغلاق الصفقات. بوابة عملاء مدمجة تبقي العملاء متفاعلين ومطلعين.",
-    bullets: ['crm_bullet_1', 'crm_bullet_2', 'crm_bullet_3'],
-    image: "https://lh3.googleusercontent.com/p/AF1QipOxcyDh5pI5H6Es3o-98m8D9fynSp8fBCvvrW_g=s1360-w1360-h1020-rw",
-    detailsEn: [
-      "Visual drag-and-drop sales pipeline with customizable stages",
-      "Automated lead scoring based on engagement and behavior patterns",
-      "Client portal with self-service access to invoices, quotes, and project status",
-      "Email and WhatsApp integration for seamless communication tracking",
-      "Quotation and proposal generation with e-signature support",
-      "RARE AI suggests next best actions and predicts deal outcomes",
-    ],
-    detailsAr: [
-      "خط مبيعات بصري بالسحب والإفلات مع مراحل قابلة للتخصيص",
-      "تسجيل العملاء المحتملين تلقائياً بناءً على أنماط التفاعل والسلوك",
-      "بوابة عملاء بخدمة ذاتية للوصول إلى الفواتير والعروض وحالة المشاريع",
-      "تكامل مع البريد الإلكتروني وواتساب لتتبع التواصل بسلاسة",
-      "إنشاء عروض الأسعار والمقترحات مع دعم التوقيع الإلكتروني",
-      "RARE AI يقترح أفضل الإجراءات التالية ويتنبأ بنتائج الصفقات",
-    ],
-  },
-  hr: {
-    icon: Shield,
-    titleEn: "HR & Payroll",
-    titleAr: "الموارد البشرية والرواتب",
-    descEn: "Complete employee lifecycle management from recruitment to exit, with automated payroll processing and compliance.",
-    descAr: "إدارة كاملة لدورة حياة الموظف من التوظيف حتى المغادرة، مع معالجة رواتب آلية وامتثال.",
-    bullets: ['hr_bullet_1', 'hr_bullet_2', 'hr_bullet_3'],
-    image: "https://lh3.googleusercontent.com/p/AF1QipO9w_lR54InzNIU6W8D9AH8XRFzLL6SUwVPdJcN=s1360-w1360-h1020-rw",
-    detailsEn: [
-      "Biometric and GPS-based attendance tracking with shift management",
-      "Leave management with approval workflows and balance calculations",
-      "Automated payroll with WPS file generation for UAE compliance",
-      "Employee self-service portal for documents, payslips, and requests",
-      "Performance reviews, KPIs, and goal tracking",
-      "RARE AI analyzes workforce patterns and suggests optimization",
-    ],
-    detailsAr: [
-      "تتبع الحضور بالبصمة وGPS مع إدارة الورديات",
-      "إدارة الإجازات مع سير عمل الموافقات وحساب الأرصدة",
-      "رواتب آلية مع إنشاء ملفات WPS للامتثال في الإمارات",
-      "بوابة خدمة ذاتية للموظفين للمستندات وكشوف الرواتب والطلبات",
-      "تقييمات الأداء ومؤشرات الأداء الرئيسية وتتبع الأهداف",
-      "RARE AI يحلل أنماط القوى العاملة ويقترح التحسينات",
-    ],
-  },
-  'rare-ai': {
-    icon: Zap,
-    titleEn: "RARE AI Agents",
-    titleAr: "وكلاء RARE AI",
-    descEn: "Intelligent AI assistants embedded in every department. RARE understands your business context and provides actionable insights.",
-    descAr: "مساعدون ذكاء اصطناعي متضمنون في كل قسم. RARE يفهم سياق عملك ويقدم رؤى قابلة للتنفيذ.",
-    bullets: ['rare_bullet_1', 'rare_bullet_2', 'rare_bullet_3'],
-    image: "https://www.cyberark.com/wp-content/uploads/2025/03/ai-agents-collaborative-intelligence1.jpg",
-    detailsEn: [
-      "Department-specific AI agents: RARE Accounting, RARE HR, RARE CRM, RARE GM",
-      "Natural language queries — ask questions in plain English or Arabic",
-      "Automated data analysis with visual charts and trend detection",
-      "Smart notifications and anomaly alerts across all modules",
-      "Document understanding — upload PDFs, invoices, contracts for instant analysis",
-      "Continuous learning from your business data while maintaining security",
-    ],
-    detailsAr: [
-      "وكلاء ذكاء اصطناعي لكل قسم: RARE للمحاسبة، RARE للموارد البشرية، RARE للمبيعات، RARE للمدير العام",
-      "استعلامات بلغة طبيعية — اطرح أسئلة بالعربية أو الإنجليزية",
-      "تحليل بيانات تلقائي مع رسوم بيانية واكتشاف الاتجاهات",
-      "إشعارات ذكية وتنبيهات الشذوذ عبر جميع الوحدات",
-      "فهم المستندات — ارفع ملفات PDF والفواتير والعقود للتحليل الفوري",
-      "تعلم مستمر من بيانات عملك مع الحفاظ على الأمان",
-    ],
-  },
-  logistics: {
-    icon: Globe,
-    titleEn: "Logistics & Fleet",
-    titleAr: "الخدمات اللوجستية والأسطول",
-    descEn: "Real-time fleet management and field operations with smart routing and automated task dispatching.",
-    descAr: "إدارة أسطول فورية وعمليات ميدانية مع توجيه ذكي وإرسال مهام تلقائي.",
-    bullets: ['logistics_bullet_1', 'logistics_bullet_2', 'logistics_bullet_3'],
-    image: "https://lh3.googleusercontent.com/p/AF1QipOO2HzMRuorxrjfQkOsJ_3ZfKUVWT5x718CeF6s=s1360-w1360-h1020-rw",
-    detailsEn: [
-      "Real-time GPS tracking of fleet vehicles with live map view",
-      "Smart route optimization to reduce fuel costs and delivery times",
-      "Automated task assignment and dispatching to field workers",
-      "Proof of delivery with photo capture and digital signatures",
-      "Vehicle maintenance scheduling and cost tracking",
-      "RARE AI predicts delivery times and optimizes fleet utilization",
-    ],
-    detailsAr: [
-      "تتبع GPS فوري لمركبات الأسطول مع عرض خريطة حي",
-      "تحسين المسارات الذكي لتقليل تكاليف الوقود وأوقات التسليم",
-      "تعيين المهام والإرسال التلقائي للعاملين الميدانيين",
-      "إثبات التسليم مع التقاط الصور والتوقيعات الرقمية",
-      "جدولة صيانة المركبات وتتبع التكاليف",
-      "RARE AI يتنبأ بأوقات التسليم ويحسن استخدام الأسطول",
-    ],
-  },
-  'project-management': {
-    icon: Briefcase,
-    titleEn: "Project Management",
-    titleAr: "إدارة المشاريع",
-    descEn: "End-to-end project management with Kanban boards, Gantt charts, and team collaboration tools.",
-    descAr: "إدارة مشاريع شاملة مع لوحات كانبان ومخططات جانت وأدوات التعاون الجماعي.",
-    bullets: ['pm_bullet_1', 'pm_bullet_2', 'pm_bullet_3'],
-    image: "https://lh3.googleusercontent.com/p/AF1QipPwN6JEeKaXorclLqLX6pWvPluB__YEcTvMo6Ef=s1360-w1360-h1020-rw",
-    detailsEn: [
-      "Kanban boards with drag-and-drop task management",
-      "Gantt chart view for timeline planning and dependencies",
-      "Milestone tracking with automated progress reports",
-      "Multi-level approval workflows for tasks and deliverables",
-      "Time tracking and resource allocation across projects",
-      "RARE AI identifies bottlenecks and suggests timeline adjustments",
-    ],
-    detailsAr: [
-      "لوحات كانبان بإدارة المهام بالسحب والإفلات",
-      "عرض مخطط جانت لتخطيط الجداول الزمنية والتبعيات",
-      "تتبع المراحل الرئيسية مع تقارير تقدم تلقائية",
-      "سير عمل موافقات متعددة المستويات للمهام والمخرجات",
-      "تتبع الوقت وتخصيص الموارد عبر المشاريع",
-      "RARE AI يحدد العقبات ويقترح تعديلات على الجدول الزمني",
-    ],
-  },
-  'global-store': {
-    icon: ShoppingBag,
-    titleEn: "Global Store",
-    titleAr: "المتجر العالمي",
-    descEn: "Full e-commerce solution integrated with your inventory and accounting for seamless online selling.",
-    descAr: "حل تجارة إلكترونية كامل متكامل مع المخزون والمحاسبة لبيع سلس عبر الإنترنت.",
-    bullets: ['store_bullet_1', 'store_bullet_2', 'store_bullet_3'],
-    image: "https://lh3.googleusercontent.com/p/AF1QipMPZljVEc-2ZIfQBXj4-jbm2U-Lwng67FH5wfDL=s1360-w1360-h1020-rw",
-    detailsEn: [
-      "Multi-channel selling: web store, mobile app, and marketplace integrations",
-      "Inventory management synced with accounting and warehouse",
-      "Order processing with automated fulfillment workflows",
-      "Product catalog with variants, pricing tiers, and promotions",
-      "Payment gateway integration with multiple currency support",
-      "RARE AI recommends pricing strategies and predicts demand",
-    ],
-    detailsAr: [
-      "بيع متعدد القنوات: متجر ويب، تطبيق جوال، وتكامل مع الأسواق",
-      "إدارة مخزون مرتبطة بالمحاسبة والمستودع",
-      "معالجة الطلبات مع سير عمل تنفيذ تلقائي",
-      "كتالوج منتجات مع متغيرات ومستويات أسعار وعروض ترويجية",
-      "تكامل بوابات الدفع مع دعم متعدد العملات",
-      "RARE AI يوصي باستراتيجيات التسعير ويتنبأ بالطلب",
-    ],
-  },
-  'meetings-chat': {
-    icon: MessageSquare,
-    titleEn: "Meetings & Chat",
-    titleAr: "الاجتماعات والدردشة",
-    descEn: "Unified communication platform with video conferencing, team chat, and AI-powered meeting summaries.",
-    descAr: "منصة اتصالات موحدة مع مؤتمرات فيديو ودردشة جماعية وملخصات اجتماعات بالذكاء الاصطناعي.",
-    bullets: ['meetings_bullet_1', 'meetings_bullet_2', 'meetings_bullet_3'],
-    image: "https://lh3.googleusercontent.com/p/AF1QipPGjbkIguKi4eV3p_wr4Js4-O_Hv-AkhlGWz88-=s1360-w1360-h1020-rw",
-    detailsEn: [
-      "HD video conferencing with screen sharing and recording",
-      "Team chat channels organized by department or project",
-      "AI-powered meeting transcription and smart summaries",
-      "Action item extraction and automatic task creation",
-      "Calendar integration with scheduling and reminders",
-      "RARE AI generates meeting notes and follow-up tasks automatically",
-    ],
-    detailsAr: [
-      "مؤتمرات فيديو عالية الدقة مع مشاركة الشاشة والتسجيل",
-      "قنوات دردشة جماعية منظمة حسب القسم أو المشروع",
-      "نسخ اجتماعات بالذكاء الاصطناعي وملخصات ذكية",
-      "استخراج بنود العمل وإنشاء المهام تلقائياً",
-      "تكامل التقويم مع الجدولة والتذكيرات",
-      "RARE AI ينشئ ملاحظات الاجتماعات ومهام المتابعة تلقائياً",
-    ],
-  },
-};
+export default function FeatureDetailPage({ id, onNavigate }: { id: string, onNavigate: (to: string) => void }) {
+  const { language } = useTheme();
 
-export default function FeatureDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const { language, t: translate } = useTheme();
+  const featuresData: Record<string, any> = {
+    'accounting': {
+      icon: BarChart3,
+      title: language === 'ar' ? "المحاسبة والمالية" : "Accounting & Finance",
+      desc: language === 'ar' ? "إدارة الفواتير، المدفوعات، الاشتراكات، وإعدادات الضرائب حسب الدولة." : "Manage invoices, payments, subscriptions, and tax settings by country.",
+      image: "https://lh3.googleusercontent.com/p/AF1QipM4Z8Hvn9cMYSRqtQNgp3ZlnnyHqSRIDaSQAKDN=s1360-w1360-h1020-rw",
+      details: language === 'ar' ? [
+        "إصدار فواتير ذكية وتتبع المدفوعات",
+        "إدارة الضرائب المتعددة والامتثال المحلي",
+        "تقارير مالية وتحليلات فورية",
+        "ربط مباشر مع بوابات الدفع العالمية",
+        "إدارة الميزانيات والمصروفات بدقة"
+      ] : [
+        "Smart invoicing and payment tracking",
+        "Multi-tax management and local compliance",
+        "Real-time financial reporting and analytics",
+        "Direct integration with global payment gateways",
+        "Accurate budget and expense management"
+      ]
+    },
+    'sales': {
+      icon: Users,
+      title: language === 'ar' ? "المبيعات والتسويق" : "Sales & Marketing",
+      desc: language === 'ar' ? "إدارة علاقات العملاء (CRM)، عروض الأسعار، العقود، وبوابة العملاء." : "CRM, quotes, contracts, and a dedicated client portal.",
+      image: "https://lh3.googleusercontent.com/p/AF1QipOxcyDh5pI5H6Es3o-98m8D9fynSp8fBCvvrW_g=s1360-w1360-h1020-rw",
+      details: language === 'ar' ? [
+        "إدارة مسار المبيعات والعملاء المحتملين",
+        "إنشاء عروض أسعار وعقود احترافية",
+        "بوابة مخصصة للعملاء للتواصل والمتابعة",
+        "تتبع أداء فريق المبيعات",
+        "حملات تسويقية مستهدفة"
+      ] : [
+        "Sales pipeline and lead management",
+        "Professional quotes and contract generation",
+        "Dedicated client portal for communication",
+        "Sales team performance tracking",
+        "Targeted marketing campaigns"
+      ]
+    },
+    'hr': {
+      icon: Shield,
+      title: language === 'ar' ? "الموارد البشرية" : "Human Resources",
+      desc: language === 'ar' ? "ملفات الموظفين، التوظيف، الحضور، الرواتب، والإجازات." : "Employee files, hiring, attendance, payroll, and leaves.",
+      image: "https://lh3.googleusercontent.com/p/AF1QipO9w_lR54InzNIU6W8D9AH8XRFzLL6SUwVPdJcN=s1360-w1360-h1020-rw",
+      details: language === 'ar' ? [
+        "إدارة شاملة لملفات الموظفين",
+        "تتبع الحضور والانصراف آلياً",
+        "معالجة الرواتب وإدارة طلبات الإجازات",
+        "تقييم الأداء والمكافآت",
+        "نظام توظيف وتتبع المتقدمين"
+      ] : [
+        "Comprehensive employee file management",
+        "Automated attendance tracking",
+        "Payroll processing and leave management",
+        "Performance evaluation and rewards",
+        "Recruitment and applicant tracking system"
+      ]
+    },
+    'fleet': {
+      icon: Globe,
+      title: language === 'ar' ? "العمليات الميدانية والأسطول" : "Field Agents & Fleet",
+      desc: language === 'ar' ? "تتبع الخرائط، إدارة المركبات، ودعم CarPlay/Android Auto." : "Map tracking, vehicle management, and CarPlay/Android Auto support.",
+      image: "https://lh3.googleusercontent.com/p/AF1QipOO2HzMRuorxrjfQkOsJ_3ZfKUVWT5x718CeF6s=s1360-w1360-h1020-rw",
+      details: language === 'ar' ? [
+        "تتبع حي للمركبات والوكلاء الميدانيين",
+        "تكامل مع CarPlay و Android Auto",
+        "إدارة مهام الصيانة وجدولة الرحلات",
+        "تحسين مسارات التوصيل",
+        "تقارير استهلاك الوقود وكفاءة الأسطول"
+      ] : [
+        "Live tracking of vehicles and field agents",
+        "CarPlay and Android Auto integration",
+        "Maintenance task management and trip scheduling",
+        "Delivery route optimization",
+        "Fuel consumption and fleet efficiency reports"
+      ]
+    },
+    'ai': {
+      icon: Zap,
+      title: "RARE AI Agents",
+      desc: language === 'ar' ? "وكلاء ذكاء اصطناعي متخصصون (محاسبة، مبيعات، موارد بشرية، إلخ) للتحليلات والتوصيات." : "Specialized AI agents (Accounting, Sales, HR, etc.) for analytics and recommendations.",
+      image: "https://www.cyberark.com/wp-content/uploads/2025/03/ai-agents-collaborative-intelligence1.jpg",
+      details: language === 'ar' ? [
+        "مساعد ذكي لكل قسم في الشركة",
+        "تحليلات تنبؤية وتوصيات استراتيجية",
+        "أتمتة المهام الروتينية وصياغة التقارير",
+        "تحليل المشاعر في تواصل العملاء",
+        "اكتشاف الأنماط والفرص المخفية"
+      ] : [
+        "Smart assistant for every company department",
+        "Predictive analytics and strategic recommendations",
+        "Routine task automation and report drafting",
+        "Sentiment analysis in customer communication",
+        "Discovering hidden patterns and opportunities"
+      ]
+    },
+    'meetings': {
+      icon: Users2,
+      title: language === 'ar' ? "الاجتماعات والدردشة" : "Meetings & Chat",
+      desc: language === 'ar' ? "اجتماعات الأقسام، دردشة خاصة/جماعية، وملخصات مدعومة بالذكاء الاصطناعي." : "Department meetings, private/group chat, and AI-powered summaries.",
+      image: "https://lh3.googleusercontent.com/p/AF1QipPGjbkIguKi4eV3p_wr4Js4-O_Hv-AkhlGWz88-=s1360-w1360-h1020-rw",
+      details: language === 'ar' ? [
+        "مكالمات فيديو وصوت عالية الجودة",
+        "مساحات عمل جماعية ودردشة فورية",
+        "تلخيص الاجتماعات تلقائياً بالذكاء الاصطناعي",
+        "مشاركة الشاشة والملفات بأمان",
+        "جدولة ذكية متكاملة مع التقويم"
+      ] : [
+        "High-quality video and audio calls",
+        "Team workspaces and instant messaging",
+        "Automatic AI-powered meeting summaries",
+        "Secure screen and file sharing",
+        "Smart scheduling integrated with calendar"
+      ]
+    },
+    'admin': {
+      icon: Briefcase,
+      title: language === 'ar' ? "المهام الإدارية والشكاوى" : "Admin Tasks & Complaints",
+      desc: language === 'ar' ? "إدارة المهام، الأوامر الإدارية، المرفقات، ونظام الشكاوى." : "Task management, administrative orders, attachments, and complaints system.",
+      image: "https://lh3.googleusercontent.com/p/AF1QipPwN6JEeKaXorclLqLX6pWvPluB__YEcTvMo6Ef=s1360-w1360-h1020-rw",
+      details: language === 'ar' ? [
+        "تتبع المهام وتعيين المسؤوليات",
+        "إدارة الأوامر الإدارية والتعاميم",
+        "نظام متكامل لمعالجة الشكاوى والاقتراحات",
+        "أرشفة إلكترونية للوثائق والمرفقات",
+        "تتبع سير العمل والموافقات"
+      ] : [
+        "Task tracking and responsibility assignment",
+        "Management of administrative orders and circulars",
+        "Integrated system for handling complaints and suggestions",
+        "Electronic archiving of documents and attachments",
+        "Workflow and approval tracking"
+      ]
+    },
+    'store': {
+      icon: Layout,
+      title: language === 'ar' ? "المتجر المخصص" : "Customized Store",
+      desc: language === 'ar' ? "متجر مخصص للمستأجر مرتبط ببوابة العملاء للمنتجات والخدمات." : "Tenant-customized store linked to client portal for products/services.",
+      image: "https://lh3.googleusercontent.com/p/AF1QipMPZljVEc-2ZIfQBXj4-jbm2U-Lwng67FH5wfDL=s1360-w1360-h1020-rw",
+      details: language === 'ar' ? [
+        "واجهة متجر قابلة للتخصيص بالكامل",
+        "إدارة المنتجات والخدمات والأسعار",
+        "تكامل مباشر مع بوابة العملاء والمدفوعات",
+        "إدارة المخزون والطلبات",
+        "عروض ترويجية وكوبونات خصم"
+      ] : [
+        "Fully customizable storefront interface",
+        "Product, service, and pricing management",
+        "Direct integration with client portal and payments",
+        "Inventory and order management",
+        "Promotions and discount coupons"
+      ]
+    },
+    'portal': {
+      icon: ShieldCheck,
+      title: language === 'ar' ? "بوابة الموظف" : "Employee Portal",
+      desc: language === 'ar' ? "بوابة شخصية لكل موظف للوصول إلى الحضور، الإجازات، والرواتب." : "Personal portal for each employee to access attendance, leaves, and payroll.",
+      image: "https://picsum.photos/seed/portal/1360/1020",
+      details: language === 'ar' ? [
+        "لوحة تحكم شخصية لكل موظف",
+        "تقديم ومتابعة طلبات الإجازات والمغادرات",
+        "الوصول إلى قسائم الرواتب والوثائق الشخصية",
+        "تحديث البيانات الشخصية",
+        "التواصل الداخلي والتعاميم"
+      ] : [
+        "Personalized dashboard for every employee",
+        "Submit and track leave and departure requests",
+        "Access to payslips and personal documents",
+        "Update personal information",
+        "Internal communication and circulars"
+      ]
+    }
+  };
 
-  const feature = slug ? FEATURE_DATA[slug] : null;
+  const feature = id ? featuresData[id] : null;
 
   if (!feature) {
     return (
-      <div className="pt-32 pb-20 px-6 bg-[var(--bg-primary)] min-h-screen text-center">
-        <h1 className="text-3xl font-bold mb-4">Feature not found</h1>
-        <button onClick={() => navigate('/features')} className="text-blue-600 font-bold hover:underline">
-          {translate('back')} → {translate('features')}
-        </button>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">{language === 'ar' ? 'الميزة غير موجودة' : 'Feature not found'}</h1>
+          <button onClick={() => onNavigate('/features')} className="text-brand hover:underline">
+            {language === 'ar' ? 'العودة إلى الميزات' : 'Back to Features'}
+          </button>
+        </div>
       </div>
     );
   }
 
   const Icon = feature.icon;
-  const title = language === 'ar' ? feature.titleAr : feature.titleEn;
-  const desc = language === 'ar' ? feature.descAr : feature.descEn;
-  const details = language === 'ar' ? feature.detailsAr : feature.detailsEn;
 
   return (
     <div className="pt-32 pb-20 px-6 bg-[var(--bg-primary)] min-h-screen">
-      <div className="max-w-5xl mx-auto">
-        {/* Back link */}
-        <button
-          onClick={() => navigate('/features')}
-          className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-blue-600 font-bold mb-12 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" /> {translate('features')}
+      <div className="max-w-4xl mx-auto">
+        <button onClick={() => onNavigate('/features')} className="inline-flex items-center gap-2 text-[var(--text-secondary)] hover:text-brand transition-colors mb-8">
+          <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
+          {language === 'ar' ? 'العودة إلى الميزات' : 'Back to Features'}
         </button>
 
-        {/* Hero */}
-        <motion.div
+        <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col lg:flex-row gap-12 items-center mb-20"
+          className="glass-card p-8 md:p-12 rounded-[2.5rem] border-[var(--border-soft)] shadow-xl"
         >
-          <div className="flex-1 space-y-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-400 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-              <Icon className="w-8 h-8" />
+          <div className="flex items-center gap-6 mb-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-brand to-brand-light text-white rounded-3xl flex items-center justify-center shadow-lg shadow-brand/20 flex-shrink-0">
+              <Icon className="w-10 h-10" />
             </div>
-            <h1 className="text-5xl font-bold tracking-tight">{title}</h1>
-            <p className="text-xl text-[var(--text-secondary)] leading-relaxed">{desc}</p>
-            <div className="flex gap-4 pt-4">
-              <button
-                onClick={() => navigate('/register')}
-                className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
-              >
-                {translate('start_free')}
-              </button>
-              <button
-                onClick={() => navigate('/contact')}
-                className="glass-card px-8 py-3 font-bold hover:bg-blue-50 transition-all"
-              >
-                {translate('contact')}
-              </button>
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-2">{feature.title}</h1>
+              <p className="text-xl text-[var(--text-secondary)]">{feature.desc}</p>
             </div>
           </div>
-          <div className="flex-1 w-full">
-            <div className="glass-card p-4 rounded-[2.5rem] shadow-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
-              <img
-                src={feature.image}
-                alt={title}
-                className="w-full aspect-video object-cover rounded-[2rem] shadow-lg border border-[var(--border-soft)]"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-          </div>
-        </motion.div>
 
-        {/* Key Features */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-20"
-        >
-          <h2 className="text-3xl font-bold mb-8 tracking-tight">
-            {language === 'ar' ? 'المميزات الرئيسية' : 'Key Capabilities'}
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            {details.map((detail, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -10 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.08 }}
-                className="flex items-start gap-4 p-5 glass-card"
-              >
-                <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0 mt-0.5" />
-                <span className="text-[var(--text-primary)] font-medium leading-relaxed">{detail}</span>
-              </motion.div>
-            ))}
+          <div className="mb-12 rounded-3xl overflow-hidden shadow-2xl border border-[var(--border-soft)]">
+            <img 
+              src={feature.image} 
+              alt={feature.title} 
+              className="w-full h-auto object-cover"
+              referrerPolicy="no-referrer"
+            />
           </div>
-        </motion.div>
 
-        {/* Quick feature highlights from translation keys */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="glass-card p-10 text-center"
-        >
-          <h3 className="text-2xl font-bold mb-4">
-            {language === 'ar' ? 'جاهز للبدء؟' : 'Ready to get started?'}
-          </h3>
-          <p className="text-[var(--text-secondary)] mb-6">
-            {language === 'ar'
-              ? 'ابدأ تجربتك المجانية اليوم واكتشف كيف يمكن لـ ZIEN تحويل عملياتك.'
-              : 'Start your free trial today and discover how ZIEN can transform your operations.'}
-          </p>
-          <button
-            onClick={() => navigate('/register')}
-            className="bg-blue-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 inline-flex items-center gap-2"
-          >
-            {translate('start_free')} <ArrowRight className="w-5 h-5" />
-          </button>
+          <div>
+            <h2 className="text-2xl font-bold mb-6">
+              {language === 'ar' ? 'الميزات الرئيسية' : 'Key Features'}
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              {feature.details.map((detail: string, idx: number) => (
+                <div key={idx} className="flex items-start gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border-soft)]">
+                  <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-lg font-medium">{detail}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </motion.div>
       </div>
     </div>

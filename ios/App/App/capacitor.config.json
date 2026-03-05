@@ -1,0 +1,13 @@
+{
+	"appId": "com.zien.app",
+	"appName": "ZIEN",
+	"webDir": "dist",
+	"bundledWebRuntime": false,
+	"packageClassList": [
+		"CAPCameraPlugin",
+		"FilesystemPlugin",
+		"GeolocationPlugin",
+		"PushNotificationsPlugin",
+		"NativeBiometricPlugin"
+	]
+}

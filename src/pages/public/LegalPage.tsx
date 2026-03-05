@@ -87,8 +87,8 @@ export default function LegalPage() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">{language === 'ar' ? 'الأمن والامتثال' : 'Security & Compliance'}</h2>
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100">
-                <Shield className="w-8 h-8 text-blue-600 mb-4" />
+              <div className="p-6 bg-brand-light rounded-2xl border border-brand-muted">
+                <Shield className="w-8 h-8 text-brand mb-4" />
                 <h3 className="font-bold mb-2">{language === 'ar' ? 'تشفير البيانات' : 'Data Encryption'}</h3>
                 <p className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'يتم تشفير جميع البيانات أثناء النقل وعند الراحة باستخدام معايير AES-256.' : 'All data is encrypted in transit and at rest using AES-256 standards.'}</p>
               </div>
@@ -98,105 +98,6 @@ export default function LegalPage() {
                 <p className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'نستخدم RARE AI Shield لضمان عدم وصول أي مستخدم لبيانات شركة أخرى.' : 'We use RARE AI Shield to ensure no user can access another company\'s data.'}</p>
               </div>
             </div>
-            <h3 className="text-lg font-bold">{language === 'ar' ? 'شهادات الامتثال' : 'Compliance Certifications'}</h3>
-            <ul className="list-disc list-inside space-y-2">
-              <li>{language === 'ar' ? 'تشفير AES-256 لجميع البيانات المخزنة والمنقولة' : 'AES-256 encryption for all stored and transmitted data'}</li>
-              <li>{language === 'ar' ? 'TLS 1.3 لتأمين جميع الاتصالات' : 'TLS 1.3 for all communications security'}</li>
-              <li>{language === 'ar' ? 'أمان مستوى الصف (RLS) لعزل بيانات المستأجرين بالكامل' : 'Row Level Security (RLS) for complete tenant data isolation'}</li>
-              <li>{language === 'ar' ? 'مصادقة ثنائية العامل (2FA) لجميع الحسابات' : 'Two-factor authentication (2FA) for all accounts'}</li>
-              <li>{language === 'ar' ? 'سجلات تدقيق شاملة لجميع تغييرات البيانات' : 'Comprehensive audit logs for all data changes'}</li>
-              <li>{language === 'ar' ? 'نسخ احتياطي يومي للبيانات مع استرداد الكوارث' : 'Daily data backups with disaster recovery'}</li>
-              <li>{language === 'ar' ? 'الامتثال لقوانين حماية البيانات في الإمارات' : 'Compliance with UAE data protection regulations'}</li>
-            </ul>
-            <h3 className="text-lg font-bold">{language === 'ar' ? 'اختبارات الاختراق' : 'Penetration Testing'}</h3>
-            <p>
-              {language === 'ar'
-                ? 'يتم إجراء اختبارات اختراق دورية من قبل أطراف ثالثة مستقلة. نحن نصلح أي ثغرات مكتشفة خلال 24-72 ساعة حسب الخطورة.'
-                : 'Regular penetration tests are conducted by independent third parties. We remediate any discovered vulnerabilities within 24-72 hours depending on severity.'}
-            </p>
-          </div>
-        );
-      case 'retention':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{language === 'ar' ? 'سياسة الاحتفاظ بالبيانات' : 'Data Retention Policy'}</h2>
-            <p>
-              {language === 'ar'
-                ? 'توضح هذه السياسة كيفية احتفاظنا ببياناتك وحذفها. نحن ملتزمون بالحد الأدنى من الاحتفاظ بالبيانات اللازم لتقديم خدماتنا.'
-                : 'This policy outlines how we retain and delete your data. We are committed to minimal data retention necessary to provide our services.'}
-            </p>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '1. بيانات الحساب النشط' : '1. Active Account Data'}</h3>
-            <p>
-              {language === 'ar'
-                ? 'يتم الاحتفاظ بجميع بيانات شركتك طوال فترة اشتراكك النشط. تشمل هذه البيانات: معلومات الشركة، بيانات الموظفين، السجلات المالية، سجلات الاستخدام، وكل المحتوى الذي تم إنشاؤه على المنصة.'
-                : 'All your company data is retained throughout your active subscription period. This includes: company information, employee data, financial records, usage logs, and all content created on the platform.'}
-            </p>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '2. بعد إلغاء الاشتراك' : '2. After Subscription Cancellation'}</h3>
-            <p>
-              {language === 'ar'
-                ? 'عند إلغاء اشتراكك، نحتفظ ببياناتك لمدة 90 يوماً كفترة سماح. خلال هذه الفترة يمكنك إعادة تفعيل حسابك واستعادة جميع بياناتك. بعد 90 يوماً، يتم حذف البيانات نهائياً ولا يمكن استردادها.'
-                : 'Upon subscription cancellation, we retain your data for 90 days as a grace period. During this period, you can reactivate your account and recover all your data. After 90 days, data is permanently deleted and cannot be recovered.'}
-            </p>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '3. سجلات التدقيق' : '3. Audit Logs'}</h3>
-            <p>
-              {language === 'ar'
-                ? 'يتم الاحتفاظ بسجلات التدقيق والأمان لمدة 12 شهراً من تاريخ إنشائها للامتثال التنظيمي. يمكن طلب تمديد فترة الاحتفاظ لخطط المؤسسات.'
-                : 'Audit and security logs are retained for 12 months from creation date for regulatory compliance. Extended retention periods can be requested for enterprise plans.'}
-            </p>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '4. النسخ الاحتياطية' : '4. Backups'}</h3>
-            <p>
-              {language === 'ar'
-                ? 'يتم الاحتفاظ بالنسخ الاحتياطية اليومية لمدة 30 يوماً. النسخ الاحتياطية الأسبوعية محتفظ بها لمدة 90 يوماً. يتم تشفير جميع النسخ الاحتياطية ولا يمكن الوصول إليها إلا عبر إجراءات أمنية صارمة.'
-                : 'Daily backups are retained for 30 days. Weekly backups are retained for 90 days. All backups are encrypted and accessible only through strict security procedures.'}
-            </p>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '5. حق الحذف' : '5. Right to Deletion'}</h3>
-            <p>
-              {language === 'ar'
-                ? 'يحق لك طلب حذف جميع بياناتك في أي وقت عبر التواصل مع فريق الدعم. سنقوم بحذف بياناتك خلال 30 يوم عمل مع إصدار شهادة حذف.'
-                : 'You have the right to request deletion of all your data at any time by contacting our support team. We will delete your data within 30 business days and issue a deletion certificate.'}
-            </p>
-          </div>
-        );
-      case 'refund':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{language === 'ar' ? 'سياسة الاسترداد' : 'Refund Policy'}</h2>
-            <p>
-              {language === 'ar'
-                ? 'نحن نؤمن برضا عملائنا. تحدد هذه السياسة شروط وأحكام استرداد المبالغ المدفوعة.'
-                : 'We believe in customer satisfaction. This policy outlines the terms and conditions for refunds.'}
-            </p>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '1. الاشتراكات الشهرية' : '1. Monthly Subscriptions'}</h3>
-            <p>
-              {language === 'ar'
-                ? 'يمكنك إلغاء اشتراكك الشهري في أي وقت. ستحتفظ بالوصول إلى خدماتك حتى نهاية فترة الفوترة الحالية. لا يتم استرداد الأيام المتبقية من الشهر الحالي.'
-                : 'You can cancel your monthly subscription at any time. You will retain access to your services until the end of the current billing period. Remaining days in the current month are not refunded.'}
-            </p>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '2. الاشتراكات السنوية' : '2. Annual Subscriptions'}</h3>
-            <p>
-              {language === 'ar'
-                ? 'للخطط السنوية، يحق لك استرداد كامل خلال أول 30 يوماً من الاشتراك (ضمان استرداد الأموال). بعد 30 يوماً، يمكنك إلغاء الاشتراك السنوي واستلام استرداد تناسبي للأشهر المتبقية غير المستخدمة (الحد الأدنى 3 أشهر متبقية).'
-                : 'For annual plans, you are entitled to a full refund within the first 30 days of subscription (money-back guarantee). After 30 days, you can cancel the annual subscription and receive a prorated refund for remaining unused months (minimum 3 months remaining).'}
-            </p>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '3. الإضافات (Add-ons)' : '3. Add-ons'}</h3>
-            <p>
-              {language === 'ar'
-                ? 'يمكن إلغاء الإضافات في أي وقت. يتم إيقاف التجديد التلقائي وتستمر الخدمة حتى نهاية الفترة المدفوعة. لا يتم استرداد إضافات المستخدمين الإضافيين جزئياً.'
-                : 'Add-ons can be cancelled at any time. Auto-renewal is stopped and the service continues until the end of the paid period. Extra user add-ons are not partially refundable.'}
-            </p>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '4. كيفية طلب الاسترداد' : '4. How to Request a Refund'}</h3>
-            <ul className="list-disc list-inside space-y-2">
-              <li>{language === 'ar' ? 'تواصل مع فريق الدعم عبر البريد الإلكتروني: billing@zien-ai.app' : 'Contact support via email: billing@zien-ai.app'}</li>
-              <li>{language === 'ar' ? 'أو من خلال نموذج الاتصال في صفحة الدعم' : 'Or through the contact form on the support page'}</li>
-              <li>{language === 'ar' ? 'سيتم معالجة طلبك خلال 5-10 أيام عمل' : 'Your request will be processed within 5-10 business days'}</li>
-              <li>{language === 'ar' ? 'يتم إرجاع المبلغ بنفس طريقة الدفع الأصلية' : 'Refunds are returned via the original payment method'}</li>
-            </ul>
-            <h3 className="text-lg font-bold">{language === 'ar' ? '5. الحالات غير القابلة للاسترداد' : '5. Non-Refundable Cases'}</h3>
-            <ul className="list-disc list-inside space-y-2">
-              <li>{language === 'ar' ? 'الحسابات المعلقة بسبب انتهاك شروط الاستخدام' : 'Accounts suspended due to terms of service violations'}</li>
-              <li>{language === 'ar' ? 'رسوم الإعداد لمرة واحدة (إن وجدت) في خطط المؤسسات' : 'One-time setup fees (if any) on enterprise plans'}</li>
-              <li>{language === 'ar' ? 'الخدمات المخصصة أو التطوير حسب الطلب' : 'Custom services or on-demand development'}</li>
-            </ul>
           </div>
         );
       default:
@@ -231,7 +132,7 @@ export default function LegalPage() {
                 key={s.id}
                 onClick={() => setActiveTab(s.id)}
                 className={`w-full flex items-center gap-3 px-6 py-4 rounded-xl font-bold transition-all ${
-                  activeTab === s.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'glass-card hover:bg-black/5'
+                  activeTab === s.id ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'glass-card hover:bg-black/5'
                 }`}
               >
                 <s.icon className="w-5 h-5" />

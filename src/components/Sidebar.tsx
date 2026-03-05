@@ -1,65 +1,44 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  LayoutDashboard, Users, BarChart3, Truck,
+import { 
+  LayoutDashboard, Users, BarChart3, Truck, 
   MessageSquare, ShoppingBag, Briefcase, BrainCircuit,
   Settings, HelpCircle, GraduationCap, FileText,
-  ChevronLeft, ChevronRight, LogOut, FolderKanban, Plug, PanelLeft
+  ChevronLeft, ChevronRight, LogOut
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useCompany } from '../contexts/CompanyContext';
-import { getRoleLevel, MODULE_ACCESS } from '../lib/permissions';
 
-type MenuItem = {
-  id: string;
-  icon: React.ElementType;
-  label: string;
-  path: string;
-  moduleCode: string; // key into MODULE_ACCESS
-};
-
-const menuItems: MenuItem[] = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', moduleCode: 'dashboard' },
-  { id: 'hr', icon: Users, label: 'HR Management', path: '/dashboard/hr', moduleCode: 'hr' },
-  { id: 'accounting', icon: BarChart3, label: 'Accounting', path: '/dashboard/accounting', moduleCode: 'accounting' },
-  { id: 'logistics', icon: Truck, label: 'Logistics', path: '/dashboard/logistics', moduleCode: 'logistics' },
-  { id: 'crm', icon: Briefcase, label: 'CRM', path: '/dashboard/crm', moduleCode: 'crm' },
-  { id: 'projects', icon: FolderKanban, label: 'Projects', path: '/dashboard/projects', moduleCode: 'projects' },
-  { id: 'store', icon: ShoppingBag, label: 'Store & POS', path: '/dashboard/store', moduleCode: 'store' },
-  { id: 'meetings', icon: MessageSquare, label: 'Meetings & Chat', path: '/dashboard/meetings', moduleCode: 'meetings' },
-  { id: 'rare', icon: BrainCircuit, label: 'RARE AI', path: '/dashboard/rare', moduleCode: 'rare' },
-  { id: 'integrations', icon: Plug, label: 'Integrations', path: '/dashboard/integrations', moduleCode: 'integrations' },
-  { id: 'portal-builder', icon: PanelLeft, label: 'Portal Builder', path: '/dashboard/portal-builder', moduleCode: 'portal_builder' },
-  { id: 'academy', icon: GraduationCap, label: 'Academy', path: '/dashboard/academy', moduleCode: 'academy' },
-  { id: 'help', icon: HelpCircle, label: 'Help Center', path: '/dashboard/help', moduleCode: 'help' },
+const menuItems = [
+  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+  { id: 'hr', icon: Users, label: 'HR Management', path: '/dashboard/hr' },
+  { id: 'accounting', icon: BarChart3, label: 'Accounting', path: '/dashboard/accounting' },
+  { id: 'logistics', icon: Truck, label: 'Logistics', path: '/dashboard/logistics' },
+  { id: 'crm', icon: Briefcase, label: 'CRM & Projects', path: '/dashboard/crm' },
+  { id: 'store', icon: ShoppingBag, label: 'Global Store', path: '/dashboard/store' },
+  { id: 'meetings', icon: MessageSquare, label: 'Meetings & Chat', path: '/dashboard/meetings' },
+  { id: 'rare', icon: BrainCircuit, label: 'RARE AI', path: '/dashboard/rare' },
+  { id: 'academy', icon: GraduationCap, label: 'Academy', path: '/dashboard/academy' },
+  { id: 'help', icon: HelpCircle, label: 'Help Center', path: '/dashboard/help' },
 ];
 
 export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCollapsed: (c: boolean) => void }) {
   const { t } = useTranslation();
-  const { role } = useCompany();
-
-  // Unified permission check from shared permission resolver
-  const userLevel = getRoleLevel(role);
-  const visibleItems = menuItems.filter(item => {
-    const mod = MODULE_ACCESS[item.moduleCode];
-    return mod ? userLevel >= mod.read : false;
-  });
 
   return (
     <motion.aside
       animate={{ width: collapsed ? 80 : 280 }}
-      className="h-screen bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex flex-col sticky top-0"
+      className="h-screen bg-[var(--bg-primary)] border-r border-[var(--border-soft)] flex flex-col sticky top-0"
     >
       <div className="p-6 flex items-center justify-between">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg">Z</div>
+            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-black text-lg">Z</div>
             <span className="text-lg font-black tracking-tighter uppercase">Zien</span>
           </div>
         )}
-        {collapsed && <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg mx-auto">Z</div>}
-        <button
+        {collapsed && <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-black text-lg mx-auto">Z</div>}
+        <button 
           onClick={() => setCollapsed(!collapsed)}
           className="hidden lg:flex p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-500"
         >
@@ -68,15 +47,15 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
-        {visibleItems.map((item) => (
+        {menuItems.map((item) => (
           <NavLink
             key={item.id}
             to={item.path}
             end={item.path === '/dashboard'}
             className={({ isActive }) => `
               flex items-center gap-3 px-3 py-3 rounded-xl transition-all group relative
-              ${isActive
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+              ${isActive 
+                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
                 : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'}
             `}
           >

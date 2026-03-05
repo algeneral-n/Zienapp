@@ -1,45 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  X, Send, Mic, Sparkles,
-  HelpCircle, BarChart2,
+import { 
+  X, Send, Mic, Sparkles, 
+  HelpCircle, BarChart2, 
   Zap, FileText, Maximize2, Minimize2,
   MoreHorizontal, MessageSquare, Info,
-  CheckCircle2, AlertCircle, History, Upload
+  CheckCircle2, AlertCircle, ArrowLeft, Upload,
+  Globe, MapPin, FastForward
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import { ASSETS, IMAGE_PROPS } from '../constants/assets';
-import { generateRAREAnalysis, RAREAgentType } from '../services/geminiService';
-import { RAREMode, RAREContext, RAREQuickAction, Language, ThemeMode } from '../types';
+import { generateRAREAnalysis, transcribeAudio, RAREAgentType } from '../services/geminiService';
+import { RAREMode, RAREContext, RAREQuickAction, UserRole, Language, ThemeMode } from '../types';
 import { useTheme } from './ThemeProvider';
-import { usePermissions } from '../hooks/usePermissions';
-import { useCompany } from '../contexts/CompanyContext';
-import { useAuth } from '../contexts/AuthContext';
-
-interface PageContext {
-  pageType: 'public' | 'protected';
-  pageKey: string;
-  companyId?: string;
-  role?: string;
-  modules?: string[];
-}
 
 interface FloatingActionsProps {
-  user?: any;
-  pageContext?: PageContext;
+  showBack: boolean;
+  onBack: () => void;
+  user: any;
 }
 
-export default function FloatingActions({ user, pageContext }: FloatingActionsProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const showBack = location.pathname !== '/' && location.pathname !== '';
+export default function FloatingActions({ showBack, onBack, user }: FloatingActionsProps) {
   const { mode: themeMode } = useTheme();
   const { t: translate, i18n } = useTranslation();
-  const { profile } = useAuth();
-  const { company, membership } = useCompany();
-  const { permissions, isFounder, isPlatformAdmin } = usePermissions();
   const language = i18n.language as Language;
   const mode = themeMode as ThemeMode;
 
@@ -54,35 +38,90 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isListening, setIsListening] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<{ name: string, data: string, mimeType: string }[]>([]);
-
+  
+  // AI Feature Toggles
+  const [useSearch, setUseSearch] = useState(false);
+  const [useMaps, setUseMaps] = useState(false);
+  const [fastMode, setFastMode] = useState(false);
+  
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
-  const toggleListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert(language === 'ar' ? 'متصفحك لا يدعم التعرف على الصوت.' : 'Your browser does not support speech recognition.');
-      return;
-    }
-
+  const toggleListening = async () => {
     if (isListening) {
+      mediaRecorderRef.current?.stop();
       setIsListening(false);
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = language === 'ar' ? 'ar-SA' : 'en-US';
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(prev => prev + ' ' + transcript);
-    };
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
 
-    recognition.start();
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = (reader.result as string).split(',')[1];
+          setIsLoading(true);
+          try {
+            const transcription = await transcribeAudio(base64Audio, 'audio/webm');
+            if (transcription) {
+              const text = transcription.trim();
+              const lowerText = text.toLowerCase();
+              
+              // Voice Commands Logic
+              if (lowerText.includes('dashboard') || lowerText.includes('لوحة القيادة') || lowerText.includes('الرئيسية')) {
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'user', text: `🎤 ${text}` }]);
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'ai', text: language === 'ar' ? 'جاري فتح لوحة القيادة...' : 'Opening Dashboard...' }]);
+                setTimeout(() => window.location.href = '/portal', 1000);
+              } else if (lowerText.includes('accounting') || lowerText.includes('محاسبة') || lowerText.includes('مالية')) {
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'user', text: `🎤 ${text}` }]);
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'ai', text: language === 'ar' ? 'جاري فتح قسم المحاسبة...' : 'Opening Accounting...' }]);
+                setTimeout(() => window.location.href = '/portal/accounting', 1000);
+              } else if (lowerText.includes('hr') || lowerText.includes('موارد') || lowerText.includes('موظفين')) {
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'user', text: `🎤 ${text}` }]);
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'ai', text: language === 'ar' ? 'جاري فتح الموارد البشرية...' : 'Opening HR...' }]);
+                setTimeout(() => window.location.href = '/portal/hr', 1000);
+              } else if (lowerText.includes('sales') || lowerText.includes('مبيعات') || lowerText.includes('crm')) {
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'user', text: `🎤 ${text}` }]);
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'ai', text: language === 'ar' ? 'جاري فتح المبيعات...' : 'Opening Sales...' }]);
+                setTimeout(() => window.location.href = '/portal/sales', 1000);
+              } else if (lowerText.includes('logout') || lowerText.includes('تسجيل خروج') || lowerText.includes('خروج')) {
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'user', text: `🎤 ${text}` }]);
+                setMessages(prev => [...prev, { id: Math.random().toString(), role: 'ai', text: language === 'ar' ? 'جاري تسجيل الخروج...' : 'Logging out...' }]);
+                setTimeout(() => window.location.href = '/login', 1000);
+              } else {
+                // Auto-send as a chat message if no command matches
+                handleSend(text);
+              }
+            }
+          } catch (error) {
+            console.error("Transcription failed", error);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsListening(true);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert(language === 'ar' ? 'تعذر الوصول إلى الميكروفون.' : 'Could not access microphone.');
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,7 +151,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([
-        { role: 'ai', text: language === 'ar' ? 'مرحبا! أنا RARE، مساعدك الذكي في ZIEN. كيف يمكنني مساعدتك اليوم؟' : 'Hello! I am RARE, your ZIEN intelligence assistant. How can I help you today?' }
+        { id: 'initial-msg', role: 'ai', text: language === 'ar' ? 'مرحباً! أنا RARE ✨، مساعدك الذكي في ZIEN. كيف يمكنني مساعدتك اليوم؟' : 'Hello! I am RARE ✨, your ZIEN intelligence assistant. How can I help you today?' }
       ]);
     }
   }, [language]);
@@ -126,7 +165,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
     return () => clearTimeout(timer);
   }, []);
 
-  // Context Detection - Role-aware
+  // Context Detection
   const getContext = (): RAREContext => {
     const path = window.location.pathname;
     let pageCode = 'landing';
@@ -136,60 +175,43 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
       pageCode = 'employee_portal';
     } else if (path.includes('/owner')) {
       pageCode = 'owner_dashboard';
-    } else if (path.includes('/client')) {
-      pageCode = 'client_portal';
-    } else if (path.includes('/onboarding') || path.includes('/register')) {
+    } else if (path.includes('/onboarding')) {
       pageCode = 'onboarding';
-    } else if (path.includes('/dashboard')) {
-      pageCode = 'dashboard';
-      // Detect active module from path
-      const moduleMatch = path.match(/\/dashboard\/([^/]+)/);
-      if (moduleMatch) {
-        moduleCode = moduleMatch[1];
-        pageCode = moduleMatch[1];
-      }
+    } else if (path.includes('/accounting')) {
+      pageCode = 'accounting';
+      moduleCode = 'accounting';
+    } else if (path.includes('/hr')) {
+      pageCode = 'hr';
+      moduleCode = 'hr';
     }
-
-    // Use real role from membership/profile instead of deprecated UserRole
-    const companyRole = membership?.role || 'employee';
-    const platformRole = profile?.platformRole || 'user';
-    const effectiveRole = isFounder ? 'founder' : isPlatformAdmin ? 'platform_admin' : companyRole;
 
     return {
       pageCode,
       moduleCode,
-      userRole: effectiveRole as any,
-      companyName: company?.name || 'ZIEN Platform',
+      userRole: (user?.role as UserRole) || UserRole.EMPLOYEE,
+      companyName: user?.companyName || 'ZIEN Platform',
       language,
       theme: mode,
     };
   };
 
   const getAgentType = (context: RAREContext): RAREAgentType => {
-    if (isFounder || isPlatformAdmin) return 'founder';
-
+    if (context.userRole === UserRole.FOUNDER) return 'founder';
+    
     const path = window.location.pathname;
     if (path.includes('accounting')) return 'accounting';
     if (path.includes('hr')) return 'hr';
     if (path.includes('sales') || path.includes('crm')) return 'sales';
     if (path.includes('logistics')) return 'fleet';
-    if (path.includes('projects')) return 'pm';
-    if (path.includes('store')) return 'sales';
-
-    const role = membership?.role || '';
-    if (role === 'company_gm' || role === 'assistant_gm') return 'gm';
-    if (role === 'executive_secretary') return 'secretary';
-    if (role === 'accountant') return 'accounting';
-    if (role === 'hr_manager') return 'hr';
-
-    return 'secretary';
+    
+    return context.userRole === UserRole.COMPANY_GM ? 'gm' : 'secretary';
   };
 
   const getQuickActions = (mode: RAREMode, agentType: RAREAgentType): RAREQuickAction[] => {
     const actions: RAREQuickAction[] = [];
-
+    
     actions.push({ id: 'explain', label: translate('explain_page'), mode: 'help', prompt: 'Can you explain what I can do on this page?' });
-
+    
     if (agentType === 'accounting') {
       actions.push({ id: 'analyze', label: translate('analyze_data'), mode: 'analyze', prompt: 'Analyze the current financial data.' });
       actions.push({ id: 'invoice', label: translate('create_invoice'), mode: 'act', prompt: 'Help me draft a new invoice.' });
@@ -214,30 +236,35 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
     const context = getContext();
     const agentType = getAgentType(context);
 
-    // Build role-aware system context for the AI
-    const roleContext = [
-      `User Role: ${membership?.role || profile?.platformRole || 'unknown'}`,
-      `Company: ${company?.name || 'N/A'}`,
-      `Current Page: ${context.pageCode}${context.moduleCode ? ' / ' + context.moduleCode : ''}`,
-      `Agent Mode: ${activeMode}`,
-      `Permissions: ${permissions.length > 0 ? permissions.slice(0, 10).join(', ') : 'standard employee access'}`,
-      isFounder ? 'Platform Access: FOUNDER (full platform control)' : '',
-      isPlatformAdmin ? 'Platform Access: ADMIN (platform-level management)' : '',
-    ].filter(Boolean).join('\n');
-
-    const enhancedPrompt = `[CONTEXT]\n${roleContext}\n\n[USER QUERY]\n${textToSend}`;
-
     try {
-      const response = await generateRAREAnalysis(agentType, enhancedPrompt, {
+      // Get location if maps is enabled
+      let latLng;
+      if (useMaps) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          latLng = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        } catch (e) {
+          console.warn("Could not get location for maps grounding");
+        }
+      }
+
+      const response = await generateRAREAnalysis(agentType, textToSend, {
         ...context,
         mode: activeMode,
         files: selectedFiles.map(f => ({ data: f.data, mimeType: f.mimeType }))
+      }, {
+        useSearch,
+        useMaps,
+        fastMode,
+        latLng
       });
 
       setMessages(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), role: 'ai', text: response, mode: activeMode }]);
       setSelectedFiles([]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', text: language === 'ar' ? 'عذراً، حدث خطأ ما. يرجى المحاولة مرة أخرى.' : 'I encountered an error. Please try again.', mode: activeMode }]);
+      setMessages(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), role: 'ai', text: language === 'ar' ? 'عذراً، حدث خطأ ما. يرجى المحاولة مرة أخرى.' : 'I encountered an error. Please try again.', mode: activeMode }]);
     } finally {
       setIsLoading(false);
     }
@@ -260,21 +287,6 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
 
   return (
     <>
-      {/* Global Back Button */}
-      <AnimatePresence>
-        {showBack && !isPanelOpen && (
-          <motion.button
-            initial={{ opacity: 0, x: language === 'ar' ? 20 : -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: language === 'ar' ? 20 : -20 }}
-            onClick={() => navigate('/')}
-            className={`fixed top-6 ${language === 'ar' ? 'right-6' : 'left-6'} z-[100] p-3 glass-card rounded-full hover:bg-white/20 transition-all shadow-xl border-white/20 group`}
-          >
-            <History className={`w-6 h-6 ${language === 'ar' ? 'rotate-180' : ''}`} />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
       {/* Toggle Button for RARE Visibility */}
       <motion.button
         initial={{ opacity: 0, x: language === 'ar' ? -20 : 20 }}
@@ -287,19 +299,20 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
       </motion.button>
 
       {/* Floating RARE Button Container */}
-      <div
+      <div 
         className={`fixed bottom-8 ${language === 'ar' ? 'left-8' : 'right-8'} z-[100] flex flex-col items-end gap-4`}
       >
         <AnimatePresence>
           {isRAREVisible && showTooltip && !isPanelOpen && (
             <motion.div
+              key="tooltip"
               initial={{ opacity: 0, y: 10, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               className={`absolute bottom-full mb-4 ${language === 'ar' ? 'left-0' : 'right-0'} whitespace-nowrap`}
             >
               <div className="bg-white text-blue-600 text-xs font-bold px-4 py-2 rounded-2xl shadow-2xl border border-blue-100 flex items-center gap-2">
-                <span className="animate-bounce font-bold">R</span>
+                <span className="animate-bounce">👋</span>
                 {translate('rare_tooltip')}
                 <div className={`absolute -bottom-1 ${language === 'ar' ? 'left-4' : 'right-4'} w-2 h-2 bg-white border-r border-b border-blue-100 rotate-45`} />
               </div>
@@ -308,6 +321,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
 
           {isRAREVisible && !isPanelOpen && (
             <motion.button
+              key="rare-button"
               drag
               dragConstraints={{ left: -window.innerWidth + 100, right: 0, top: -window.innerHeight + 100, bottom: 0 }}
               initial={{ scale: 0, opacity: 0, rotate: -180 }}
@@ -318,9 +332,9 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
               onClick={() => setIsPanelOpen(true)}
               className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-4 border-white dark:border-zinc-800 bg-white relative group cursor-grab active:cursor-grabbing"
             >
-              <img
-                src="https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w243-h406-n-k-no-nu"
-                alt="RARE AI"
+              <img 
+                src="https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w243-h406-n-k-no-nu" 
+                alt="RARE AI" 
                 className="w-full h-full object-cover pointer-events-none"
                 referrerPolicy="no-referrer"
               />
@@ -334,6 +348,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
         <AnimatePresence>
           {isPanelOpen && (
             <motion.div
+              key="rare-panel"
               initial={isMobile ? { y: '100%' } : { x: language === 'ar' ? '-100%' : '100%', opacity: 0 }}
               animate={isMobile ? { y: 0 } : { x: 0, opacity: 1 }}
               exit={isMobile ? { y: '100%' } : { x: language === 'ar' ? '-100%' : '100%', opacity: 0 }}
@@ -357,20 +372,45 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
+                  <button 
                     onClick={() => setIsMaximized(!isMaximized)}
                     className="p-2 hover:bg-white/10 rounded-xl transition-all hidden md:block"
                     title={translate('maximize')}
                   >
                     <Maximize2 className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => setIsPanelOpen(false)}
+                  <button 
+                    onClick={() => setIsPanelOpen(false)} 
                     className="p-2 hover:bg-white/10 rounded-xl transition-all"
                   >
                     <X className="w-6 h-6" />
                   </button>
                 </div>
+              </div>
+
+              {/* AI Tools Toggles */}
+              <div className="px-6 py-3 border-b border-[var(--border-soft)] bg-black/5 flex gap-2 overflow-x-auto no-scrollbar shrink-0">
+                <button
+                  onClick={() => setFastMode(!fastMode)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${fastMode ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-[var(--border-soft)]'}`}
+                  title="Fast AI Responses (gemini-2.5-flash-lite)"
+                >
+                  <FastForward className="w-3.5 h-3.5" /> Fast Mode
+                </button>
+                <button
+                  onClick={() => setUseSearch(!useSearch)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${useSearch ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-[var(--border-soft)]'}`}
+                  title="Search Grounding (gemini-3-flash-preview)"
+                >
+                  <Globe className="w-3.5 h-3.5" /> Web Search
+                </button>
+                <button
+                  onClick={() => setUseMaps(!useMaps)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${useMaps ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-[var(--border-soft)]'}`}
+                  title="Maps Grounding (gemini-2.5-flash)"
+                >
+                  <MapPin className="w-3.5 h-3.5" /> Maps
+                </button>
               </div>
 
               {/* Quick Suggestions */}
@@ -392,16 +432,17 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
                 {messages.map((msg, i) => (
-                  <motion.div
+                  <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    key={msg.id}
+                    key={msg.id} 
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`max-w-[85%] p-5 rounded-3xl text-sm leading-relaxed ${msg.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-tr-none shadow-xl'
-                      : 'bg-white border border-[var(--border-soft)] rounded-tl-none shadow-md text-gray-800'
-                      }`}>
+                    <div className={`max-w-[85%] p-5 rounded-3xl text-sm leading-relaxed ${
+                      msg.role === 'user' 
+                        ? 'bg-blue-600 text-white rounded-tr-none shadow-xl' 
+                        : 'bg-white border border-[var(--border-soft)] rounded-tl-none shadow-md text-gray-800'
+                    }`}>
                       <div className="markdown-body">
                         <Markdown>{msg.text}</Markdown>
                       </div>
@@ -448,21 +489,21 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                   </div>
                 )}
                 <div className="flex items-center gap-3">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    multiple
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    multiple 
                     onChange={handleFileSelect}
                   />
-                  <button
+                  <button 
                     onClick={() => fileInputRef.current?.click()}
                     className="p-3 rounded-2xl text-gray-400 hover:bg-black/5 transition-all"
                     title="Upload Files"
                   >
                     <Upload className="w-6 h-6" />
                   </button>
-                  <button
+                  <button 
                     onClick={toggleListening}
                     className={`p-3 rounded-2xl transition-all ${isListening ? 'bg-red-50 text-red-500 animate-pulse' : 'text-gray-400 hover:bg-black/5'}`}
                     title="Voice Input"
@@ -470,15 +511,15 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                     <Mic className="w-6 h-6" />
                   </button>
                   <div className="flex-1 relative">
-                    <input
-                      type="text"
+                    <input 
+                      type="text" 
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                      placeholder={translate('ask_rare')}
+                      placeholder={translate('ask_rare')} 
                       className="w-full bg-black/5 border border-[var(--border-soft)] p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-800 pr-12"
                     />
-                    <button
+                    <button 
                       onClick={() => handleSend()}
                       disabled={(!input.trim() && selectedFiles.length === 0) || isLoading}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50"
@@ -487,18 +528,18 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                     </button>
                   </div>
                 </div>
-
+                
                 {/* Usage Indicator */}
-                <div className="mt-4 flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+                <div className="mt-4 flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-blue-600" />
-                    <span className="text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
-                      {translate('usage')}: {messages.filter(m => m.role === 'user').length} {translate('queries')}
+                    <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">
+                      {translate('usage')}: 3 / 12
                     </span>
                   </div>
-                  <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
-                    {membership?.role || profile?.platformRole || 'user'}
-                  </span>
+                  <button className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">
+                    {translate('upgrade')}
+                  </button>
                 </div>
               </div>
             </motion.div>

@@ -1,185 +1,104 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../components/ThemeProvider';
-import { useCompany } from '../contexts/CompanyContext';
-import { useAuth } from '../contexts/AuthContext';
+import { ASSETS, IMAGE_PROPS } from '../constants/assets';
 import { supabase } from '../services/supabase';
 import { generateRAREAnalysis, RAREAgentType } from '../services/geminiService';
-import {
-  Clock, Calendar, Wallet, FileText,
+import { 
+  Clock, Calendar, Wallet, FileText, 
   CheckCircle2, AlertCircle, User, LayoutDashboard,
-  BarChart3, Users, Globe2, MessageSquare,
+  BarChart3, Users, Globe2, MessageSquare, 
   Map as MapIcon, Settings, LogOut, Search,
   Plus, Filter, Download, Bell, Briefcase,
   TrendingUp, ShieldCheck, Zap, Video,
   Truck, Navigation, Smartphone, Car,
   Phone, Send, Menu, X, MoreVertical, ChevronRight,
-  Sparkles, Bot, BrainCircuit
+  Sparkles, Bot, BrainCircuit, GraduationCap
 } from 'lucide-react';
 import PayrollPage from './employee/PayrollPage';
+import AcademicPage from './employee/AcademicPage';
+import LogisticsMap from '../components/LogisticsMap';
 
-type Tab = 'dashboard' | 'accounting' | 'hr' | 'sales' | 'logistics' | 'chat' | 'payroll';
+type Tab = 'dashboard' | 'accounting' | 'hr' | 'sales' | 'logistics' | 'chat' | 'payroll' | 'academic';
 
-interface ChatMsg {
-  id: string;
+interface Message {
   sender_id: string;
-  receiver_id: string | null;
-  group_id: string | null;
-  message: string;
-  created_at: string;
+  receiver_id: string;
+  content: string;
+  timestamp: string;
 }
 
-export default function EmployeePortal() {
+export default function EmployeePortal({ user }: { user: any }) {
   const { language, mode, t: translate } = useTheme();
-  const { company, role, membership } = useCompany();
-  const { profile, user } = useAuth();
-  const companyId = company?.id;
-
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  
+  // Sync tab with URL
+  useEffect(() => {
+    const path = window.location.pathname.replace('/portal', '').replace('/', '');
+    if (path && ['dashboard', 'accounting', 'hr', 'sales', 'logistics', 'chat', 'payroll', 'academic'].includes(path)) {
+      setActiveTab(path as Tab);
+    } else if (!path || path === '') {
+      setActiveTab('dashboard');
+    }
+  }, [window.location.pathname]);
+
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  // ── Real data state ──────────────────────────────────────────────────────
-  const [dashStats, setDashStats] = useState({ hours: 0, leaveBalance: 0, nextPayout: 0, activeTasks: 0 });
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [accSummary, setAccSummary] = useState({ revenue: 0, expenses: 0, taxDue: 0 });
-  const [taxRates, setTaxRates] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [hrStats, setHrStats] = useState({ total: 0, attendanceRate: 0, pendingLeaves: 0 });
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
-  const [logTasks, setLogTasks] = useState<any[]>([]);
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  
+  // Real-time Chat State
+  const [messages, setMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const [invoiceSearch, setInvoiceSearch] = useState('');
 
-  // ── Fetch dashboard data ─────────────────────────────────────────────────
   useEffect(() => {
-    if (!companyId) return;
-    const load = async () => {
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const { data: att } = await supabase.from('attendance').select('check_in,check_out')
-        .eq('company_id', companyId).gte('check_in', monthStart);
-      let totalHrs = 0;
-      (att || []).forEach((a: any) => {
-        if (a.check_in && a.check_out) totalHrs += (new Date(a.check_out).getTime() - new Date(a.check_in).getTime()) / 3600000;
-      });
-      const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
-      const { count: approvedLeaves } = await supabase.from('leave_requests').select('id', { count: 'exact', head: true })
-        .eq('company_id', companyId).eq('status', 'approved').gte('start_date', yearStart);
-      const leaveBalance = 30 - (approvedLeaves || 0);
-      const { data: payData } = await supabase.from('payroll').select('net_salary')
-        .eq('company_id', companyId).order('period_end', { ascending: false }).limit(1);
-      const nextPayout = payData?.[0]?.net_salary || 0;
-      const { count: taskCount } = await supabase.from('projects').select('id', { count: 'exact', head: true })
-        .eq('company_id', companyId).neq('status', 'completed');
-      setDashStats({ hours: Math.round(totalHrs * 10) / 10, leaveBalance, nextPayout, activeTasks: taskCount || 0 });
-      const { data: projData } = await supabase.from('projects').select('name,status,start_date,end_date')
-        .eq('company_id', companyId).neq('status', 'completed').order('created_at', { ascending: false }).limit(5);
-      setTasks(projData || []);
+    // 1. Fetch initial messages
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('timestamp', { ascending: true });
+      if (data) setMessages(data);
     };
-    load();
-  }, [companyId]);
+    fetchMessages();
 
-  // ── Fetch accounting data ────────────────────────────────────────────────
-  useEffect(() => {
-    if (!companyId || activeTab !== 'accounting') return;
-    const load = async () => {
-      const { data: invData } = await supabase.from('invoices').select('*')
-        .eq('company_id', companyId).order('issued_at', { ascending: false }).limit(50);
-      setInvoices(invData || []);
-      const paid = (invData || []).filter((i: any) => i.status === 'paid').reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0);
-      const { data: payD } = await supabase.from('payments').select('amount').eq('company_id', companyId);
-      const totalPayments = (payD || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-      const { data: txData } = await supabase.from('tax_settings').select('*').eq('company_id', companyId).eq('is_active', true);
-      setTaxRates(txData || []);
-      const avgRate = txData?.length ? txData.reduce((s: number, t: any) => s + Number(t.tax_rate || 0), 0) / txData.length : 0;
-      setAccSummary({ revenue: paid, expenses: totalPayments, taxDue: Math.round(paid * avgRate / 100) });
-    };
-    load();
-  }, [companyId, activeTab]);
-
-  // ── Fetch HR data ────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!companyId || activeTab !== 'hr') return;
-    const load = async () => {
-      const { data: empData } = await supabase.from('employees').select('id,employee_code,job_title,status,salary_amount,department_id')
-        .eq('company_id', companyId).order('created_at', { ascending: false });
-      setEmployees(empData || []);
-      const total = empData?.length || 0;
-      const today = new Date().toISOString().slice(0, 10);
-      const { count: presentToday } = await supabase.from('attendance').select('id', { count: 'exact', head: true })
-        .eq('company_id', companyId).gte('check_in', today + 'T00:00:00');
-      const attendanceRate = total > 0 ? Math.round(((presentToday || 0) / total) * 100) : 0;
-      const { count: pendingLeaves } = await supabase.from('leave_requests').select('id', { count: 'exact', head: true })
-        .eq('company_id', companyId).eq('status', 'pending');
-      setHrStats({ total, attendanceRate, pendingLeaves: pendingLeaves || 0 });
-      const { data: docData } = await supabase.from('company_documents').select('title,file_url,category')
-        .eq('company_id', companyId).order('created_at', { ascending: false }).limit(5);
-      setDocuments(docData || []);
-    };
-    load();
-  }, [companyId, activeTab]);
-
-  // ── Fetch logistics data ─────────────────────────────────────────────────
-  useEffect(() => {
-    if (!companyId || activeTab !== 'logistics') return;
-    const load = async () => {
-      const { data: vData } = await supabase.from('vehicles').select('*').eq('company_id', companyId);
-      setVehicles(vData || []);
-      const { data: ltData } = await supabase.from('logistics_tasks').select('*')
-        .eq('company_id', companyId).order('created_at', { ascending: false }).limit(20);
-      setLogTasks(ltData || []);
-    };
-    load();
-  }, [companyId, activeTab]);
-
-  // ── Chat: real-time ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!companyId || activeTab !== 'chat') return;
-    const load = async () => {
-      const { data } = await supabase.from('chats').select('*')
-        .eq('company_id', companyId).order('created_at', { ascending: true }).limit(200);
-      setMessages((data || []).map((m: any) => ({ id: m.id, sender_id: m.sender_id, receiver_id: m.receiver_id, group_id: m.group_id, message: m.message, created_at: m.created_at })));
-    };
-    load();
+    // 2. Subscribe to new messages
     const channel = supabase
-      .channel('chats-' + companyId)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats', filter: `company_id=eq.${companyId}` }, (payload) => {
-        const m = payload.new as any;
-        setMessages(prev => [...prev, { id: m.id, sender_id: m.sender_id, receiver_id: m.receiver_id, group_id: m.group_id, message: m.message, created_at: m.created_at }]);
+      .channel('public:messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        setMessages(prev => [...prev, payload.new as Message]);
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [companyId, activeTab]);
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const sendMessage = async () => {
-    if (!chatInput.trim() || !companyId || !membership) return;
-    await supabase.from('chats').insert({ company_id: companyId, sender_id: membership.id, message: chatInput });
+    if (!chatInput.trim()) return;
+    
+    const { error } = await supabase
+      .from('messages')
+      .insert([
+        {
+          sender_id: user.id || 'anonymous',
+          receiver_id: 'broadcast',
+          content: chatInput,
+          timestamp: new Date().toISOString()
+        }
+      ]);
+
+    if (error) console.error('Error sending message:', error);
     setChatInput('');
   };
 
-  // ── Clock In / Out ───────────────────────────────────────────────────────
-  const handleClockToggle = useCallback(async () => {
-    if (!companyId) return;
-    const { data: emp } = await supabase.from('employees').select('id').eq('company_id', companyId).eq('member_id', membership?.id).single();
-    if (!emp) return;
-    if (!isClockedIn) {
-      await supabase.from('attendance').insert({ company_id: companyId, employee_id: emp.id, check_in: new Date().toISOString(), status: 'present' });
-    } else {
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: rec } = await supabase.from('attendance').select('id').eq('employee_id', emp.id).gte('check_in', today + 'T00:00:00').is('check_out', null).order('check_in', { ascending: false }).limit(1);
-      if (rec?.[0]) await supabase.from('attendance').update({ check_out: new Date().toISOString() }).eq('id', rec[0].id);
-    }
-    setIsClockedIn(!isClockedIn);
-  }, [companyId, membership, isClockedIn]);
-
-  // ── RARE AI Assistant ────────────────────────────────────────────────────
+  // RARE AI Assistant State
   const [isRareOpen, setIsRareOpen] = useState(false);
   const [rareQuery, setRareQuery] = useState('');
   const [rareResponse, setRareResponse] = useState('');
@@ -189,21 +108,24 @@ export default function EmployeePortal() {
     if (!rareQuery.trim()) return;
     setIsRareLoading(true);
     setRareResponse('');
-    const agentType: RAREAgentType = activeTab === 'dashboard' ? 'gm' :
-      activeTab === 'accounting' ? 'accounting' :
-        activeTab === 'hr' ? 'hr' :
-          activeTab === 'sales' ? 'sales' :
-            activeTab === 'logistics' ? 'fleet' : 'secretary';
+    
+    const agentType: RAREAgentType = activeTab === 'dashboard' ? 'gm' : 
+                                     activeTab === 'accounting' ? 'accounting' :
+                                     activeTab === 'hr' ? 'hr' :
+                                     activeTab === 'sales' ? 'sales' :
+                                     activeTab === 'logistics' ? 'fleet' : 'secretary';
+
     const response = await generateRAREAnalysis(agentType, rareQuery, {
       pageCode: 'employee_portal',
       moduleCode: activeTab,
-      companyName: company?.name || 'Company',
-      userRole: role || 'employee',
+      companyName: user?.companyName || 'ZIEN Tenant',
+      userRole: user?.role || 'employee',
       language,
       theme: mode,
       mode: 'analyze',
       additionalData: { activeTab }
     });
+
     setRareResponse(response);
     setIsRareLoading(false);
   };
@@ -215,10 +137,10 @@ export default function EmployeePortal() {
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: 'Working Hours', value: `${dashStats.hours}h`, icon: Clock, color: 'text-blue-600', sub: 'This month' },
-                { label: 'Leaves Balance', value: `${dashStats.leaveBalance} Days`, icon: Calendar, color: 'text-orange-600', sub: 'Remaining this year' },
-                { label: 'Next Payout', value: `AED ${dashStats.nextPayout.toLocaleString()}`, icon: Wallet, color: 'text-green-600', sub: 'Latest payroll' },
-                { label: 'Active Tasks', value: String(dashStats.activeTasks), icon: CheckCircle2, color: 'text-purple-600', sub: 'Open projects' },
+                { label: 'Working Hours', value: '164.5h', icon: Clock, color: 'text-blue-600', sub: '+12h this month' },
+                { label: 'Leaves Balance', value: '14 Days', icon: Calendar, color: 'text-orange-600', sub: 'Next reset: Jan 2025' },
+                { label: 'Next Payout', value: 'AED 12,400', icon: Wallet, color: 'text-green-600', sub: 'Estimated: Nov 30' },
+                { label: 'Active Tasks', value: '8', icon: CheckCircle2, color: 'text-purple-600', sub: '3 due today' },
               ].map((stat, i) => (
                 <div key={i} className="glass-card p-6">
                   <div className="flex items-center gap-3 mb-4 font-bold text-sm opacity-80">
@@ -235,23 +157,28 @@ export default function EmployeePortal() {
               <div className="lg:col-span-2 space-y-8">
                 <div className="glass-card p-8">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold">Active Projects</h2>
+                    <h2 className="text-xl font-bold">Assigned Tasks</h2>
+                    <button className="text-blue-600 text-sm font-bold">View All</button>
                   </div>
                   <div className="space-y-4">
-                    {tasks.length === 0 ? (
-                      <p className="text-sm text-[var(--text-secondary)]">No active projects yet.</p>
-                    ) : tasks.map((task, i) => (
+                    {[
+                      { title: 'Update API Documentation', project: 'ZIEN Core', priority: 'High', due: 'Tomorrow' },
+                      { title: 'Fix Mobile Navigation Bug', project: 'ZIEN UI', priority: 'Medium', due: 'Friday' },
+                      { title: 'Implement RLS Policies', project: 'Security', priority: 'Critical', due: 'Today' },
+                    ].map((task, i) => (
                       <div key={i} className="flex items-center justify-between p-4 bg-black/5 rounded-xl border border-[var(--border-soft)]">
                         <div>
-                          <div className="font-bold text-sm">{task.name}</div>
-                          <div className="text-xs text-[var(--text-secondary)]">{task.status}</div>
+                          <div className="font-bold text-sm">{task.title}</div>
+                          <div className="text-xs text-[var(--text-secondary)]">{task.project}</div>
                         </div>
                         <div className="text-right">
-                          <div className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md inline-block mb-1 ${task.status === 'planning' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
-                            }`}>
-                            {task.status}
+                          <div className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md inline-block mb-1 ${
+                            task.priority === 'Critical' ? 'bg-red-100 text-red-600' : 
+                            task.priority === 'High' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+                          }`}>
+                            {task.priority}
                           </div>
-                          {task.end_date && <div className="text-[10px] text-[var(--text-secondary)]">Due: {new Date(task.end_date).toLocaleDateString()}</div>}
+                          <div className="text-[10px] text-[var(--text-secondary)]">Due: {task.due}</div>
                         </div>
                       </div>
                     ))}
@@ -261,11 +188,17 @@ export default function EmployeePortal() {
 
               <div className="space-y-8">
                 <div className="glass-card p-8 bg-blue-600 text-white border-0 relative overflow-hidden">
+                  <img 
+                    src={ASSETS.RARE_CHARACTER} 
+                    alt="RARE Character" 
+                    className="absolute -right-4 -bottom-4 w-32 h-auto opacity-30 pointer-events-none" 
+                    {...IMAGE_PROPS}
+                  />
                   <h2 className="text-xl font-bold mb-4 relative z-10">RARE AI Assistant</h2>
                   <p className="text-sm opacity-80 mb-6 relative z-10">
-                    Ask RARE about your tasks, schedule, or any work-related question.
+                    "You have 3 pending tasks for this week. Would you like me to help you prioritize them?"
                   </p>
-                  <button
+                  <button 
                     onClick={() => setIsRareOpen(true)}
                     className="w-full bg-white text-blue-600 py-3 rounded-xl font-bold hover:bg-blue-50 transition-all relative z-10 flex items-center justify-center gap-2"
                   >
@@ -286,24 +219,27 @@ export default function EmployeePortal() {
                 <button className="glass-card px-4 py-2 flex items-center gap-2 text-sm font-bold">
                   <Download className="w-4 h-4" /> Export
                 </button>
+                <button className="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-bold">
+                  <Plus className="w-4 h-4" /> New Invoice
+                </button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="glass-card p-6 bg-gradient-to-br from-blue-600/5 to-cyan-600/5 border-blue-500/20">
                 <div className="text-sm font-bold text-blue-600 mb-2 uppercase tracking-wider">Total Revenue</div>
-                <div className="text-3xl font-bold">AED {accSummary.revenue.toLocaleString()}</div>
-                <div className="text-xs text-[var(--text-secondary)] font-bold mt-2">From paid invoices</div>
+                <div className="text-3xl font-bold">AED 1,240,500</div>
+                <div className="text-xs text-green-500 font-bold mt-2">↑ 12.5% from last quarter</div>
               </div>
               <div className="glass-card p-6">
-                <div className="text-sm font-bold text-red-600 mb-2 uppercase tracking-wider">Total Payments</div>
-                <div className="text-3xl font-bold">AED {accSummary.expenses.toLocaleString()}</div>
-                <div className="text-xs text-[var(--text-secondary)] font-bold mt-2">All recorded payments</div>
+                <div className="text-sm font-bold text-red-600 mb-2 uppercase tracking-wider">Total Expenses</div>
+                <div className="text-3xl font-bold">AED 450,200</div>
+                <div className="text-xs text-red-500 font-bold mt-2">↑ 4.2% from last month</div>
               </div>
               <div className="glass-card p-6">
-                <div className="text-sm font-bold text-green-600 mb-2 uppercase tracking-wider">Estimated Tax</div>
-                <div className="text-3xl font-bold">AED {accSummary.taxDue.toLocaleString()}</div>
-                <div className="text-xs text-[var(--text-secondary)] font-bold mt-2">{taxRates.length} active tax rule{taxRates.length !== 1 ? 's' : ''}</div>
+                <div className="text-sm font-bold text-green-600 mb-2 uppercase tracking-wider">Tax Liability (VAT)</div>
+                <div className="text-3xl font-bold">AED 62,025</div>
+                <div className="text-xs text-[var(--text-secondary)] font-bold mt-2">Due in 14 days</div>
               </div>
             </div>
 
@@ -313,34 +249,40 @@ export default function EmployeePortal() {
                 <div className="flex gap-2">
                   <div className="relative">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="text" value={invoiceSearch} onChange={e => setInvoiceSearch(e.target.value)} placeholder="Search invoices..." className="bg-black/5 border border-[var(--border-soft)] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:ring-1 focus:ring-blue-500" />
+                    <input type="text" placeholder="Search invoices..." className="bg-black/5 border border-[var(--border-soft)] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:ring-1 focus:ring-blue-500" />
                   </div>
+                  <button className="p-2 glass-card rounded-lg"><Filter className="w-4 h-4" /></button>
                 </div>
               </div>
               <table className="w-full text-left text-sm">
                 <thead className="bg-black/5 text-[var(--text-muted)] font-bold uppercase text-[10px] tracking-widest">
                   <tr>
-                    <th className="px-6 py-4">Invoice #</th>
+                    <th className="px-6 py-4">Invoice ID</th>
+                    <th className="px-6 py-4">Client</th>
                     <th className="px-6 py-4">Amount</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4">Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-soft)]">
-                  {invoices.length === 0 ? (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-[var(--text-secondary)]">No invoices found.</td></tr>
-                  ) : invoices.filter(inv => !invoiceSearch || inv.invoice_number?.toLowerCase().includes(invoiceSearch.toLowerCase())).map((inv, i) => (
+                  {[
+                    { id: 'INV-2024-001', client: 'TechFlow Solutions', amount: 'AED 12,500', status: 'Paid', date: 'Nov 15, 2024' },
+                    { id: 'INV-2024-002', client: 'Global Trade Co', amount: 'AED 45,000', status: 'Pending', date: 'Nov 18, 2024' },
+                    { id: 'INV-2024-003', client: 'Emirates Retail', amount: 'AED 8,200', status: 'Overdue', date: 'Nov 10, 2024' },
+                  ].map((inv, i) => (
                     <tr key={i} className="hover:bg-black/5 transition-colors">
-                      <td className="px-6 py-4 font-bold text-blue-600">{inv.invoice_number}</td>
-                      <td className="px-6 py-4 font-bold">AED {Number(inv.total_amount || 0).toLocaleString()}</td>
+                      <td className="px-6 py-4 font-bold text-blue-600">{inv.id}</td>
+                      <td className="px-6 py-4">{inv.client}</td>
+                      <td className="px-6 py-4 font-bold">{inv.amount}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${inv.status === 'paid' ? 'bg-green-100 text-green-600' :
-                          inv.status === 'pending' || inv.status === 'draft' ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'
-                          }`}>
+                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${
+                          inv.status === 'Paid' ? 'bg-green-100 text-green-600' : 
+                          inv.status === 'Pending' ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'
+                        }`}>
                           {inv.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-[var(--text-secondary)]">{inv.issued_at ? new Date(inv.issued_at).toLocaleDateString() : '-'}</td>
+                      <td className="px-6 py-4 text-[var(--text-secondary)]">{inv.date}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -354,6 +296,11 @@ export default function EmployeePortal() {
           <div className="space-y-8">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">HR & People Operations</h2>
+              <div className="flex gap-3">
+                <button className="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-bold">
+                  <Plus className="w-4 h-4" /> Add Employee
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -361,36 +308,42 @@ export default function EmployeePortal() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="glass-card p-6">
                     <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Total Employees</div>
-                    <div className="text-2xl font-bold">{hrStats.total}</div>
+                    <div className="text-2xl font-bold">124</div>
+                    <div className="text-[10px] text-green-500 font-bold mt-1">+4 this month</div>
                   </div>
                   <div className="glass-card p-6">
                     <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Attendance Today</div>
-                    <div className="text-2xl font-bold">{hrStats.attendanceRate}%</div>
+                    <div className="text-2xl font-bold">92%</div>
+                    <div className="text-[10px] text-orange-500 font-bold mt-1">10 employees on leave</div>
                   </div>
                   <div className="glass-card p-6">
-                    <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Pending Leave Requests</div>
-                    <div className="text-2xl font-bold">{hrStats.pendingLeaves}</div>
+                    <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Payroll Status</div>
+                    <div className="text-2xl font-bold text-green-600">Ready</div>
+                    <div className="text-[10px] text-[var(--text-secondary)] font-bold mt-1">Next run: Nov 28</div>
                   </div>
                 </div>
 
                 <div className="glass-card p-8">
                   <h3 className="font-bold mb-6">Employee Directory</h3>
                   <div className="space-y-4">
-                    {employees.length === 0 ? (
-                      <p className="text-sm text-[var(--text-secondary)]">No employees registered yet.</p>
-                    ) : employees.map((emp, i) => (
+                    {[ 
+                      { name: 'Sarah Ahmed', role: 'Senior Accountant', dept: 'Finance', status: 'Active' },
+                      { name: 'John Doe', role: 'Sales Manager', dept: 'Sales', status: 'On Leave' },
+                      { name: 'Fatima Hassan', role: 'HR Specialist', dept: 'HR', status: 'Active' },
+                    ].map((emp, i) => (
                       <div key={i} className="flex items-center justify-between p-4 bg-black/5 rounded-xl border border-[var(--border-soft)]">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-600">
-                            {(emp.employee_code || 'E')[0].toUpperCase()}
+                            {emp.name.split(' ').map(n => n[0]).join('')}
                           </div>
                           <div>
-                            <div className="font-bold text-sm">{emp.job_title || 'Employee'}</div>
-                            <div className="text-xs text-[var(--text-secondary)]">Code: {emp.employee_code || '-'}</div>
+                            <div className="font-bold text-sm">{emp.name}</div>
+                            <div className="text-xs text-[var(--text-secondary)]">{emp.role} • {emp.dept}</div>
                           </div>
                         </div>
-                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${emp.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
-                          }`}>
+                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${
+                          emp.status === 'Active' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                        }`}>
                           {emp.status}
                         </span>
                       </div>
@@ -405,14 +358,34 @@ export default function EmployeePortal() {
                     <FileText className="w-4 h-4 text-blue-600" /> Document Vault
                   </h3>
                   <div className="space-y-3">
-                    {documents.length === 0 ? (
-                      <p className="text-xs text-[var(--text-secondary)]">No documents uploaded.</p>
-                    ) : documents.map((doc, i) => (
+                    {['Employee Handbook.pdf', 'Tax Forms 2024.zip', 'Health Insurance.pdf'].map((doc, i) => (
                       <div key={i} className="flex items-center justify-between p-3 bg-black/5 rounded-lg text-xs hover:bg-black/10 transition-all cursor-pointer">
-                        <span className="truncate">{doc.title}</span>
+                        <span className="truncate">{doc}</span>
                         <Download className="w-3 h-3 text-gray-400" />
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                <div className="glass-card p-6">
+                  <h3 className="font-bold mb-4 flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-orange-600" /> Reminders
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex gap-3">
+                      <div className="w-1 h-10 bg-orange-500 rounded-full" />
+                      <div>
+                        <div className="text-xs font-bold">Visa Renewal: Ahmed Ali</div>
+                        <div className="text-[10px] text-red-500">Expires in 5 days</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="w-1 h-10 bg-blue-500 rounded-full" />
+                      <div>
+                        <div className="text-xs font-bold">Probation Review: Fatima</div>
+                        <div className="text-[10px] text-[var(--text-secondary)]">Scheduled: Tomorrow</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -427,112 +400,183 @@ export default function EmployeePortal() {
         return (
           <div className="space-y-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Logistics & Fleet</h2>
+              <h2 className="text-2xl font-bold">Logistics & Fleet Tracking</h2>
+              <div className="flex gap-3">
+                <button className="glass-card px-4 py-2 flex items-center gap-2 text-sm font-bold hover:bg-black/5 transition-all">
+                  <Car className="w-4 h-4" /> CarPlay Mode
+                </button>
+                <button className="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+                  <Navigation className="w-4 h-4" /> Dispatch Task
+                </button>
+              </div>
             </div>
 
-            {vehicles.length === 0 && logTasks.length === 0 ? (
-              <div className="glass-card p-12 text-center">
-                <Truck className="w-12 h-12 mx-auto mb-4 text-[var(--text-muted)]" />
-                <h3 className="font-bold text-lg mb-2">Fleet Not Configured</h3>
-                <p className="text-sm text-[var(--text-secondary)]">No vehicles or logistics tasks have been set up for this company yet.</p>
-              </div>
-            ) : (
-              <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="glass-card p-6">
-                      <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Total Vehicles</div>
-                      <div className="text-2xl font-bold">{vehicles.length}</div>
-                    </div>
-                    <div className="glass-card p-6">
-                      <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Available</div>
-                      <div className="text-2xl font-bold text-green-600">{vehicles.filter((v: any) => v.status === 'available').length}</div>
-                    </div>
-                    <div className="glass-card p-6">
-                      <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Active Tasks</div>
-                      <div className="text-2xl font-bold text-blue-600">{logTasks.filter((t: any) => t.status === 'in_transit').length}</div>
-                    </div>
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 glass-card h-[600px] relative overflow-hidden bg-slate-900 border-0 shadow-2xl">
+                {/* Real Map Integration */}
+                <LogisticsMap />
+                
+                {/* Overlay UI */}
+                <div className="absolute top-6 left-6 glass-card p-6 bg-black/60 backdrop-blur-xl border-white/10 text-white max-w-xs pointer-events-none z-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]" />
+                    <span className="text-xs font-bold uppercase tracking-widest">Live Fleet Grounding</span>
                   </div>
-
-                  <div className="glass-card p-6">
-                    <h3 className="font-bold mb-4">Vehicles</h3>
-                    <div className="space-y-3">
-                      {vehicles.map((v: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between p-4 bg-black/5 rounded-xl border border-[var(--border-soft)]">
-                          <div className="flex items-center gap-3">
-                            <Car className="w-5 h-5 text-blue-600" />
-                            <div>
-                              <div className="font-bold text-sm">{v.plate_number}</div>
-                              <div className="text-xs text-[var(--text-secondary)]">{v.model || v.type || 'Vehicle'}</div>
-                            </div>
-                          </div>
-                          <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${v.status === 'available' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                            {v.status}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <div className="text-3xl font-bold mb-2">12 Active</div>
+                  <p className="text-[10px] text-blue-300 leading-relaxed">RARE is currently grounding fleet data with real-time Google Maps traffic and routing information.</p>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="glass-card p-6">
-                    <h3 className="font-bold mb-4">Recent Tasks</h3>
+                {/* Driver Cards Overlay */}
+                <div className="absolute bottom-6 left-6 right-6 flex gap-4 overflow-x-auto pb-4 no-scrollbar z-10">
+                  {[
+                    { name: 'Mohammed K.', status: 'On Route', location: 'Sheikh Zayed Rd', battery: '85%', eta: '12m' },
+                    { name: 'Saeed A.', status: 'Delivering', location: 'DIFC Area', battery: '42%', eta: '5m' },
+                    { name: 'Ali H.', status: 'Idle', location: 'Warehouse A', battery: '100%', eta: '-' },
+                    { name: 'Omar F.', status: 'Charging', location: 'Tesla Supercharger', battery: '12%', eta: '45m' },
+                  ].map((driver, i) => (
+                    <motion.div 
+                      key={i} 
+                      whileHover={{ y: -5 }}
+                      className="glass-card p-4 min-w-[220px] bg-black/60 backdrop-blur-xl border-white/10 text-white shadow-xl"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-bold text-sm">{driver.name}</span>
+                        <div className="flex items-center gap-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${driver.status === 'Idle' ? 'bg-gray-400' : 'bg-green-500'}`} />
+                          <span className="text-[10px] opacity-60">{driver.eta}</span>
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-blue-400 font-bold mb-1">{driver.status}</div>
+                      <div className="text-[10px] opacity-60 mb-3 truncate">{driver.location}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500" style={{ width: driver.battery }} />
+                        </div>
+                        <span className="text-[9px] font-bold">{driver.battery}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="glass-card p-8 bg-black/5 border-[var(--border-soft)]">
+                  <h3 className="font-bold mb-6 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-blue-600" /> RARE Fleet Intelligence
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-blue-600/5 rounded-xl border border-blue-600/20">
+                      <p className="text-xs text-blue-600 font-bold mb-2 uppercase tracking-widest">AI Optimization Alert</p>
+                      <p className="text-sm leading-relaxed">RARE has detected heavy traffic on E11. Re-routing Driver 04 through Al Khail Road to save 18 minutes.</p>
+                      <button className="mt-4 w-full py-2 bg-blue-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all">Apply Optimization</button>
+                    </div>
+                    
                     <div className="space-y-3">
-                      {logTasks.length === 0 ? (
-                        <p className="text-xs text-[var(--text-secondary)]">No logistics tasks.</p>
-                      ) : logTasks.slice(0, 8).map((t: any, i: number) => (
+                      <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Recent Activity</p>
+                      {[
+                        { id: 'SHP-9021', destination: 'Dubai Mall', status: 'Arrived' },
+                        { id: 'SHP-9025', destination: 'JLT Cluster V', status: 'In Transit' },
+                        { id: 'SHP-9030', destination: 'Business Bay', status: 'Delayed' },
+                      ].map((shp, i) => (
                         <div key={i} className="flex items-center justify-between p-3 bg-black/5 rounded-lg border border-[var(--border-soft)]">
-                          <div>
-                            <div className="text-xs font-bold">{t.title}</div>
-                            <div className="text-[10px] text-[var(--text-secondary)]">{t.pickup_location} → {t.delivery_location}</div>
-                          </div>
-                          <div className={`text-[9px] font-bold ${t.status === 'delivered' ? 'text-green-500' : t.status === 'in_transit' ? 'text-blue-500' : 'text-orange-500'}`}>
-                            {t.status}
-                          </div>
+                          <div className="text-xs font-bold">{shp.id}</div>
+                          <div className="text-[10px] opacity-60">{shp.destination}</div>
+                          <div className={`text-[9px] font-bold ${shp.status === 'Delayed' ? 'text-red-500' : 'text-green-500'}`}>{shp.status}</div>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
+
+                <div className="glass-card p-8 bg-gradient-to-br from-slate-900 to-black text-white border-0 shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <Smartphone className="w-24 h-24" />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 bg-blue-600 rounded-xl">
+                        <Car className="w-6 h-6" />
+                      </div>
+                      <h3 className="font-bold">CarPlay Interface</h3>
+                    </div>
+                    <p className="text-xs opacity-70 mb-8 leading-relaxed">
+                      Optimized UI for in-vehicle displays. Drivers can accept tasks and navigate hands-free using RARE Voice.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button className="py-3 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">Simulator</button>
+                      <button className="py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">Pair Device</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         );
 
       case 'chat':
         return (
           <div className="h-[calc(100vh-12rem)] flex flex-col lg:flex-row gap-6">
+            {/* Chat List - Hidden on mobile when chat is active */}
+            <div className="w-full lg:w-80 glass-card flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-[var(--border-soft)]">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input type="text" placeholder="Search chats..." className="w-full bg-black/5 border border-[var(--border-soft)] pl-10 pr-4 py-2 rounded-lg text-sm outline-none" />
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {[
+                  { name: 'General Group', lastMsg: 'Welcome to the team!', time: '10:30 AM', active: true },
+                  { name: 'RARE AI Assistant', lastMsg: 'How can I help you today?', time: 'Yesterday', active: false },
+                  { name: 'Finance Team', lastMsg: 'Q4 reports are ready.', time: 'Monday', active: false },
+                ].map((chat, i) => (
+                  <button key={i} className={`w-full p-4 flex items-center gap-3 hover:bg-black/5 transition-all border-b border-[var(--border-soft)] ${chat.active ? 'bg-blue-600/5 border-l-4 border-l-blue-600' : ''}`}>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+                      {chat.name[0]}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-bold text-sm">{chat.name}</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">{chat.time}</span>
+                      </div>
+                      <p className="text-xs text-[var(--text-secondary)] truncate">{chat.lastMsg}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Chat Window */}
             <div className="flex-1 glass-card flex flex-col overflow-hidden">
               <div className="p-4 border-b border-[var(--border-soft)] flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">C</div>
+                  <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">G</div>
                   <div>
-                    <div className="font-bold text-sm">Company Chat</div>
+                    <div className="font-bold text-sm">General Group</div>
                     <div className="text-[10px] text-green-500 flex items-center gap-1">
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                      Live
+                      12 Online
                     </div>
                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="p-2 hover:bg-black/5 rounded-lg"><Video className="w-5 h-5" /></button>
+                  <button className="p-2 hover:bg-black/5 rounded-lg"><Phone className="w-5 h-5" /></button>
+                  <button className="p-2 hover:bg-black/5 rounded-lg"><MoreVertical className="w-5 h-5" /></button>
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
-                    <MessageSquare className="w-12 h-12 mb-2" />
-                    <p className="text-xs font-medium">No messages yet. Start the conversation.</p>
-                  </div>
-                ) : messages.map((msg, i) => (
-                  <div key={i} className={`flex ${msg.sender_id === membership?.id ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${msg.sender_id === membership?.id
-                      ? 'bg-blue-600 text-white rounded-tr-none'
-                      : 'bg-black/5 border border-[var(--border-soft)] rounded-tl-none'
-                      }`}>
-                      <p>{msg.message}</p>
-                      <div className={`text-[10px] mt-2 ${msg.sender_id === membership?.id ? 'text-blue-100' : 'text-[var(--text-muted)]'}`}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${
+                      msg.sender_id === user?.id 
+                        ? 'bg-blue-600 text-white rounded-tr-none' 
+                        : 'bg-black/5 border border-[var(--border-soft)] rounded-tl-none'
+                    }`}>
+                      <p>{msg.content}</p>
+                      <div className={`text-[10px] mt-2 ${msg.sender_id === user?.id ? 'text-blue-100' : 'text-[var(--text-muted)]'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>
@@ -542,15 +586,16 @@ export default function EmployeePortal() {
 
               <div className="p-4 border-t border-[var(--border-soft)]">
                 <div className="flex items-center gap-3">
-                  <input
-                    type="text"
+                  <button className="p-2 hover:bg-black/5 rounded-lg text-gray-400"><Plus className="w-5 h-5" /></button>
+                  <input 
+                    type="text" 
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    placeholder="Type a message..."
-                    className="flex-1 bg-black/5 border border-[var(--border-soft)] p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="Type a message..." 
+                    className="flex-1 bg-black/5 border border-[var(--border-soft)] p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
                   />
-                  <button
+                  <button 
                     onClick={sendMessage}
                     className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
                   >
@@ -562,18 +607,21 @@ export default function EmployeePortal() {
           </div>
         );
 
+      case 'academic':
+        return <AcademicPage />;
+
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col lg:flex-row">
+    <div className="min-h-[calc(100vh-80px)] bg-[var(--bg-primary)] flex flex-col lg:flex-row">
       {/* Sidebar - Responsive */}
       <aside className={`
         ${isSidebarOpen ? 'w-64' : 'w-20'} 
         bg-[var(--surface-2)] border-r border-[var(--border-soft)] 
-        transition-all duration-300 flex flex-col sticky top-0 h-screen z-50
+        transition-all duration-300 flex flex-col sticky top-20 h-[calc(100vh-80px)] z-50
         hidden lg:flex
       `}>
         <div className="p-6 flex items-center gap-3">
@@ -592,14 +640,19 @@ export default function EmployeePortal() {
             { id: 'sales', label: 'Sales & CRM', icon: TrendingUp },
             { id: 'logistics', label: 'Logistics', icon: Truck },
             { id: 'chat', label: 'Messages', icon: MessageSquare },
+            { id: 'academic', label: 'Academic Center', icon: GraduationCap },
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id as Tab)}
-              className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeTab === item.id
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                : 'hover:bg-black/5 text-[var(--text-secondary)]'
-                }`}
+              onClick={() => {
+                setActiveTab(item.id as Tab);
+                navigate(`/${item.id === 'dashboard' ? '' : item.id}`);
+              }}
+              className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${
+                activeTab === item.id 
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                  : 'hover:bg-black/5 text-[var(--text-secondary)]'
+              }`}
             >
               <item.icon className="w-6 h-6 shrink-0" />
               {isSidebarOpen && <span className="font-bold text-sm hidden lg:block">{item.label}</span>}
@@ -622,11 +675,14 @@ export default function EmployeePortal() {
           { id: 'accounting', icon: BarChart3 },
           { id: 'hr', icon: Users },
           { id: 'logistics', icon: Truck },
-          { id: 'chat', icon: MessageSquare },
+          { id: 'academic', icon: GraduationCap },
         ].map((item) => (
           <button
             key={item.id}
-            onClick={() => setActiveTab(item.id as Tab)}
+            onClick={() => {
+              setActiveTab(item.id as Tab);
+              navigate(`/${item.id === 'dashboard' ? '' : item.id}`);
+            }}
             className={`p-3 rounded-xl ${activeTab === item.id ? 'text-blue-600 bg-blue-600/10' : 'text-[var(--text-secondary)]'}`}
           >
             <item.icon className="w-6 h-6" />
@@ -636,39 +692,6 @@ export default function EmployeePortal() {
 
       {/* Main Content Area */}
       <main className="flex-1 min-w-0 pb-20 lg:pb-0">
-        <header className="h-20 bg-[var(--surface-1)] border-b border-[var(--border-soft)] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40 backdrop-blur-xl">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="hidden lg:block p-2 hover:bg-black/5 rounded-lg"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg font-bold capitalize">{activeTab}</h1>
-          </div>
-
-          <div className="flex items-center gap-3 sm:gap-6">
-            <button
-              onClick={handleClockToggle}
-              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${isClockedIn
-                ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-                : 'bg-green-600 text-white shadow-lg shadow-green-600/20'
-                }`}
-            >
-              <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">{isClockedIn ? 'Clock Out' : 'Clock In'}</span>
-            </button>
-
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <div className="text-xs font-bold">{profile?.fullName || user?.name || 'Employee'}</div>
-                <div className="text-[10px] text-blue-600 font-bold uppercase tracking-widest">{role || 'employee'}</div>
-              </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg" />
-            </div>
-          </div>
-        </header>
-
         <div className="p-8">
           <AnimatePresence mode="wait">
             <motion.div
@@ -687,6 +710,7 @@ export default function EmployeePortal() {
         <AnimatePresence>
           {isRareOpen && (
             <motion.div
+              key="rare-assistant"
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -704,7 +728,7 @@ export default function EmployeePortal() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
+              
               <div className="flex-1 h-96 overflow-y-auto p-4 space-y-4 bg-white/50 backdrop-blur-sm">
                 {rareResponse ? (
                   <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-sm text-blue-900 leading-relaxed">
@@ -727,15 +751,15 @@ export default function EmployeePortal() {
 
               <div className="p-4 border-t border-[var(--border-soft)] bg-white/80">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="text"
+                  <input 
+                    type="text" 
                     value={rareQuery}
                     onChange={(e) => setRareQuery(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleRareAsk()}
-                    placeholder="Ask RARE anything..."
+                    placeholder="Ask RARE anything..." 
                     className="flex-1 bg-black/5 border border-[var(--border-soft)] p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
-                  <button
+                  <button 
                     onClick={handleRareAsk}
                     disabled={isRareLoading}
                     className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
