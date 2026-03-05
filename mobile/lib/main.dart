@@ -10,6 +10,8 @@ import 'config/app_config.dart';
 import 'config/router.dart';
 import 'theme/app_theme.dart';
 import 'services/company_providers.dart';
+import 'services/theme_provider.dart';
+import 'services/i18n_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,14 +52,38 @@ class _ZienAppState extends ConsumerState<ZienApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(flutterThemeModeProvider);
+    final i18n = ref.watch(i18nProvider);
+    final locale = i18n.locale;
 
-    return MaterialApp.router(
-      title: 'ZIEN',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
-      routerConfig: router,
+    return Directionality(
+      textDirection: i18n.isRtl ? TextDirection.rtl : TextDirection.ltr,
+      child: MaterialApp.router(
+        title: 'ZIEN',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: themeMode,
+        locale: locale,
+        supportedLocales: const [
+          Locale('en'),
+          Locale('ar'),
+          Locale('fr'),
+          Locale('es'),
+          Locale('de'),
+          Locale('tr'),
+          Locale('ru'),
+          Locale('zh'),
+          Locale('ja'),
+          Locale('ko'),
+          Locale('hi'),
+          Locale('ur'),
+          Locale('it'),
+          Locale('pt'),
+          Locale('nl'),
+        ],
+        routerConfig: router,
+      ),
     );
   }
 }

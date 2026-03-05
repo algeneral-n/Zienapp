@@ -24,6 +24,7 @@ const ProjectsModule = React.lazy(() => import('./modules/ProjectsModule'));
 const MeetingsModule = React.lazy(() => import('./modules/MeetingsModule'));
 const IntegrationsModule = React.lazy(() => import('./modules/IntegrationsModule'));
 const PortalBuilder = React.lazy(() => import('./modules/PortalBuilder'));
+const BillingModule = React.lazy(() => import('./modules/BillingModule'));
 
 export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(false);
@@ -86,7 +87,7 @@ export default function Dashboard() {
               <Route path="/meetings" element={<MeetingsModule />} />
               <Route path="/integrations" element={<IntegrationsModule />} />
               <Route path="/portal-builder" element={<PortalBuilder />} />
-              {/* Add other routes as needed */}
+              <Route path="/billing/*" element={<BillingModule />} />
             </Routes>
           </React.Suspense>
         </div>

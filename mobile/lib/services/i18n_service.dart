@@ -80,11 +80,9 @@ class I18nNotifier extends StateNotifier<I18nState> {
   Future<void> _loadTranslations(AppLanguage lang) async {
     try {
       final code = supportedLanguages.contains(lang.code) ? lang.code : 'en';
-      final jsonStr =
-          await rootBundle.loadString('assets/i18n/$code.json');
+      final jsonStr = await rootBundle.loadString('assets/i18n/$code.json');
       final Map<String, dynamic> jsonMap = json.decode(jsonStr);
-      final translations =
-          jsonMap.map((k, v) => MapEntry(k, v.toString()));
+      final translations = jsonMap.map((k, v) => MapEntry(k, v.toString()));
       state = I18nState(
         language: lang,
         translations: translations,

@@ -47,9 +47,10 @@ class RoleGuard extends ConsumerWidget {
     // Check module access
     if (moduleCode != null) {
       final role = ref.watch(currentRoleProvider);
-      final hasAccess = writeAccess
-          ? canWriteModule(role, moduleCode!)
-          : canReadModule(role, moduleCode!);
+      final hasAccess =
+          writeAccess
+              ? canWriteModule(role, moduleCode!)
+              : canReadModule(role, moduleCode!);
       if (!hasAccess) {
         return fallback ?? const SizedBox.shrink();
       }
@@ -89,9 +90,10 @@ class RouteRoleGuard extends ConsumerWidget {
 
     if (!denied && moduleCode != null) {
       final role = ref.watch(currentRoleProvider);
-      final hasAccess = writeAccess
-          ? canWriteModule(role, moduleCode!)
-          : canReadModule(role, moduleCode!);
+      final hasAccess =
+          writeAccess
+              ? canWriteModule(role, moduleCode!)
+              : canReadModule(role, moduleCode!);
       denied = !hasAccess;
     }
 
@@ -118,12 +120,13 @@ class _NoAccessPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.lock_outline, size: 64, color: theme.colorScheme.error),
-              const SizedBox(height: 16),
-              Text(
-                'Access Denied',
-                style: theme.textTheme.headlineSmall,
+              Icon(
+                Icons.lock_outline,
+                size: 64,
+                color: theme.colorScheme.error,
               ),
+              const SizedBox(height: 16),
+              Text('Access Denied', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 8),
               Text(
                 'You do not have the required permissions to view this page.',

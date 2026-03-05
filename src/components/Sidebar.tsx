@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, BarChart3, Truck,
   MessageSquare, ShoppingBag, Briefcase, BrainCircuit,
   Settings, HelpCircle, GraduationCap, FileText,
-  ChevronLeft, ChevronRight, LogOut, FolderKanban, Plug, PanelLeft
+  ChevronLeft, ChevronRight, LogOut, FolderKanban, Plug, PanelLeft, CreditCard
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCompany } from '../contexts/CompanyContext';
@@ -31,6 +31,7 @@ const menuItems: MenuItem[] = [
   { id: 'rare', icon: BrainCircuit, label: 'RARE AI', path: '/dashboard/rare', moduleCode: 'rare' },
   { id: 'integrations', icon: Plug, label: 'Integrations', path: '/dashboard/integrations', moduleCode: 'integrations' },
   { id: 'portal-builder', icon: PanelLeft, label: 'Portal Builder', path: '/dashboard/portal-builder', moduleCode: 'portal_builder' },
+  { id: 'billing', icon: CreditCard, label: 'Billing', path: '/dashboard/billing', moduleCode: 'dashboard' },
   { id: 'academy', icon: GraduationCap, label: 'Academy', path: '/dashboard/academy', moduleCode: 'academy' },
   { id: 'help', icon: HelpCircle, label: 'Help Center', path: '/dashboard/help', moduleCode: 'help' },
 ];
