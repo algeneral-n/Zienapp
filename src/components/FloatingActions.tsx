@@ -54,6 +54,8 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isListening, setIsListening] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<{ name: string, data: string, mimeType: string }[]>([]);
+  const [fastMode, setFastMode] = useState(false);
+  const [webSearch, setWebSearch] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -280,7 +282,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
         initial={{ opacity: 0, x: language === 'ar' ? -20 : 20 }}
         animate={{ opacity: 1, x: 0 }}
         onClick={() => setIsRAREVisible(!isRAREVisible)}
-        className={`fixed bottom-10 ${language === 'ar' ? 'left-0' : 'right-0'} z-[101] p-2 bg-blue-600 text-white rounded-l-none rounded-r-xl ${language === 'ar' ? 'rounded-r-xl rounded-l-none' : 'rounded-l-xl rounded-r-none'} shadow-xl hover:bg-blue-700 transition-all group`}
+        className={`fixed bottom-10 ${language === 'ar' ? 'left-0' : 'right-0'} z-[101] p-2 bg-brand text-white rounded-l-none rounded-r-xl ${language === 'ar' ? 'rounded-r-xl rounded-l-none' : 'rounded-l-xl rounded-r-none'} shadow-xl hover:bg-brand-hover transition-all group`}
         title={isRAREVisible ? translate('hide_rare') : translate('show_rare')}
       >
         <Sparkles className={`w-4 h-4 ${isRAREVisible ? 'opacity-100' : 'opacity-50'}`} />
@@ -298,10 +300,10 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
               exit={{ opacity: 0, scale: 0.9 }}
               className={`absolute bottom-full mb-4 ${language === 'ar' ? 'left-0' : 'right-0'} whitespace-nowrap`}
             >
-              <div className="bg-white text-blue-600 text-xs font-bold px-4 py-2 rounded-2xl shadow-2xl border border-blue-100 flex items-center gap-2">
+              <div className="bg-[var(--surface-1)] text-brand text-xs font-bold px-4 py-2 rounded-2xl shadow-2xl border border-[var(--border-soft)] flex items-center gap-2">
                 <span className="animate-bounce font-bold">R</span>
                 {translate('rare_tooltip')}
-                <div className={`absolute -bottom-1 ${language === 'ar' ? 'left-4' : 'right-4'} w-2 h-2 bg-white border-r border-b border-blue-100 rotate-45`} />
+                <div className={`absolute -bottom-1 ${language === 'ar' ? 'left-4' : 'right-4'} w-2 h-2 bg-[var(--surface-1)] border-r border-b border-[var(--border-soft)] rotate-45`} />
               </div>
             </motion.div>
           )}
@@ -324,7 +326,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                 className="w-full h-full object-cover pointer-events-none"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 bg-blue-600/10 group-hover:bg-transparent transition-colors pointer-events-none" />
+              <div className="absolute inset-0 bg-brand/10 group-hover:bg-transparent transition-colors pointer-events-none" />
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full pointer-events-none" />
             </motion.button>
           )}
@@ -341,7 +343,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
               className={`fixed ${isMobile ? 'bottom-0 left-0 right-0 h-[85vh]' : `top-0 ${language === 'ar' ? 'left-0' : 'right-0'} h-screen w-[450px]`} bg-[var(--bg-primary)] shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-[110] flex flex-col border-l border-[var(--border-soft)]`}
             >
               {/* Header */}
-              <div className="p-6 bg-blue-600 text-white flex items-center justify-between shrink-0">
+              <div className="p-6 bg-brand text-white flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center overflow-hidden border border-white/30">
                     <img src={ASSETS.RARE_CHARACTER} alt="RARE" className="w-full h-full object-cover" {...IMAGE_PROPS} />
@@ -374,12 +376,12 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
               </div>
 
               {/* Quick Suggestions */}
-              <div className="px-6 py-4 border-b border-[var(--border-soft)] bg-black/5 flex gap-3 overflow-x-auto no-scrollbar shrink-0">
+              <div className="px-6 py-4 border-b border-[var(--border-soft)] bg-[var(--surface-2)] flex gap-3 overflow-x-auto no-scrollbar shrink-0">
                 {quickActions.map(action => (
                   <button
                     key={action.id}
                     onClick={() => handleSend(action.prompt)}
-                    className="whitespace-nowrap px-4 py-2 bg-white text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-50 transition-all border border-blue-100 shadow-sm flex items-center gap-2"
+                    className="whitespace-nowrap px-4 py-2 bg-[var(--surface-1)] text-brand rounded-xl text-xs font-bold hover:bg-brand-light transition-all border border-[var(--border-soft)] shadow-sm flex items-center gap-2"
                   >
                     {action.id === 'explain' && <Info className="w-3.5 h-3.5" />}
                     {action.id === 'analyze' && <BarChart2 className="w-3.5 h-3.5" />}
@@ -399,8 +401,8 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`max-w-[85%] p-5 rounded-3xl text-sm leading-relaxed ${msg.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-tr-none shadow-xl'
-                      : 'bg-white border border-[var(--border-soft)] rounded-tl-none shadow-md text-gray-800'
+                      ? 'bg-brand text-white rounded-tr-none shadow-xl'
+                      : 'bg-[var(--surface-1)] border border-[var(--border-soft)] rounded-tl-none shadow-md text-[var(--text-primary)]'
                       }`}>
                       <div className="markdown-body">
                         <Markdown>{msg.text}</Markdown>
@@ -409,8 +411,8 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                         <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-[10px] opacity-50 font-bold uppercase tracking-wider">
                           <span>RARE Engine v2.5</span>
                           <div className="flex gap-2">
-                            <button className="hover:text-blue-600">Copy</button>
-                            <button className="hover:text-blue-600">Share</button>
+                            <button className="hover:text-brand">Copy</button>
+                            <button className="hover:text-brand">Share</button>
                           </div>
                         </div>
                       )}
@@ -421,9 +423,9 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                   <div className="flex justify-start">
                     <div className="bg-white border border-[var(--border-soft)] p-5 rounded-3xl rounded-tl-none flex flex-col gap-3 shadow-md">
                       <div className="flex gap-1.5">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" />
-                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:0.2s]" />
-                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:0.4s]" />
+                        <div className="w-2 h-2 bg-brand rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-brand rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <div className="w-2 h-2 bg-brand rounded-full animate-bounce [animation-delay:0.4s]" />
                       </div>
                       <span className="text-[10px] text-gray-400 animate-pulse uppercase font-bold tracking-widest">{translate('thinking')}</span>
                     </div>
@@ -437,7 +439,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                 {selectedFiles.length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2">
                     {selectedFiles.map((file, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-xl text-xs font-bold border border-blue-100">
+                      <div key={idx} className="flex items-center gap-2 bg-brand-light text-brand px-3 py-1.5 rounded-xl text-xs font-bold border border-brand-muted">
                         <FileText className="w-3.5 h-3.5" />
                         <span className="max-w-[100px] truncate">{file.name}</span>
                         <button onClick={() => removeFile(idx)} className="hover:text-red-500">
@@ -457,14 +459,14 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-3 rounded-2xl text-gray-400 hover:bg-black/5 transition-all"
+                    className="p-3 rounded-2xl text-[var(--text-muted)] hover:bg-[var(--surface-2)] transition-all"
                     title="Upload Files"
                   >
                     <Upload className="w-6 h-6" />
                   </button>
                   <button
                     onClick={toggleListening}
-                    className={`p-3 rounded-2xl transition-all ${isListening ? 'bg-red-50 text-red-500 animate-pulse' : 'text-gray-400 hover:bg-black/5'}`}
+                    className={`p-3 rounded-2xl transition-all ${isListening ? 'bg-red-50 text-red-500 animate-pulse' : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)]'}`}
                     title="Voice Input"
                   >
                     <Mic className="w-6 h-6" />
@@ -476,27 +478,45 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                       placeholder={translate('ask_rare')}
-                      className="w-full bg-black/5 border border-[var(--border-soft)] p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-800 pr-12"
+                      className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 rounded-2xl outline-none focus:ring-2 focus:ring-brand/50 text-sm text-[var(--text-primary)] pr-12"
                     />
                     <button
                       onClick={() => handleSend()}
                       disabled={(!input.trim() && selectedFiles.length === 0) || isLoading}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand text-white rounded-xl hover:bg-brand-hover transition-all shadow-lg shadow-brand/20 disabled:opacity-50"
                     >
                       <Send className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
 
+                {/* AI Tools Toggles */}
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    onClick={() => setFastMode(!fastMode)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all ${fastMode ? 'bg-brand/10 text-brand border-brand/30' : 'border-[var(--border-soft)] text-[var(--text-muted)] hover:border-brand/30'}`}
+                  >
+                    <Zap className="w-3 h-3" />
+                    Fast
+                  </button>
+                  <button
+                    onClick={() => setWebSearch(!webSearch)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all ${webSearch ? 'bg-brand/10 text-brand border-brand/30' : 'border-[var(--border-soft)] text-[var(--text-muted)] hover:border-brand/30'}`}
+                  >
+                    <MoreHorizontal className="w-3 h-3" />
+                    Web
+                  </button>
+                </div>
+
                 {/* Usage Indicator */}
-                <div className="mt-4 flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+                <div className="mt-4 flex items-center justify-between p-3 bg-brand-light rounded-xl border border-brand-muted">
                   <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-blue-600" />
-                    <span className="text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
+                    <Zap className="w-4 h-4 text-brand" />
+                    <span className="text-[10px] font-bold text-brand uppercase tracking-wider">
                       {translate('usage')}: {messages.filter(m => m.role === 'user').length} {translate('queries')}
                     </span>
                   </div>
-                  <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                  <span className="text-[10px] font-black text-brand uppercase tracking-widest">
                     {membership?.role || profile?.platformRole || 'user'}
                   </span>
                 </div>

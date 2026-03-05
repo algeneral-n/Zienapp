@@ -49,19 +49,19 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
   return (
     <motion.aside
       animate={{ width: collapsed ? 80 : 280 }}
-      className="h-screen bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex flex-col sticky top-0"
+      className="h-screen bg-[var(--bg-primary)] border-r border-[var(--border-soft)] flex flex-col sticky top-0 shadow-[4px_0_20px_rgba(0,0,0,0.05)]"
     >
       <div className="p-6 flex items-center justify-between">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg">Z</div>
-            <span className="text-lg font-black tracking-tighter uppercase">Zien</span>
+            <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-brand/20">Z</div>
+            <span className="text-lg font-black tracking-tighter uppercase text-[var(--text-primary)]">Zien</span>
           </div>
         )}
-        {collapsed && <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg mx-auto">Z</div>}
+        {collapsed && <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-black text-lg mx-auto shadow-lg shadow-brand/20">Z</div>}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-500"
+          className="hidden lg:flex p-1.5 hover:bg-[var(--surface-2)] rounded-lg transition-colors text-[var(--text-muted)]"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
@@ -76,14 +76,14 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
             className={({ isActive }) => `
               flex items-center gap-3 px-3 py-3 rounded-xl transition-all group relative
               ${isActive
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'}
+                ? 'bg-brand text-white shadow-lg shadow-brand/20'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]'}
             `}
           >
             <item.icon size={20} className={collapsed ? 'mx-auto' : ''} />
             {!collapsed && <span className="text-sm font-bold uppercase tracking-tight">{item.label}</span>}
             {collapsed && (
-              <div className="absolute left-full ml-4 px-2 py-1 bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-widest rounded opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap z-50">
+              <div className="absolute left-full ml-4 px-2 py-1 bg-[var(--surface-1)] text-[var(--text-primary)] text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-xl border border-[var(--border-soft)] opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all whitespace-nowrap z-50">
                 {item.label}
               </div>
             )}
@@ -91,8 +91,8 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
         ))}
       </nav>
 
-      <div className="p-4 border-t border-zinc-100 dark:border-zinc-800">
-        <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-zinc-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-all group">
+      <div className="p-4 border-t border-[var(--border-soft)]">
+        <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-secondary)] hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-all group">
           <LogOut size={20} className={collapsed ? 'mx-auto' : ''} />
           {!collapsed && <span className="text-sm font-bold uppercase tracking-tight">Logout</span>}
         </button>

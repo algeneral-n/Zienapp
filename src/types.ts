@@ -16,7 +16,11 @@ export type Language =
   | 'tr' | 'ru' | 'zh' | 'ja' | 'ko'
   | 'hi' | 'ur' | 'it' | 'pt' | 'nl';
 
-export type ThemeVariant = 'default' | 'glass';
+export type ThemeVariant =
+  | 'default' | 'glass'
+  | 'prism' | 'pulse' | 'neon'
+  | 'editorial' | 'brutalist'
+  | 'light-blue' | 'glassy-clear' | 'dark-green';
 
 export const LANGUAGES: { code: Language; name: string }[] = [
   { code: 'en', name: 'English' },

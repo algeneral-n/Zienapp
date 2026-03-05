@@ -1,12 +1,17 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { TRANSLATIONS } from '../constants/translations';
-import type { Language, ThemeMode } from '../types';
+import type { Language, ThemeMode, ThemeVariant } from '../types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-export type ThemeVariant = 'default' | 'glass';
 type Theme = 'light' | 'dark' | 'system';
 
 const RTL_LANGUAGES: Language[] = ['ar', 'ur'];
+
+/** All supported variant class names (applied to <html>) */
+const ALL_VARIANTS: ThemeVariant[] = [
+  'default', 'glass', 'prism', 'pulse', 'neon',
+  'editorial', 'brutalist', 'light-blue', 'glassy-clear', 'dark-green',
+];
 
 interface ThemeContextType {
   // Original API (HeaderControls, etc.)
@@ -80,6 +85,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.lang = language;
   }, [theme, language, isRTL]);
 
+  // ── Apply variant class to <html> ─────────────────────────────────────────
+  useEffect(() => {
+    const root = window.document.documentElement;
+    ALL_VARIANTS.forEach(v => root.classList.remove(`theme-${v}`));
+    if (variant !== 'default') {
+      root.classList.add(`theme-${variant}`);
+    }
+    localStorage.setItem('zien-variant', variant);
+  }, [variant]);
+
   // ── Translation function ───────────────────────────────────────────────────
   const t = useCallback(
     (key: string): string => {
@@ -118,3 +133,6 @@ export function useTheme() {
   }
   return context;
 }
+
+/** Re-export for backward compat — canonical source is `../types` */
+export type { ThemeVariant } from '../types';
