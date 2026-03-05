@@ -51,10 +51,10 @@ export default function Header() {
       <div className="hidden lg:flex items-center gap-1 font-bold text-[10px] uppercase tracking-widest">
         {[
           { label: translate('features'), path: '/features' },
-          { label: 'FAQ', path: '/faq' },
-          { label: 'Academy', path: '/academy' },
-          { label: 'Help', path: '/help' },
-          { label: 'Contact', path: '/contact' },
+          { label: translate('faq'), path: '/faq' },
+          { label: translate('academy'), path: '/academy' },
+          { label: translate('help'), path: '/help' },
+          { label: translate('contact'), path: '/contact' },
         ].map((item) => (
           <button
             key={item.path}

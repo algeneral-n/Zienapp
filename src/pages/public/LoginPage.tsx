@@ -5,7 +5,6 @@ import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
 import { Mail, Lock, ArrowRight, ShieldCheck, Globe, Phone, UserPlus, KeyRound, Smartphone } from 'lucide-react';
 import { supabase } from '../../services/supabase';
-import Turnstile from 'react-turnstile';
 
 type AuthView = 'login' | 'forgot' | 'register' | 'set-password' | 'phone-login' | 'otp-verify';
 
@@ -19,13 +18,9 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-
-  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!turnstileToken && turnstileSiteKey) return setError('Please complete the security check');
     setError('');
     setLoading(true);
 
@@ -33,7 +28,6 @@ export default function LoginPage() {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: identifier,
         password: password,
-        options: { captchaToken: turnstileToken || undefined }
       });
 
       if (authError) throw authError;
@@ -76,7 +70,7 @@ export default function LoginPage() {
     try {
       const { error: authError } = await supabase.auth.signInWithOtp({
         phone: identifier,
-        options: { captchaToken: turnstileToken || undefined }
+        options: {}
       });
       if (authError) throw authError;
       setView('otp-verify');
@@ -205,12 +199,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {turnstileSiteKey && (
-              <div className="flex justify-center">
-                <Turnstile sitekey={turnstileSiteKey} onVerify={setTurnstileToken} />
-              </div>
-            )}
-
             {error && <p className={`text-sm font-medium ${error.includes('successfully') ? 'text-green-500' : 'text-red-500'}`}>{error}</p>}
 
             <button
@@ -324,12 +312,6 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-
-            {turnstileSiteKey && (
-              <div className="flex justify-center">
-                <Turnstile sitekey={turnstileSiteKey} onVerify={setTurnstileToken} />
-              </div>
-            )}
 
             {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
 

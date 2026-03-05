@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Mail, Phone, MapPin, MessageSquare, Send, Clock, Globe, Loader2, AlertCircle } from 'lucide-react';
+import { useTheme } from '../../components/ThemeProvider';
+import { Mail, MapPin, MessageSquare, Send, Clock, Loader2, AlertCircle, Headphones, HeartHandshake, ShieldAlert } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 
 export default function ContactPage() {
-    const { i18n } = useTranslation();
-    const isArabic = i18n.language === 'ar';
+    const { language, t: translate } = useTheme();
+    const isArabic = language === 'ar';
     const [sent, setSent] = useState(false);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export default function ContactPage() {
                 const mailBody = encodeURIComponent(
                     `Name: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\nSubject: ${formData.subject}\n\n${formData.message}`
                 );
-                window.open(`mailto:support@zien-ai.app?subject=${encodeURIComponent(formData.subject)}&body=${mailBody}`);
+                window.open(`mailto:INFO@ZIEN-AI.APP?subject=${encodeURIComponent(formData.subject)}&body=${mailBody}`);
                 setSent(true);
             } else {
                 setSent(true);
@@ -65,50 +65,69 @@ export default function ContactPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                     {/* Contact Info Cards */}
                     <div className="space-y-4">
-                        {/* WhatsApp */}
+                        {/* WhatsApp - Technical Support */}
                         <a
-                            href="https://wa.me/971501234567"
+                            href="https://chat.whatsapp.com/H8W70Tq6ppF0pXvG2LfvJP?mode=gi_t"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-4 p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800 rounded-2xl hover:shadow-md transition-all group"
                         >
                             <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
-                                <MessageSquare size={22} />
+                                <Headphones size={22} />
                             </div>
                             <div>
-                                <h3 className="font-bold text-sm text-emerald-800 dark:text-emerald-400">WhatsApp</h3>
-                                <p className="text-xs text-emerald-600 dark:text-emerald-500">+971 50 123 4567</p>
-                                <p className="text-[10px] text-emerald-500 mt-1">{isArabic ? 'رد فوري خلال ساعات العمل' : 'Instant reply during business hours'}</p>
+                                <h3 className="font-bold text-sm text-emerald-800 dark:text-emerald-400">{translate('technical_support')}</h3>
+                                <p className="text-xs text-emerald-600 dark:text-emerald-500">WhatsApp</p>
+                                <p className="text-[10px] text-emerald-500 mt-1">{isArabic ? 'انضم لمجموعة الدعم الفني' : 'Join our tech support group'}</p>
                             </div>
                         </a>
 
-                        {/* Phone */}
+                        {/* WhatsApp - Customer Service */}
                         <a
-                            href="tel:+97142345678"
-                            className="flex items-center gap-4 p-5 bg-blue-50 dark:bg-blue-600/10 border border-blue-200 dark:border-blue-800 rounded-2xl hover:shadow-md transition-all"
+                            href="https://chat.whatsapp.com/HfZlteCotW8Bi6ZsD4GJLs?mode=gi_t"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-4 p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800 rounded-2xl hover:shadow-md transition-all group"
                         >
-                            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
-                                <Phone size={22} />
+                            <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white">
+                                <HeartHandshake size={22} />
                             </div>
                             <div>
-                                <h3 className="font-bold text-sm text-blue-800 dark:text-blue-400">{isArabic ? 'اتصل بنا' : 'Call Us'}</h3>
-                                <p className="text-xs text-blue-600 dark:text-blue-500">+971 4 234 5678</p>
-                                <p className="text-[10px] text-blue-500 mt-1">{isArabic ? 'الأحد - الخميس، 9 ص - 6 م' : 'Sun - Thu, 9 AM - 6 PM (GST)'}</p>
+                                <h3 className="font-bold text-sm text-emerald-800 dark:text-emerald-400">{translate('customer_service')}</h3>
+                                <p className="text-xs text-emerald-600 dark:text-emerald-500">WhatsApp</p>
+                                <p className="text-[10px] text-emerald-500 mt-1">{isArabic ? 'انضم لمجموعة خدمة العملاء' : 'Join our customer service group'}</p>
                             </div>
                         </a>
 
-                        {/* Email */}
+                        {/* WhatsApp - Complaints & Suggestions */}
                         <a
-                            href="mailto:support@zien-ai.app"
+                            href="https://chat.whatsapp.com/IPu6Tmht8v1GTOwFxZO1Zz?mode=gi_t"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-4 p-5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-800 rounded-2xl hover:shadow-md transition-all group"
+                        >
+                            <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center text-white">
+                                <ShieldAlert size={22} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-sm text-amber-800 dark:text-amber-400">{translate('complaints_suggestions')}</h3>
+                                <p className="text-xs text-amber-600 dark:text-amber-500">WhatsApp</p>
+                                <p className="text-[10px] text-amber-500 mt-1">{isArabic ? 'انضم لمجموعة الشكاوى والاقتراحات' : 'Join our complaints & suggestions group'}</p>
+                            </div>
+                        </a>
+
+                        {/* Email - INFO */}
+                        <a
+                            href="mailto:INFO@ZIEN-AI.APP"
                             className="flex items-center gap-4 p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:shadow-md transition-all"
                         >
-                            <div className="w-12 h-12 bg-zinc-800 dark:bg-zinc-700 rounded-xl flex items-center justify-center text-white">
+                            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                                 <Mail size={22} />
                             </div>
                             <div>
                                 <h3 className="font-bold text-sm text-zinc-800 dark:text-zinc-300">{isArabic ? 'البريد الإلكتروني' : 'Email'}</h3>
-                                <p className="text-xs text-zinc-600 dark:text-zinc-400">support@zien-ai.app</p>
-                                <p className="text-[10px] text-zinc-500 mt-1">{isArabic ? 'رد خلال 24 ساعة' : 'Response within 24 hours'}</p>
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400">INFO@ZIEN-AI.APP</p>
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400">GM@ZIEN-AI.APP</p>
                             </div>
                         </a>
 

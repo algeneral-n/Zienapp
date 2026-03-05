@@ -12,9 +12,35 @@
   --radius-2xl: 1rem;
 }
 
+/* ─── Theme CSS Variables (light/dark) ──────────────────────────────────── */
+:root,
+html.light {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-soft: #e2e8f0;
+  --surface-1: #ffffff;
+  --surface-2: #f1f5f9;
+}
+
+html.dark {
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-soft: #1e293b;
+  --surface-1: #0f172a;
+  --surface-2: #1e293b;
+}
+
 @layer base {
   body {
     @apply font-sans text-slate-900 bg-white dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -24,6 +50,21 @@
 
 .glass {
   @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-slate-800/50;
+}
+
+.glass-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-soft);
+  border-radius: 1.25rem;
+  backdrop-filter: blur(12px);
+}
+html.dark .glass-card {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(30, 41, 59, 0.6);
+}
+html.light .glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(226, 232, 240, 0.8);
 }
 
 .btn-primary {

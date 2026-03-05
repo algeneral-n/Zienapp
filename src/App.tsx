@@ -15,6 +15,7 @@ import { PublicLayout, ProtectedLayout } from './layouts';
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
 const LoginPage = React.lazy(() => import('./pages/public/LoginPage'));
 const FeaturesPage = React.lazy(() => import('./pages/public/FeaturesPage'));
+const FeatureDetailPage = React.lazy(() => import('./pages/public/FeatureDetailPage'));
 const FAQPage = React.lazy(() => import('./pages/public/FAQPage'));
 const ContactPage = React.lazy(() => import('./pages/public/ContactPage'));
 const IndustriesPage = React.lazy(() => import('./pages/public/IndustriesPage'));
@@ -53,6 +54,7 @@ function AppRoutes() {
         <Route element={<PublicLayout />}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/features/:slug" element={<FeatureDetailPage />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/industries" element={<IndustriesPage />} />
