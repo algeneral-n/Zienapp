@@ -209,8 +209,8 @@ async function handleRARE(
     mode: body.mode,
     agentType: body.agentType,
     tokens: {
-      input: geminiData.usageMetadata?.promptTokenCount ?? 0,
-      output: geminiData.usageMetadata?.candidatesTokenCount ?? 0,
+      input: openaiData.usage?.prompt_tokens ?? 0,
+      output: openaiData.usage?.completion_tokens ?? 0,
     },
   });
 }
@@ -365,7 +365,7 @@ Be thorough, data-driven, and consider multiple perspectives. Respond in the sam
         secondOpinion = openaiData.choices?.[0]?.message?.content || null;
       }
     } catch {
-      // OpenAI unavailable, proceed with Gemini only
+      // Second opinion unavailable, proceed with primary only
     }
   }
 

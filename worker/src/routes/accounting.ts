@@ -551,24 +551,29 @@ export async function handleAccounting(
       .eq('company_id', companyId)
       .gte('invoice_date', threeMonthsAgo.toISOString().split('T')[0]);
 
-    // Build prompt for Gemini
+    // Build prompt for AI analysis
     const prompt = buildFinancialPrompt(body.type, recentLedger || [], recentInvoices || [], body.months_ahead || 3);
 
-    // Call Gemini via Google API
-    const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GOOGLE_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-        }),
-      }
-    );
+    // Call OpenAI API
+    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are an expert financial analyst. Respond in JSON format when requested.' },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 2048,
+      }),
+    });
 
-    const aiData = await aiResponse.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    const text = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || 'No analysis available';
+    const aiData = await aiResponse.json() as { choices?: { message?: { content?: string } }[] };
+    const text = aiData?.choices?.[0]?.message?.content || 'No analysis available';
 
     return jsonResponse({
       type: body.type,
