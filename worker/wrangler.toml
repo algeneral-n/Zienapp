@@ -1,0 +1,22 @@
+name = "zien-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Routes: api.plt.zien-ai.app/*
+routes = [
+  { pattern = "api.plt.zien-ai.app", custom_domain = true }
+]
+
+[vars]
+ENVIRONMENT = "production"
+SUPABASE_URL = "https://rjrgylhcpnijkfstvcza.supabase.co"
+
+# Secrets (set via `wrangler secret put`):
+# SUPABASE_SERVICE_ROLE_KEY
+# SUPABASE_ANON_KEY
+# STRIPE_SECRET_KEY
+# STRIPE_WEBHOOK_SECRET
+# GOOGLE_API_KEY
+# OPENAI_API_KEY
+# TURNSTILE_SECRET_KEY

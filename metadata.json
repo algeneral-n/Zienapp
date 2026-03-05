@@ -1,0 +1,9 @@
+{
+  "name": "ZIEN: Multi-Tenant Business OS",
+  "description": "Production-grade multi-tenant SaaS platform with industry-based provisioning and RARE AI agents.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

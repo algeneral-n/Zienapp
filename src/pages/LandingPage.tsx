@@ -1,0 +1,550 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { useTheme } from '../components/ThemeProvider';
+import { ASSETS, IMAGE_PROPS } from '../constants/assets';
+import { Language, ThemeMode } from '../types';
+import { provisioningService, ProvisioningResult, ProvisioningStatus } from '../services/provisioningService';
+import { supabase } from '../services/supabase';
+import {
+  Globe, Moon, Sun, Layout, ShieldCheck, Zap,
+  ArrowRight, Menu, X, CheckCircle2, Star,
+  ChevronLeft, ChevronRight, Play, Users,
+  BarChart3, Shield, Globe2, Upload, Loader2,
+  Building2, Users2, Briefcase, AlertCircle
+} from 'lucide-react';
+
+export default function LandingPage() {
+  const navigate = useNavigate();
+  const { language, mode, variant, setMode, setVariant, setLanguage, t: translate } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Demo States
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoResult, setDemoResult] = useState<ProvisioningResult | null>(null);
+  const [demoError, setDemoError] = useState<string | null>(null);
+  const [demoForm, setDemoForm] = useState({
+    companyName: '',
+    employees: '',
+    services: [] as string[],
+    image: null as File | null
+  });
+
+  const slides = [
+    {
+      title: translate('hero_title_1'),
+      subtitle: translate('hero_sub_1'),
+      image: ASSETS.LANDING_1,
+      accent: "blue"
+    },
+    {
+      title: translate('hero_title_2'),
+      subtitle: translate('hero_sub_2'),
+      image: ASSETS.LANDING_2,
+      accent: "cyan"
+    },
+    {
+      title: translate('hero_title_3'),
+      subtitle: translate('hero_sub_3'),
+      image: ASSETS.MODULES_OVERVIEW,
+      accent: "indigo"
+    }
+  ];
+
+  const languages: { code: Language; label: string }[] = [
+    { code: 'ar', label: 'العربية' },
+    { code: 'en', label: 'English' },
+    { code: 'fr', label: 'Français' },
+    { code: 'es', label: 'Español' },
+    { code: 'de', label: 'Deutsch' },
+    { code: 'tr', label: 'Türkçe' },
+    { code: 'ru', label: 'Русский' },
+    { code: 'zh', label: '中文' },
+    { code: 'ja', label: '日本語' },
+    { code: 'ko', label: '한국어' },
+    { code: 'hi', label: 'हिन्दी' },
+    { code: 'ur', label: 'اردو' },
+    { code: 'it', label: 'Italiano' },
+    { code: 'pt', label: 'Português' },
+    { code: 'nl', label: 'Nederlands' },
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const [demoStep, setDemoStep] = useState(0);
+  const demoSteps = language === 'ar'
+    ? ['تحليل البيانات...', 'توفير الوحدات...', 'إعداد RARE AI...', 'تأمين المستأجر...', 'جاهز!']
+    : ['Analyzing data...', 'Provisioning modules...', 'Setting up RARE AI...', 'Securing tenant...', 'Ready!'];
+
+  const handleCreateDemo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDemoLoading(true);
+    setDemoStep(0);
+    setDemoError(null);
+
+    // Check if user is logged in
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setDemoError(language === 'ar'
+        ? 'يجب تسجيل الدخول اولا لإنشاء ديمو. سجل حساب مجاني ثم عد هنا.'
+        : 'You must be logged in to create a demo. Register a free account first.');
+      setDemoLoading(false);
+      return;
+    }
+
+    try {
+      setDemoStep(0);
+      // Step 1: Start provisioning via real API
+      const result = await provisioningService.provisionTenant({
+        companyName: demoForm.companyName,
+        tenantType: 'demo',
+        country: 'AE',
+        currency: 'AED',
+        employees: demoForm.employees || '10',
+        needs: demoForm.services,
+        language: language,
+      });
+
+      setDemoStep(1);
+
+      // Step 2-4: Poll status until done
+      if (result.status !== 'done') {
+        let attempts = 0;
+        const maxAttempts = 30;
+        while (attempts < maxAttempts) {
+          await new Promise(r => setTimeout(r, 2000));
+          attempts++;
+          try {
+            const status = await provisioningService.getStatus(result.jobId);
+            const progress = Math.min(
+              Math.floor((status.completedSteps / Math.max(status.totalSteps, 1)) * (demoSteps.length - 1)),
+              demoSteps.length - 2
+            );
+            setDemoStep(progress + 1);
+
+            if (status.status === 'done') {
+              setDemoStep(demoSteps.length - 1);
+              break;
+            }
+            if (status.status === 'error') {
+              throw new Error(status.error || 'Provisioning failed');
+            }
+          } catch (pollErr: any) {
+            if (attempts >= maxAttempts) throw pollErr;
+          }
+        }
+      } else {
+        // Already done (fallback provisioning)
+        setDemoStep(demoSteps.length - 1);
+      }
+
+      setDemoResult(result);
+    } catch (err: any) {
+      console.error('Demo provisioning error:', err);
+      setDemoError(err?.message || (language === 'ar' ? 'حدث خطأ اثناء الإنشاء' : 'An error occurred during provisioning'));
+    } finally {
+      setDemoLoading(false);
+    }
+  };
+
+  const t = {
+    heroTitle: slides[currentSlide].title,
+    heroSub: slides[currentSlide].subtitle,
+    register: translate('register'),
+    login: translate('login'),
+    features: translate('features'),
+    pricing: translate('pricing'),
+    industries: translate('industries'),
+    rareAi: language === 'ar' ? 'مدعوم بذكاء RARE' : "Powered by RARE AI",
+    createDemo: language === 'ar' ? 'إنشاء ديمو' : 'Create Demo',
+    joinNow: language === 'ar' ? 'انضم الآن' : 'Join Now'
+  };
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero Section with Slider */}
+      <section className="pt-32 pb-20 px-6 relative overflow-hidden min-h-[90vh] flex items-center">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-bold mb-6">
+                <Zap className="w-4 h-4 fill-current" />
+                {t.rareAi}
+              </div>
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
+                {t.heroTitle}
+              </h1>
+              <p className="text-xl text-[var(--text-secondary)] mb-10 max-w-lg leading-relaxed">
+                {t.heroSub}
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <button
+                  onClick={() => navigate('/register')}
+                  className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 flex items-center gap-2"
+                >
+                  {t.joinNow}
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShowDemoModal(true)}
+                  className="glass-card px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black/5 transition-all"
+                >
+                  {t.createDemo}
+                </button>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.1 }}
+              transition={{ duration: 0.8 }}
+              className="relative"
+            >
+              <div className="aspect-video rounded-[3rem] bg-gradient-to-br from-blue-600 to-cyan-400 p-1 shadow-2xl overflow-hidden">
+                <img
+                  src={slides[currentSlide].image}
+                  alt="Platform"
+                  className="w-full h-full object-cover rounded-[2.8rem] bg-white"
+                  {...IMAGE_PROPS}
+                />
+              </div>
+
+              {/* Floating AI Agent Card */}
+              <div className="absolute -bottom-6 -left-6 glass-card p-6 max-w-xs animate-bounce-slow">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                    <img src={ASSETS.RARE_AGENT} alt="RARE AI" className="w-full h-full object-cover" {...IMAGE_PROPS} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-blue-600">RARE AI Active</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Intelligent Enterprise Shield</div>
+                  </div>
+                </div>
+                <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
+                  <div className="h-full w-3/4 bg-blue-500" />
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Slider Controls */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentSlide(i)}
+              className={`w-3 h-3 rounded-full transition-all ${currentSlide === i ? 'bg-blue-600 w-8' : 'bg-black/20'}`}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Demo Modal */}
+      <AnimatePresence>
+        {showDemoModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDemoModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl glass-card p-8 md:p-10 shadow-2xl overflow-hidden"
+            >
+              {!demoResult ? (
+                <form onSubmit={handleCreateDemo} className="space-y-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-3xl font-bold">{t.createDemo}</h2>
+                    <button type="button" onClick={() => setShowDemoModal(false)} className="p-2 hover:bg-black/5 rounded-full">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold opacity-60 flex items-center gap-2">
+                        <Building2 className="w-4 h-4" /> {language === 'ar' ? 'اسم الشركة' : 'Company Name'}
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        value={demoForm.companyName}
+                        onChange={e => setDemoForm({ ...demoForm, companyName: e.target.value })}
+                        className="w-full bg-black/5 border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. ZIEN Tech"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold opacity-60 flex items-center gap-2">
+                        <Users2 className="w-4 h-4" /> {language === 'ar' ? 'عدد الموظفين' : 'Employees'}
+                      </label>
+                      <input
+                        required
+                        type="number"
+                        value={demoForm.employees}
+                        onChange={e => setDemoForm({ ...demoForm, employees: e.target.value })}
+                        className="w-full bg-black/5 border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold opacity-60 flex items-center gap-2">
+                      <Briefcase className="w-4 h-4" /> {language === 'ar' ? 'الخدمات المطلوبة' : 'Requested Services'}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Accounting', 'HR', 'CRM', 'Logistics', 'AI Assistant'].map(service => (
+                        <button
+                          key={service}
+                          type="button"
+                          onClick={() => {
+                            const services = demoForm.services.includes(service)
+                              ? demoForm.services.filter(s => s !== service)
+                              : [...demoForm.services, service];
+                            setDemoForm({ ...demoForm, services });
+                          }}
+                          className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${demoForm.services.includes(service)
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-black/5 border-[var(--border-soft)] hover:border-blue-400'
+                            }`}
+                        >
+                          {service}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold opacity-60 flex items-center gap-2">
+                      <Upload className="w-4 h-4" /> {language === 'ar' ? 'إرفاق صور' : 'Attach Images'}
+                    </label>
+                    <label className="w-full border-2 border-dashed border-[var(--border-soft)] p-8 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-black/5 transition-all">
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={e => setDemoForm({ ...demoForm, image: e.target.files?.[0] || null })}
+                      />
+                      <Upload className={`w-8 h-8 mb-2 ${demoForm.image ? 'text-green-500' : 'text-blue-600'}`} />
+                      <span className="text-xs font-bold">{demoForm.image ? demoForm.image.name : 'Click to upload'}</span>
+                    </label>
+                  </div>
+
+                  <button
+                    disabled={demoLoading}
+                    className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 flex flex-col items-center justify-center gap-2 min-h-[80px]"
+                  >
+                    {demoLoading ? (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                          <span>{demoSteps[demoStep]}</span>
+                        </div>
+                        <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden mt-2">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${((demoStep + 1) / demoSteps.length) * 100}%` }}
+                            className="h-full bg-white"
+                          />
+                        </div>
+                      </>
+                    ) : t.createDemo}
+                  </button>
+
+                  {demoError && (
+                    <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-400">
+                      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                      <span>{demoError}</span>
+                    </div>
+                  )}
+                </form>
+              ) : (
+                <div className="space-y-8">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-3xl font-bold text-green-600 flex items-center gap-2">
+                      <CheckCircle2 className="w-8 h-8" /> {language === 'ar' ? 'تم إنشاء الديمو بنجاح' : 'Demo Created Successfully'}
+                    </h2>
+                    <button onClick={() => setShowDemoModal(false)} className="p-2 hover:bg-black/5 rounded-full">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  <div className="glass-card p-6 border-green-500/20 space-y-4">
+                    <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
+                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'اسم الشركة' : 'Company'}</span>
+                      <span className="font-bold">{demoForm.companyName}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
+                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'عدد الموظفين' : 'Employees'}</span>
+                      <span className="font-bold">{demoForm.employees}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
+                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'معرف الشركة' : 'Company ID'}</span>
+                      <span className="font-bold font-mono text-xs">{demoResult.companyId.substring(0, 12)}...</span>
+                    </div>
+                    <div className="space-y-2">
+                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'الخدمات المفعلة' : 'Active Services'}</span>
+                      <div className="flex flex-wrap gap-2">
+                        {demoForm.services.map((s: string) => (
+                          <span key={s} className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-[10px] font-bold uppercase">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="aspect-video rounded-3xl bg-slate-900 flex items-center justify-center relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-transparent" />
+                    <div className="z-10 text-center">
+                      <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md group-hover:scale-110 transition-transform cursor-pointer">
+                        <Play className="w-8 h-8 text-white fill-current" />
+                      </div>
+                      <p className="text-white font-bold">{language === 'ar' ? 'مشاهدة الديمو التفاعلي' : 'Watch Interactive Demo'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => navigate('/register')}
+                      className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
+                    >
+                      {language === 'ar' ? 'ابدأ الآن مجاناً' : 'Start Free Trial'}
+                    </button>
+                    <button
+                      onClick={() => { setDemoResult(null); setDemoError(null); }}
+                      className="px-8 py-4 glass-card rounded-2xl font-bold hover:bg-black/5 transition-all"
+                    >
+                      {language === 'ar' ? 'تعديل البيانات' : 'Edit Data'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Features Grid */}
+      <section id="features" className="py-20 px-6 bg-[var(--bg-secondary)]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">{translate('features_title')}</h2>
+            <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">
+              {translate('features_subtitle')}
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                title: translate('accounting'),
+                desc: language === 'ar' ? "مجموعة مالية كاملة مع فواتير آلية وامتثال ضريبي." : "Full financial suite with automated invoicing and tax compliance.",
+                icon: BarChart3
+              },
+              {
+                title: language === 'ar' ? "إدارة علاقات العملاء والمبيعات" : "CRM & Sales",
+                desc: language === 'ar' ? "إدارة العملاء المحتملين والعروض والعقود في بوابة عملاء موحدة." : "Manage leads, quotes, and contracts in a unified client portal.",
+                icon: Users
+              },
+              {
+                title: translate('hr'),
+                desc: language === 'ar' ? "إدارة دورة حياة الموظف الكاملة مع تتبع الحضور." : "Complete employee lifecycle management with attendance tracking.",
+                icon: Shield
+              },
+              {
+                title: translate('logistics'),
+                desc: language === 'ar' ? "تتبع في الوقت الفعلي وإرسال المهام للعمليات الميدانية." : "Real-time tracking and task dispatching for field operations.",
+                icon: Globe2
+              },
+              {
+                title: "RARE AI",
+                desc: language === 'ar' ? "وكلاء أذكياء يحللون البيانات ويقدمون رؤى قابلة للتنفيذ." : "Intelligent agents that analyze data and provide actionable insights.",
+                icon: Zap
+              },
+              {
+                title: language === 'ar' ? "الأمان" : "Security",
+                desc: language === 'ar' ? "RLS متقدم وعزل متعدد المستأجرين لبياناتك." : "Advanced RLS and multi-tenant isolation for your data.",
+                icon: ShieldCheck
+              }
+            ].map((feature, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="glass-card p-8 hover:border-blue-500/50 transition-all group"
+              >
+                <div className="w-12 h-12 bg-blue-600/10 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <feature.icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                <p className="text-[var(--text-secondary)] leading-relaxed">
+                  {feature.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-6 border-t border-[var(--border-soft)]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center gap-2 opacity-50">
+            <img src={ASSETS.LOGO_PRIMARY} alt="Logo" className="w-8 h-8 object-contain grayscale" {...IMAGE_PROPS} />
+          </div>
+          <div className="flex flex-wrap justify-center gap-3 text-xs font-bold">
+            {[
+              { label: translate('features'), path: '/features' },
+              { label: translate('industries'), path: '/industries' },
+              { label: translate('pricing'), path: '/pricing' },
+              { label: 'Academy', path: '/academy' },
+              { label: 'Help', path: '/help' },
+              { label: 'Contact', path: '/contact' },
+              { label: 'Privacy', path: '/privacy' },
+              { label: 'Terms', path: '/terms' },
+              { label: 'Founder', path: '/owner', hidden: true },
+            ].map((link) => (
+              <button
+                key={link.path}
+                onClick={() => navigate(link.path)}
+                className={`px-4 py-2 rounded-full glass-card border border-[var(--border-soft)] hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300 ${link.hidden ? 'opacity-0 hover:opacity-100' : ''
+                  }`}
+              >
+                {link.label}
+              </button>
+            ))}
+          </div>
+          <div className="text-sm text-[var(--text-secondary)]">
+            © 2024 ZIEN AI. {language === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

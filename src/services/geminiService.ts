@@ -1,0 +1,79 @@
+/**
+ * RARE AI Service — thin client that calls the Cloudflare Worker.
+ * API keys are NEVER exposed to the client bundle.
+ */
+import { supabase } from './supabase';
+import type { RAREMode, RAREContext } from '../types';
+
+export type RAREAgentType =
+  | 'accounting' | 'hr' | 'sales' | 'fleet'
+  | 'meetings' | 'gm' | 'secretary' | 'founder';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${session.access_token}`,
+  };
+}
+
+export async function generateRAREAnalysis(
+  agentType: RAREAgentType,
+  query: string,
+  context: RAREContext & { mode: RAREMode; companyId: string },
+): Promise<string> {
+  const headers = await getAuthHeaders();
+
+  const res = await fetch(`${API_URL}/api/ai/rare`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      prompt: query,
+      mode: context.mode,
+      agentType,
+      moduleCode: context.moduleCode,
+      companyId: context.companyId,
+      context: {
+        pageCode: context.pageCode,
+        userRole: context.userRole,
+        language: context.language,
+        theme: context.theme,
+        selectedEntityId: context.selectedEntityId,
+        additionalData: context.additionalData,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'AI service error' }));
+    throw new Error((err as { error?: string }).error ?? 'AI service error');
+  }
+
+  const data = (await res.json()) as { response: string };
+  return data.response;
+}
+
+export async function generateBusinessReport(
+  companyName: string,
+  companyId: string,
+  data: Record<string, unknown>,
+): Promise<string> {
+  return generateRAREAnalysis(
+    'gm',
+    `Generate a comprehensive business report for ${companyName} based on: ${JSON.stringify(data)}`,
+    {
+      mode: 'report',
+      companyId,
+      pageCode: 'dashboard',
+      userRole: 'company_gm' as any,
+      companyName,
+      language: 'en',
+      theme: 'system' as any,
+    },
+  );
+}
