@@ -34,8 +34,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading: true,
     });
 
-    // Fetch profile from public.profiles
-    const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    // Fetch profile from public.profiles with user_metadata fallback
+    const fetchProfile = async (userId: string, user?: any): Promise<Profile | null> => {
+        const meta = user?.user_metadata || {};
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
@@ -43,19 +44,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
 
         if (error) {
-            console.error('Failed to fetch profile:', error.message);
+            console.warn('Profile fetch issue:', error.message);
+            // Build profile from user_metadata as fallback
+            if (user) {
+                return {
+                    id: userId,
+                    email: user.email || meta.email || '',
+                    fullName: meta.full_name || meta.name || '',
+                    displayName: meta.full_name || meta.name || user.email?.split('@')[0] || '',
+                    avatarUrl: meta.avatar_url || meta.picture || '',
+                    phone: user.phone || meta.phone || '',
+                    platformRole: (meta.platform_role || 'user') as PlatformRole,
+                    isActive: true,
+                    createdAt: user.created_at || new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                };
+            }
             return null;
         }
 
         return {
             id: data.id,
-            email: data.email,
-            fullName: data.full_name,
-            displayName: data.display_name,
-            avatarUrl: data.avatar_url,
-            phone: data.phone,
-            platformRole: data.platform_role as PlatformRole,
-            isActive: data.is_active,
+            email: data.email || user?.email || meta.email || '',
+            fullName: data.full_name || meta.full_name || meta.name || '',
+            displayName: data.display_name || meta.full_name || meta.name || '',
+            avatarUrl: data.avatar_url || meta.avatar_url || meta.picture || '',
+            phone: data.phone || user?.phone || '',
+            platformRole: (data.platform_role || meta.platform_role || 'user') as PlatformRole,
+            isActive: data.is_active !== undefined ? data.is_active : true,
             createdAt: data.created_at,
             updatedAt: data.updated_at,
         };
@@ -66,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         supabase.auth.getSession().then(async ({ data: { session } }) => {
             let profile: Profile | null = null;
             if (session?.user) {
-                profile = await fetchProfile(session.user.id);
+                profile = await fetchProfile(session.user.id, session.user);
             }
             setState({ session, user: session?.user ?? null, profile, isLoading: false });
         });
@@ -76,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } = supabase.auth.onAuthStateChange(async (_event, session) => {
             let profile: Profile | null = null;
             if (session?.user) {
-                profile = await fetchProfile(session.user.id);
+                profile = await fetchProfile(session.user.id, session.user);
             }
             setState((prev) => ({
                 ...prev,
