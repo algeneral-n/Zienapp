@@ -28,14 +28,14 @@ class ChartAccount {
   });
 
   factory ChartAccount.fromJson(Map<String, dynamic> json) => ChartAccount(
-        id: json['id']?.toString() ?? '',
-        accountCode: json['account_code'] ?? '',
-        nameEn: json['name_en'] ?? '',
-        nameAr: json['name_ar'] ?? '',
-        accountType: json['account_type'] ?? 'asset',
-        parentCode: json['parent_code'],
-        isActive: json['is_active'] ?? true,
-      );
+    id: json['id']?.toString() ?? '',
+    accountCode: json['account_code'] ?? '',
+    nameEn: json['name_en'] ?? '',
+    nameAr: json['name_ar'] ?? '',
+    accountType: json['account_type'] ?? 'asset',
+    parentCode: json['parent_code'],
+    isActive: json['is_active'] ?? true,
+  );
 }
 
 class JournalEntry {
@@ -56,13 +56,13 @@ class JournalEntry {
   });
 
   factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
-        id: json['id']?.toString() ?? '',
-        reference: json['reference'],
-        entryDate: json['entry_date'] ?? '',
-        totalDebit: (json['total_debit'] ?? 0).toDouble(),
-        totalCredit: (json['total_credit'] ?? 0).toDouble(),
-        lineCount: json['line_count'] ?? 0,
-      );
+    id: json['id']?.toString() ?? '',
+    reference: json['reference'],
+    entryDate: json['entry_date'] ?? '',
+    totalDebit: (json['total_debit'] ?? 0).toDouble(),
+    totalCredit: (json['total_credit'] ?? 0).toDouble(),
+    lineCount: json['line_count'] ?? 0,
+  );
 }
 
 class LedgerEntry {
@@ -81,12 +81,12 @@ class LedgerEntry {
   });
 
   factory LedgerEntry.fromJson(Map<String, dynamic> json) => LedgerEntry(
-        entryDate: json['entry_date'] ?? '',
-        description: json['description'],
-        debit: (json['debit'] ?? 0).toDouble(),
-        credit: (json['credit'] ?? 0).toDouble(),
-        runningBalance: (json['running_balance'] ?? 0).toDouble(),
-      );
+    entryDate: json['entry_date'] ?? '',
+    description: json['description'],
+    debit: (json['debit'] ?? 0).toDouble(),
+    credit: (json['credit'] ?? 0).toDouble(),
+    runningBalance: (json['running_balance'] ?? 0).toDouble(),
+  );
 }
 
 class CostCenter {
@@ -109,14 +109,14 @@ class CostCenter {
   });
 
   factory CostCenter.fromJson(Map<String, dynamic> json) => CostCenter(
-        id: json['id']?.toString() ?? '',
-        code: json['code'] ?? '',
-        nameEn: json['name_en'] ?? '',
-        nameAr: json['name_ar'] ?? '',
-        centerType: json['center_type'] ?? 'operational',
-        parentCode: json['parent_code'],
-        isActive: json['is_active'] ?? true,
-      );
+    id: json['id']?.toString() ?? '',
+    code: json['code'] ?? '',
+    nameEn: json['name_en'] ?? '',
+    nameAr: json['name_ar'] ?? '',
+    centerType: json['center_type'] ?? 'operational',
+    parentCode: json['parent_code'],
+    isActive: json['is_active'] ?? true,
+  );
 }
 
 class TrialBalanceRow {
@@ -239,19 +239,18 @@ class AccountingState {
     AIInsightResult? aiInsight,
     bool? loading,
     String? error,
-  }) =>
-      AccountingState(
-        accounts: accounts ?? this.accounts,
-        journalEntries: journalEntries ?? this.journalEntries,
-        ledger: ledger ?? this.ledger,
-        costCenters: costCenters ?? this.costCenters,
-        trialBalance: trialBalance ?? this.trialBalance,
-        incomeStatement: incomeStatement ?? this.incomeStatement,
-        balanceSheet: balanceSheet ?? this.balanceSheet,
-        aiInsight: aiInsight ?? this.aiInsight,
-        loading: loading ?? this.loading,
-        error: error,
-      );
+  }) => AccountingState(
+    accounts: accounts ?? this.accounts,
+    journalEntries: journalEntries ?? this.journalEntries,
+    ledger: ledger ?? this.ledger,
+    costCenters: costCenters ?? this.costCenters,
+    trialBalance: trialBalance ?? this.trialBalance,
+    incomeStatement: incomeStatement ?? this.incomeStatement,
+    balanceSheet: balanceSheet ?? this.balanceSheet,
+    aiInsight: aiInsight ?? this.aiInsight,
+    loading: loading ?? this.loading,
+    error: error,
+  );
 }
 
 // ─── Notifier ───────────────────────────────────────────────────────────
@@ -265,7 +264,8 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
     state = state.copyWith(loading: true, error: null);
     final res = await _api.get('/api/accounting/chart-of-accounts');
     if (res.isSuccess && res.data != null) {
-      final list = (res.data!['chart_of_accounts'] as List?)
+      final list =
+          (res.data!['chart_of_accounts'] as List?)
               ?.map((e) => ChartAccount.fromJson(e))
               .toList() ??
           [];
@@ -282,13 +282,16 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
     required String accountType,
     String? parentCode,
   }) async {
-    final res = await _api.post('/api/accounting/chart-of-accounts', body: {
-      'account_code': accountCode,
-      'name_en': nameEn,
-      'name_ar': nameAr ?? nameEn,
-      'account_type': accountType,
-      if (parentCode != null) 'parent_code': parentCode,
-    });
+    final res = await _api.post(
+      '/api/accounting/chart-of-accounts',
+      body: {
+        'account_code': accountCode,
+        'name_en': nameEn,
+        'name_ar': nameAr ?? nameEn,
+        'account_type': accountType,
+        if (parentCode != null) 'parent_code': parentCode,
+      },
+    );
     if (res.isSuccess) await loadAccounts();
     return res.isSuccess;
   }
@@ -298,7 +301,8 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
     state = state.copyWith(loading: true, error: null);
     final res = await _api.get('/api/accounting/journal-entries');
     if (res.isSuccess && res.data != null) {
-      final list = (res.data!['journal_entries'] as List?)
+      final list =
+          (res.data!['journal_entries'] as List?)
               ?.map((e) => JournalEntry.fromJson(e))
               .toList() ??
           [];
@@ -313,11 +317,10 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
     required String entryDate,
     required List<Map<String, dynamic>> lines,
   }) async {
-    final res = await _api.post('/api/accounting/journal-entries', body: {
-      'reference': reference,
-      'entry_date': entryDate,
-      'lines': lines,
-    });
+    final res = await _api.post(
+      '/api/accounting/journal-entries',
+      body: {'reference': reference, 'entry_date': entryDate, 'lines': lines},
+    );
     if (res.isSuccess) await loadJournalEntries();
     return res.isSuccess;
   }
@@ -330,7 +333,8 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
       queryParams: {'account_code': accountCode},
     );
     if (res.isSuccess && res.data != null) {
-      final list = (res.data!['ledger'] as List?)
+      final list =
+          (res.data!['ledger'] as List?)
               ?.map((e) => LedgerEntry.fromJson(e))
               .toList() ??
           [];
@@ -345,7 +349,8 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
     state = state.copyWith(loading: true, error: null);
     final res = await _api.get('/api/accounting/cost-centers');
     if (res.isSuccess && res.data != null) {
-      final list = (res.data!['cost_centers'] as List?)
+      final list =
+          (res.data!['cost_centers'] as List?)
               ?.map((e) => CostCenter.fromJson(e))
               .toList() ??
           [];
@@ -362,13 +367,16 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
     required String type,
     String? parentCode,
   }) async {
-    final res = await _api.post('/api/accounting/cost-centers', body: {
-      'code': code,
-      'name_en': nameEn,
-      'name_ar': nameAr ?? nameEn,
-      'type': type,
-      if (parentCode != null) 'parent_code': parentCode,
-    });
+    final res = await _api.post(
+      '/api/accounting/cost-centers',
+      body: {
+        'code': code,
+        'name_en': nameEn,
+        'name_ar': nameAr ?? nameEn,
+        'type': type,
+        if (parentCode != null) 'parent_code': parentCode,
+      },
+    );
     if (res.isSuccess) await loadCostCenters();
     return res.isSuccess;
   }
@@ -378,7 +386,8 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
     state = state.copyWith(loading: true, error: null);
     final res = await _api.get('/api/accounting/reports/trial-balance');
     if (res.isSuccess && res.data != null) {
-      final list = (res.data!['trial_balance'] as List?)
+      final list =
+          (res.data!['trial_balance'] as List?)
               ?.map((e) => TrialBalanceRow.fromJson(e))
               .toList() ??
           [];
@@ -417,10 +426,10 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
   // --- AI Financial Insights ---
   Future<void> runAIAnalysis(String type, {int monthsAhead = 3}) async {
     state = state.copyWith(loading: true, error: null);
-    final res = await _api.post('/api/accounting/ai/forecast', body: {
-      'type': type,
-      'months_ahead': monthsAhead,
-    });
+    final res = await _api.post(
+      '/api/accounting/ai/forecast',
+      body: {'type': type, 'months_ahead': monthsAhead},
+    );
     if (res.isSuccess && res.data != null) {
       state = state.copyWith(
         aiInsight: AIInsightResult.fromJson(res.data!),
@@ -436,8 +445,8 @@ class AccountingNotifier extends StateNotifier<AccountingState> {
 
 final accountingProvider =
     StateNotifierProvider<AccountingNotifier, AccountingState>((ref) {
-  return AccountingNotifier();
-});
+      return AccountingNotifier();
+    });
 
 final chartAccountsProvider = Provider<List<ChartAccount>>((ref) {
   return ref.watch(accountingProvider).accounts;

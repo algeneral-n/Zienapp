@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { TRANSLATIONS } from '../constants/translations';
+import i18n from '../i18n';
 import type { Language, ThemeMode, ThemeVariant } from '../types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -56,6 +57,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = useCallback((l: Language) => {
     localStorage.setItem('zien-language', l);
     setLanguageRaw(l);
+    if (i18n.language !== l) {
+      i18n.changeLanguage(l);
+    }
   }, []);
 
   const setVariant = useCallback((v: ThemeVariant) => {

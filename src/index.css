@@ -54,6 +54,49 @@ html.dark,
   --color-brand-muted-val: rgba(59, 130, 246, 0.2);
 }
 
+/* ─── Glass Theme Variant ─────────────────────────────────────────────────── */
+.theme-glass {
+  --bg-primary: rgba(248, 250, 252, 0.6);
+  --bg-secondary: rgba(241, 245, 249, 0.5);
+  --surface-1: rgba(255, 255, 255, 0.55);
+  --surface-2: rgba(255, 255, 255, 0.35);
+  --border-soft: rgba(148, 163, 184, 0.3);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --color-brand-val: #6366f1;
+  --color-brand-hover-val: #4f46e5;
+  --color-brand-light-val: rgba(99, 102, 241, 0.1);
+  --color-brand-muted-val: rgba(99, 102, 241, 0.15);
+}
+
+html.dark .theme-glass,
+.dark.theme-glass {
+  --bg-primary: rgba(15, 23, 42, 0.65);
+  --bg-secondary: rgba(30, 41, 59, 0.5);
+  --surface-1: rgba(30, 41, 59, 0.55);
+  --surface-2: rgba(51, 65, 85, 0.35);
+  --border-soft: rgba(100, 116, 139, 0.3);
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+}
+
+.theme-glass body,
+.theme-glass .glass-card,
+.theme-glass .card,
+.theme-glass nav,
+.theme-glass aside {
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+.theme-glass .glass-card,
+.theme-glass .card {
+  background: var(--surface-1) !important;
+  border: 1px solid var(--border-soft) !important;
+}
+
 .theme-dark-green {
   --bg-primary: #022c22;
   --bg-secondary: #064e3b;

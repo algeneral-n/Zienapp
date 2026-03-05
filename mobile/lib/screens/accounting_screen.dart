@@ -45,7 +45,10 @@ class _AccountingScreenState extends ConsumerState<AccountingScreen>
       appBar: AppBar(
         title: Text(
           t('accounting', fallback: 'Accounting'),
-          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
         ),
         bottom: TabBar(
           controller: _tabController,
@@ -133,62 +136,68 @@ class _ChartOfAccountsTabState extends ConsumerState<_ChartOfAccountsTab> {
 
     return RefreshIndicator(
       onRefresh: () => ref.read(accountingProvider.notifier).loadAccounts(),
-      child: state.accounts.isEmpty
-          ? Center(
-              child: Text(
-                t('no_accounts', fallback: 'No accounts configured'),
-                style: TextStyle(color: Colors.grey[500]),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: state.accounts.length,
-              itemBuilder: (context, index) {
-                final acc = state.accounts[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: _typeColor(acc.accountType).withValues(alpha: 0.1),
-                      child: Text(
-                        acc.accountCode.length > 2
-                            ? acc.accountCode.substring(0, 2)
-                            : acc.accountCode,
+      child:
+          state.accounts.isEmpty
+              ? Center(
+                child: Text(
+                  t('no_accounts', fallback: 'No accounts configured'),
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              )
+              : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: state.accounts.length,
+                itemBuilder: (context, index) {
+                  final acc = state.accounts[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: _typeColor(
+                          acc.accountType,
+                        ).withValues(alpha: 0.1),
+                        child: Text(
+                          acc.accountCode.length > 2
+                              ? acc.accountCode.substring(0, 2)
+                              : acc.accountCode,
+                          style: TextStyle(
+                            color: _typeColor(acc.accountType),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        acc.nameEn,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${acc.accountCode} · ${acc.accountType.toUpperCase()}',
                         style: TextStyle(
-                          color: _typeColor(acc.accountType),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      trailing: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: acc.isActive ? Colors.green : Colors.grey[300],
                         ),
                       ),
                     ),
-                    title: Text(
-                      acc.nameEn,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 14),
-                    ),
-                    subtitle: Text(
-                      '${acc.accountCode} · ${acc.accountType.toUpperCase()}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[500],
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    trailing: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: acc.isActive ? Colors.green : Colors.grey[300],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
     );
   }
 }
@@ -200,8 +209,7 @@ class _JournalEntriesTab extends ConsumerStatefulWidget {
   const _JournalEntriesTab();
 
   @override
-  ConsumerState<_JournalEntriesTab> createState() =>
-      _JournalEntriesTabState();
+  ConsumerState<_JournalEntriesTab> createState() => _JournalEntriesTabState();
 }
 
 class _JournalEntriesTabState extends ConsumerState<_JournalEntriesTab> {
@@ -223,75 +231,81 @@ class _JournalEntriesTabState extends ConsumerState<_JournalEntriesTab> {
     }
 
     return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(accountingProvider.notifier).loadJournalEntries(),
-      child: state.journalEntries.isEmpty
-          ? Center(
-              child: Text(
-                t('no_journal_entries', fallback: 'No journal entries yet'),
-                style: TextStyle(color: Colors.grey[500]),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: state.journalEntries.length,
-              itemBuilder: (context, index) {
-                final entry = state.journalEntries[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              entry.reference ?? '—',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w900, fontSize: 14),
-                            ),
-                            Text(
-                              entry.entryDate,
-                              style: TextStyle(
-                                  color: Colors.grey[500], fontSize: 12),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _MetricChip(
-                              label: t('debit', fallback: 'Debit'),
-                              value: entry.totalDebit.toStringAsFixed(2),
-                              color: Colors.blue,
-                            ),
-                            const SizedBox(width: 12),
-                            _MetricChip(
-                              label: t('credit', fallback: 'Credit'),
-                              value: entry.totalCredit.toStringAsFixed(2),
-                              color: Colors.green,
-                            ),
-                            const Spacer(),
-                            Text(
-                              '${entry.lineCount} lines',
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+      onRefresh:
+          () => ref.read(accountingProvider.notifier).loadJournalEntries(),
+      child:
+          state.journalEntries.isEmpty
+              ? Center(
+                child: Text(
+                  t('no_journal_entries', fallback: 'No journal entries yet'),
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              )
+              : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: state.journalEntries.length,
+                itemBuilder: (context, index) {
+                  final entry = state.journalEntries[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-                );
-              },
-            ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                entry.reference ?? '—',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                entry.entryDate,
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              _MetricChip(
+                                label: t('debit', fallback: 'Debit'),
+                                value: entry.totalDebit.toStringAsFixed(2),
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 12),
+                              _MetricChip(
+                                label: t('credit', fallback: 'Credit'),
+                                value: entry.totalCredit.toStringAsFixed(2),
+                                color: Colors.green,
+                              ),
+                              const Spacer(),
+                              Text(
+                                '${entry.lineCount} lines',
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
     );
   }
 }
@@ -321,125 +335,130 @@ class _GeneralLedgerTabState extends ConsumerState<_GeneralLedgerTab> {
         Container(
           height: 50,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: accounts.isEmpty
-              ? Center(
-                  child: Text(
-                    t('no_accounts', fallback: 'Load accounts first'),
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                  ),
-                )
-              : ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: accounts.length,
-                  itemBuilder: (context, i) {
-                    final acc = accounts[i];
-                    final isSelected = _selectedAccount == acc.accountCode;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(
-                          '${acc.accountCode} - ${acc.nameEn}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: isSelected ? Colors.white : Colors.grey[600],
+          child:
+              accounts.isEmpty
+                  ? Center(
+                    child: Text(
+                      t('no_accounts', fallback: 'Load accounts first'),
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    ),
+                  )
+                  : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: accounts.length,
+                    itemBuilder: (context, i) {
+                      final acc = accounts[i];
+                      final isSelected = _selectedAccount == acc.accountCode;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(
+                            '${acc.accountCode} - ${acc.nameEn}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color:
+                                  isSelected ? Colors.white : Colors.grey[600],
+                            ),
                           ),
+                          selected: isSelected,
+                          selectedColor: Colors.blue,
+                          onSelected: (_) {
+                            setState(() => _selectedAccount = acc.accountCode);
+                            ref
+                                .read(accountingProvider.notifier)
+                                .loadLedger(acc.accountCode);
+                          },
                         ),
-                        selected: isSelected,
-                        selectedColor: Colors.blue,
-                        onSelected: (_) {
-                          setState(() => _selectedAccount = acc.accountCode);
-                          ref
-                              .read(accountingProvider.notifier)
-                              .loadLedger(acc.accountCode);
-                        },
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
         ),
         const Divider(height: 1),
         // Ledger entries
         Expanded(
-          child: state.loading
-              ? const Center(child: CircularProgressIndicator())
-              : _selectedAccount == null
+          child:
+              state.loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _selectedAccount == null
                   ? Center(
-                      child: Text(
-                        t('select_account', fallback: 'Select an account above'),
-                        style: TextStyle(color: Colors.grey[500]),
-                      ),
-                    )
+                    child: Text(
+                      t('select_account', fallback: 'Select an account above'),
+                      style: TextStyle(color: Colors.grey[500]),
+                    ),
+                  )
                   : state.ledger.isEmpty
-                      ? Center(
-                          child: Text(
-                            t('no_entries', fallback: 'No entries for this account'),
-                            style: TextStyle(color: Colors.grey[500]),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: state.ledger.length,
-                          itemBuilder: (context, i) {
-                            final e = state.ledger[i];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 6),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
+                  ? Center(
+                    child: Text(
+                      t('no_entries', fallback: 'No entries for this account'),
+                      style: TextStyle(color: Colors.grey[500]),
+                    ),
+                  )
+                  : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: state.ledger.length,
+                    itemBuilder: (context, i) {
+                      final e = state.ledger[i];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            e.description ?? '—',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13),
-                                          ),
-                                          Text(
-                                            e.entryDate,
-                                            style: TextStyle(
-                                                color: Colors.grey[500],
-                                                fontSize: 11),
-                                          ),
-                                        ],
+                                    Text(
+                                      e.description ?? '—',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
                                       ),
                                     ),
-                                    if (e.debit > 0)
-                                      _MetricChip(
-                                        label: 'Dr',
-                                        value: e.debit.toStringAsFixed(2),
-                                        color: Colors.blue,
-                                      ),
-                                    if (e.credit > 0)
-                                      Padding(
-                                        padding: const EdgeInsets.only(left: 8),
-                                        child: _MetricChip(
-                                          label: 'Cr',
-                                          value: e.credit.toStringAsFixed(2),
-                                          color: Colors.green,
-                                        ),
-                                      ),
-                                    const SizedBox(width: 12),
                                     Text(
-                                      e.runningBalance.toStringAsFixed(2),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 13,
+                                      e.entryDate,
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 11,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            );
-                          },
+                              if (e.debit > 0)
+                                _MetricChip(
+                                  label: 'Dr',
+                                  value: e.debit.toStringAsFixed(2),
+                                  color: Colors.blue,
+                                ),
+                              if (e.credit > 0)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8),
+                                  child: _MetricChip(
+                                    label: 'Cr',
+                                    value: e.credit.toStringAsFixed(2),
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              const SizedBox(width: 12),
+                              Text(
+                                e.runningBalance.toStringAsFixed(2),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                      );
+                    },
+                  ),
         ),
       ],
     );
@@ -497,20 +516,23 @@ class _FinancialReportsTabState extends ConsumerState<_FinancialReportsTab> {
               _reportBtn(0, t('trial_balance', fallback: 'Trial Balance')),
               const SizedBox(width: 8),
               _reportBtn(
-                  1, t('income_statement', fallback: 'Income Statement')),
+                1,
+                t('income_statement', fallback: 'Income Statement'),
+              ),
               const SizedBox(width: 8),
               _reportBtn(2, t('balance_sheet', fallback: 'Balance Sheet')),
             ],
           ),
         ),
         Expanded(
-          child: state.loading
-              ? const Center(child: CircularProgressIndicator())
-              : _selected == 0
+          child:
+              state.loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _selected == 0
                   ? _buildTrialBalance(state, t)
                   : _selected == 1
-                      ? _buildIncomeStatement(state, t)
-                      : _buildBalanceSheet(state, t),
+                  ? _buildIncomeStatement(state, t)
+                  : _buildBalanceSheet(state, t),
         ),
       ],
     );
@@ -546,11 +568,17 @@ class _FinancialReportsTabState extends ConsumerState<_FinancialReportsTab> {
     );
   }
 
-  Widget _buildTrialBalance(AccountingState state, String Function(String, {String? fallback}) t) {
+  Widget _buildTrialBalance(
+    AccountingState state,
+    String Function(String, {String? fallback}) t,
+  ) {
     if (state.trialBalance.isEmpty) {
       return Center(
-          child: Text(t('no_entries', fallback: 'No data'),
-              style: TextStyle(color: Colors.grey[500])));
+        child: Text(
+          t('no_entries', fallback: 'No data'),
+          style: TextStyle(color: Colors.grey[500]),
+        ),
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -559,8 +587,9 @@ class _FinancialReportsTabState extends ConsumerState<_FinancialReportsTab> {
         final r = state.trialBalance[i];
         return Card(
           margin: const EdgeInsets.only(bottom: 4),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
@@ -569,29 +598,38 @@ class _FinancialReportsTabState extends ConsumerState<_FinancialReportsTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(r.nameEn,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text(r.accountCode,
-                          style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 10,
-                              fontFamily: 'monospace')),
+                      Text(
+                        r.nameEn,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        r.accountCode,
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 10,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 if (r.totalDebit > 0)
                   _MetricChip(
-                      label: 'Dr',
-                      value: r.totalDebit.toStringAsFixed(2),
-                      color: Colors.blue),
+                    label: 'Dr',
+                    value: r.totalDebit.toStringAsFixed(2),
+                    color: Colors.blue,
+                  ),
                 if (r.totalCredit > 0)
                   Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: _MetricChip(
-                        label: 'Cr',
-                        value: r.totalCredit.toStringAsFixed(2),
-                        color: Colors.green),
+                      label: 'Cr',
+                      value: r.totalCredit.toStringAsFixed(2),
+                      color: Colors.green,
+                    ),
                   ),
               ],
             ),
@@ -601,12 +639,18 @@ class _FinancialReportsTabState extends ConsumerState<_FinancialReportsTab> {
     );
   }
 
-  Widget _buildIncomeStatement(AccountingState state, String Function(String, {String? fallback}) t) {
+  Widget _buildIncomeStatement(
+    AccountingState state,
+    String Function(String, {String? fallback}) t,
+  ) {
     final data = state.incomeStatement;
     if (data == null) {
       return Center(
-          child: Text(t('no_entries', fallback: 'No data'),
-              style: TextStyle(color: Colors.grey[500])));
+        child: Text(
+          t('no_entries', fallback: 'No data'),
+          style: TextStyle(color: Colors.grey[500]),
+        ),
+      );
     }
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -637,12 +681,18 @@ class _FinancialReportsTabState extends ConsumerState<_FinancialReportsTab> {
     );
   }
 
-  Widget _buildBalanceSheet(AccountingState state, String Function(String, {String? fallback}) t) {
+  Widget _buildBalanceSheet(
+    AccountingState state,
+    String Function(String, {String? fallback}) t,
+  ) {
     final data = state.balanceSheet;
     if (data == null) {
       return Center(
-          child: Text(t('no_entries', fallback: 'No data'),
-              style: TextStyle(color: Colors.grey[500])));
+        child: Text(
+          t('no_entries', fallback: 'No data'),
+          style: TextStyle(color: Colors.grey[500]),
+        ),
+      );
     }
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -718,60 +768,64 @@ class _CostCentersTabState extends ConsumerState<_CostCentersTab> {
     }
 
     return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(accountingProvider.notifier).loadCostCenters(),
-      child: state.costCenters.isEmpty
-          ? Center(
-              child: Text(
-                t('no_cost_centers', fallback: 'No cost centers configured'),
-                style: TextStyle(color: Colors.grey[500]),
+      onRefresh: () => ref.read(accountingProvider.notifier).loadCostCenters(),
+      child:
+          state.costCenters.isEmpty
+              ? Center(
+                child: Text(
+                  t('no_cost_centers', fallback: 'No cost centers configured'),
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              )
+              : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: state.costCenters.length,
+                itemBuilder: (context, index) {
+                  final center = state.costCenters[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: _centerColor(
+                          center.centerType,
+                        ).withValues(alpha: 0.1),
+                        child: Icon(
+                          Icons.business,
+                          color: _centerColor(center.centerType),
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        center.nameEn,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${center.code} · ${center.centerType.toUpperCase()}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      trailing: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color:
+                              center.isActive ? Colors.green : Colors.grey[300],
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: state.costCenters.length,
-              itemBuilder: (context, index) {
-                final center = state.costCenters[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor:
-                          _centerColor(center.centerType).withValues(alpha: 0.1),
-                      child: Icon(
-                        Icons.business,
-                        color: _centerColor(center.centerType),
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(
-                      center.nameEn,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 14),
-                    ),
-                    subtitle: Text(
-                      '${center.code} · ${center.centerType.toUpperCase()}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[500],
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    trailing: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color:
-                            center.isActive ? Colors.green : Colors.grey[300],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
     );
   }
 }
@@ -802,14 +856,23 @@ class _AIInsightsTabState extends ConsumerState<_AIInsightsTab> {
           // Type selector
           Row(
             children: [
-              _insightBtn('cashflow',
-                  t('cashflow_forecast', fallback: 'Cash Flow'), Icons.trending_up),
+              _insightBtn(
+                'cashflow',
+                t('cashflow_forecast', fallback: 'Cash Flow'),
+                Icons.trending_up,
+              ),
               const SizedBox(width: 8),
-              _insightBtn('anomaly',
-                  t('anomaly_detection', fallback: 'Anomaly'), Icons.warning_amber),
+              _insightBtn(
+                'anomaly',
+                t('anomaly_detection', fallback: 'Anomaly'),
+                Icons.warning_amber,
+              ),
               const SizedBox(width: 8),
-              _insightBtn('risk',
-                  t('risk_assessment', fallback: 'Risk'), Icons.visibility),
+              _insightBtn(
+                'risk',
+                t('risk_assessment', fallback: 'Risk'),
+                Icons.visibility,
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -817,18 +880,20 @@ class _AIInsightsTabState extends ConsumerState<_AIInsightsTab> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: state.loading
-                  ? null
-                  : () => ref
-                      .read(accountingProvider.notifier)
-                      .runAIAnalysis(_type),
-              icon: state.loading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.psychology, size: 18),
+              onPressed:
+                  state.loading
+                      ? null
+                      : () => ref
+                          .read(accountingProvider.notifier)
+                          .runAIAnalysis(_type),
+              icon:
+                  state.loading
+                      ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(Icons.psychology, size: 18),
               label: Text(
                 state.loading
                     ? t('analyzing', fallback: 'Analyzing...')
@@ -842,7 +907,8 @@ class _AIInsightsTabState extends ConsumerState<_AIInsightsTab> {
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
@@ -851,7 +917,8 @@ class _AIInsightsTabState extends ConsumerState<_AIInsightsTab> {
           if (state.aiInsight != null) ...[
             Card(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -871,7 +938,9 @@ class _AIInsightsTabState extends ConsumerState<_AIInsightsTab> {
                         Text(
                           '${state.aiInsight!.dataPoints} data points',
                           style: TextStyle(
-                              color: Colors.grey[500], fontSize: 11),
+                            color: Colors.grey[500],
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
@@ -908,9 +977,11 @@ class _AIInsightsTabState extends ConsumerState<_AIInsightsTab> {
           ),
           child: Column(
             children: [
-              Icon(icon,
-                  size: 20,
-                  color: isActive ? Colors.white : Colors.grey[500]),
+              Icon(
+                icon,
+                size: 20,
+                color: isActive ? Colors.white : Colors.grey[500],
+              ),
               const SizedBox(height: 6),
               Text(
                 label,
@@ -955,15 +1026,23 @@ class _MetricChip extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(label,
-              style: TextStyle(
-                  color: color,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5)),
-          Text(value,
-              style: TextStyle(
-                  color: color, fontSize: 12, fontWeight: FontWeight.w900)),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );

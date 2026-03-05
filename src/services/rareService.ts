@@ -8,7 +8,7 @@ import { supabase } from './supabase';
 export async function askRARE(prompt: string, context?: Record<string, unknown>) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    const API_URL = import.meta.env.VITE_API_URL || '';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 
     if (!session?.access_token) {
       return 'Please log in to use the AI assistant.';

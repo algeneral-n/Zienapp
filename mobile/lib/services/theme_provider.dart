@@ -60,10 +60,10 @@ class ThemeNotifier extends StateNotifier<ZienThemeMode> {
 
 final themeNotifierProvider =
     StateNotifierProvider<ThemeNotifier, ZienThemeMode>((ref) {
-  final notifier = ThemeNotifier();
-  notifier.init();
-  return notifier;
-});
+      final notifier = ThemeNotifier();
+      notifier.init();
+      return notifier;
+    });
 
 /// Converts ZienThemeMode to Flutter's ThemeMode for MaterialApp.
 final flutterThemeModeProvider = Provider<ThemeMode>((ref) {

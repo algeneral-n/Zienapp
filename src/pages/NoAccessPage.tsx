@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Shown when a user is authenticated (Supabase session exists)
@@ -7,9 +8,9 @@ import React from 'react';
  * OnboardingWizard or invited by a tenant admin.
  */
 export default function NoAccessPage() {
+  const { t } = useTranslation();
+
   const handleSignOut = async () => {
-    const { createClient } = await import('@supabase/supabase-js');
-    // Use the same client instance
     const { supabase } = await import('../services/supabase');
     await supabase.auth.signOut();
     window.location.href = '/';
@@ -26,22 +27,21 @@ export default function NoAccessPage() {
         </div>
 
         <h1 className="text-2xl font-black uppercase tracking-tight text-zinc-900 dark:text-white">
-          No Organization Access
+          {t('no_org_access', 'No Organization Access')}
         </h1>
 
         <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
-          Your account is not linked to any organization on ZIEN.
-          Access is restricted to registered members only.
+          {t('no_org_access_desc', 'Your account is not linked to any organization on ZIEN. Access is restricted to registered members only.')}
         </p>
 
         <div className="bg-zinc-50 dark:bg-zinc-800 rounded-2xl p-4 text-left space-y-2">
           <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-            How to get access
+            {t('how_to_get_access', 'How to get access')}
           </p>
           <ul className="text-sm text-zinc-600 dark:text-zinc-300 space-y-1.5">
-            <li>-- Ask your company admin to send you an invitation</li>
-            <li>-- If you are a company founder, register through the onboarding wizard</li>
-            <li>-- Contact support at support@zien-ai.app</li>
+            <li>-- {t('ask_admin_invite', 'Ask your company admin to send you an invitation')}</li>
+            <li>-- {t('register_as_founder', 'If you are a company founder, register through the onboarding wizard')}</li>
+            <li>-- {t('contact_support_email', 'Contact support at support@zien-ai.app')}</li>
           </ul>
         </div>
 
@@ -50,13 +50,13 @@ export default function NoAccessPage() {
             onClick={() => window.location.href = '/register'}
             className="flex-1 px-5 py-3 bg-blue-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-blue-700 transition-colors"
           >
-            Register Company
+            {t('register_company', 'Register Company')}
           </button>
           <button
             onClick={handleSignOut}
             className="flex-1 px-5 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
           >
-            Sign Out
+            {t('sign_out', 'Sign Out')}
           </button>
         </div>
       </div>

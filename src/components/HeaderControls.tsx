@@ -6,7 +6,7 @@ import { Globe, Sun, Moon, Monitor, Leaf, Palette, Check } from 'lucide-react';
 
 export function HeaderControls() {
   const { i18n, t } = useTranslation();
-  const { theme, setTheme, variant, setVariant } = useTheme();
+  const { theme, setTheme, variant, setVariant, setLanguage } = useTheme();
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const themeRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +33,7 @@ export function HeaderControls() {
             {LANGUAGES.map((lang) => (
               <button
                 key={lang.code}
-                onClick={() => i18n.changeLanguage(lang.code)}
+                onClick={() => { i18n.changeLanguage(lang.code); setLanguage(lang.code as any); }}
                 className={`w-full text-left px-4 py-2 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between ${i18n.language === lang.code ? 'text-emerald-500 font-semibold' : ''}`}
               >
                 {lang.name}
@@ -58,27 +58,27 @@ export function HeaderControls() {
 
             {/* Theme Variants */}
             <div className="mb-4">
-              <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2">Theme Style</div>
+              <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2">{t('theme_style', 'Theme Style')}</div>
               <div className="space-y-1">
                 <button
                   onClick={() => setVariant('default')}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${variant === 'default' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
                 >
-                  <div className="flex items-center gap-2"><Palette size={16} /> Default</div>
+                  <div className="flex items-center gap-2"><Palette size={16} /> {t('theme_default', 'Default')}</div>
                   {variant === 'default' && <Check size={16} />}
                 </button>
                 <button
                   onClick={() => setVariant('glass')}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${variant === 'glass' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
                 >
-                  <div className="flex items-center gap-2"><Palette size={16} /> Glass</div>
+                  <div className="flex items-center gap-2"><Palette size={16} /> {t('theme_glass', 'Glass')}</div>
                   {variant === 'glass' && <Check size={16} />}
                 </button>
                 <button
                   onClick={() => setVariant('dark-green')}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${variant === 'dark-green' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 font-medium' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
                 >
-                  <div className="flex items-center gap-2"><Leaf size={16} /> Dark Green</div>
+                  <div className="flex items-center gap-2"><Leaf size={16} /> {t('theme_dark_green', 'Dark Green')}</div>
                   {variant === 'dark-green' && <Check size={16} />}
                 </button>
               </div>
@@ -88,26 +88,26 @@ export function HeaderControls() {
 
             {/* Appearance (Light/Dark) */}
             <div>
-              <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2">Appearance</div>
+              <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2">{t('appearance', 'Appearance')}</div>
               <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
                 <button
                   onClick={() => setTheme('light')}
                   className={`flex-1 flex justify-center p-2 rounded-md transition-all ${theme === 'light' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  title="Light"
+                  title={t('light', 'Light')}
                 >
                   <Sun size={16} />
                 </button>
                 <button
                   onClick={() => setTheme('dark')}
                   className={`flex-1 flex justify-center p-2 rounded-md transition-all ${theme === 'dark' ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-400'}`}
-                  title="Dark"
+                  title={t('dark', 'Dark')}
                 >
                   <Moon size={16} />
                 </button>
                 <button
                   onClick={() => setTheme('system')}
                   className={`flex-1 flex justify-center p-2 rounded-md transition-all ${theme === 'system' ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-400'}`}
-                  title="System"
+                  title={t('system', 'System')}
                 >
                   <Monitor size={16} />
                 </button>

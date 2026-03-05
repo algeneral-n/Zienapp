@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Briefcase, FileText, CreditCard, MessageSquare,
   Bell, LogOut, CheckCircle2, Clock, Download,
@@ -11,21 +12,28 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCompany } from '../contexts/CompanyContext';
 import { supabase } from '../services/supabase';
 
-const LoadingState = () => (
-  <div className="flex items-center justify-center py-12 text-zinc-400">
-    <Loader2 className="animate-spin mr-2" size={18} /> Loading…
-  </div>
-);
+const LoadingState = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center justify-center py-12 text-zinc-400">
+      <Loader2 className="animate-spin mr-2" size={18} /> {t('loading')}
+    </div>
+  );
+};
 
-const UnavailableState = ({ feature }: { feature: string }) => (
-  <div className="flex flex-col items-center justify-center py-16 text-zinc-400">
-    <Info size={32} className="mb-3 opacity-50" />
-    <p className="text-sm font-bold uppercase tracking-widest">{feature}</p>
-    <p className="text-xs mt-1">Coming soon</p>
-  </div>
-);
+const UnavailableState = ({ feature }: { feature: string }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-zinc-400">
+      <Info size={32} className="mb-3 opacity-50" />
+      <p className="text-sm font-bold uppercase tracking-widest">{feature}</p>
+      <p className="text-xs mt-1">{t('coming_soon')}</p>
+    </div>
+  );
+};
 
 const ClientOverview = () => {
+  const { t } = useTranslation();
   const { company } = useCompany();
   const [stats, setStats] = useState<any>(null);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -68,11 +76,11 @@ const ClientOverview = () => {
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-zinc-900 p-8 rounded-[32px] border border-zinc-200 dark:border-zinc-800">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Total Invoices</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">{t('total_invoices')}</p>
           <p className="text-3xl font-black">{stats?.totalInvoices ?? 0}</p>
         </div>
         <div className="bg-white dark:bg-zinc-900 p-8 rounded-[32px] border border-zinc-200 dark:border-zinc-800">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Pending Invoices</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">{t('pending_invoices')}</p>
           <p className="text-3xl font-black">{stats?.pendingCount ?? 0}</p>
           {(stats?.pendingAmount ?? 0) > 0 && (
             <p className="text-[10px] text-amber-500 font-bold mt-2 uppercase tracking-widest">
@@ -81,19 +89,19 @@ const ClientOverview = () => {
           )}
         </div>
         <div className="bg-white dark:bg-zinc-900 p-8 rounded-[32px] border border-zinc-200 dark:border-zinc-800">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Overdue</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">{t('overdue')}</p>
           <p className="text-3xl font-black">{stats?.overdueCount ?? 0}</p>
           {(stats?.overdueCount ?? 0) > 0 && (
-            <p className="text-[10px] text-red-500 font-bold mt-2 uppercase tracking-widest">Action required</p>
+            <p className="text-[10px] text-red-500 font-bold mt-2 uppercase tracking-widest">{t('action_required')}</p>
           )}
         </div>
       </div>
 
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-[40px] border border-zinc-200 dark:border-zinc-800">
-        <h3 className="font-black uppercase tracking-tight mb-8">Recent Invoices</h3>
+        <h3 className="font-black uppercase tracking-tight mb-8">{t('recent_invoices')}</h3>
         <div className="space-y-4">
           {invoices.length === 0 ? (
-            <p className="text-sm text-zinc-400 text-center py-4">No invoices found</p>
+            <p className="text-sm text-zinc-400 text-center py-4">{t('no_invoices_found')}</p>
           ) : invoices.slice(0, 5).map((inv: any) => (
             <div key={inv.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl group border border-transparent transition-all">
               <div className="flex items-center gap-4">
@@ -128,6 +136,7 @@ const ClientOverview = () => {
 
 // Placeholder sub-routes
 const QuotesPage = () => {
+  const { t } = useTranslation();
   const { company } = useCompany();
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,21 +158,21 @@ const QuotesPage = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-black uppercase tracking-tighter">Quotes</h2>
+      <h2 className="text-2xl font-black uppercase tracking-tighter">{t('quotes')}</h2>
       <div className="bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Quote</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Client</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Amount</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Status</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Date</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('quote')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('client')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('amount')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('status')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('date')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {quotes.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-zinc-400">No quotes yet</td></tr>
+              <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-zinc-400">{t('no_quotes')}</td></tr>
             ) : quotes.map((q: any) => (
               <tr key={q.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                 <td className="px-6 py-4 text-sm font-bold">{q.quote_number || `Q-${q.id.substring(0, 8)}`}</td>
@@ -171,9 +180,9 @@ const QuotesPage = () => {
                 <td className="px-6 py-4 text-sm font-bold">{q.total_amount?.toLocaleString() || '0'} {company?.currencyCode || 'AED'}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${q.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-500' :
-                      q.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
-                        q.status === 'sent' ? 'bg-blue-500/10 text-blue-500' :
-                          'bg-amber-500/10 text-amber-500'
+                    q.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                      q.status === 'sent' ? 'bg-blue-500/10 text-blue-500' :
+                        'bg-amber-500/10 text-amber-500'
                     }`}>{q.status || 'draft'}</span>
                 </td>
                 <td className="px-6 py-4 text-xs text-zinc-500">
@@ -189,6 +198,7 @@ const QuotesPage = () => {
 };
 
 const ContractsPage = () => {
+  const { t } = useTranslation();
   const { company } = useCompany();
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,22 +220,22 @@ const ContractsPage = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-black uppercase tracking-tighter">Contracts</h2>
+      <h2 className="text-2xl font-black uppercase tracking-tighter">{t('contracts')}</h2>
       <div className="bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Contract</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Client</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Value</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Status</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Start</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">End</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('contract')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('client')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('value')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('status')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('start')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('end')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {contracts.length === 0 ? (
-              <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-zinc-400">No contracts yet</td></tr>
+              <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-zinc-400">{t('no_contracts')}</td></tr>
             ) : contracts.map((c: any) => (
               <tr key={c.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                 <td className="px-6 py-4 text-sm font-bold">{c.contract_number || c.title || `C-${c.id.substring(0, 8)}`}</td>
@@ -233,9 +243,9 @@ const ContractsPage = () => {
                 <td className="px-6 py-4 text-sm font-bold">{c.total_value?.toLocaleString() || '0'} {company?.currencyCode || 'AED'}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${c.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' :
-                      c.status === 'expired' ? 'bg-red-500/10 text-red-500' :
-                        c.status === 'signed' ? 'bg-blue-500/10 text-blue-500' :
-                          'bg-amber-500/10 text-amber-500'
+                    c.status === 'expired' ? 'bg-red-500/10 text-red-500' :
+                      c.status === 'signed' ? 'bg-blue-500/10 text-blue-500' :
+                        'bg-amber-500/10 text-amber-500'
                     }`}>{c.status || 'draft'}</span>
                 </td>
                 <td className="px-6 py-4 text-xs text-zinc-500">
@@ -253,6 +263,7 @@ const ContractsPage = () => {
   );
 };
 const InvoicesPage = () => {
+  const { t } = useTranslation();
   const { company } = useCompany();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -274,20 +285,20 @@ const InvoicesPage = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-black uppercase tracking-tighter">Invoices</h2>
+      <h2 className="text-2xl font-black uppercase tracking-tighter">{t('invoices')}</h2>
       <div className="bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Invoice</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Amount</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Status</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Due Date</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('invoice')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('amount')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('status')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('due_date')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {invoices.length === 0 ? (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-zinc-400">No invoices</td></tr>
+              <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-zinc-400">{t('no_invoices')}</td></tr>
             ) : invoices.map((inv: any) => (
               <tr key={inv.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                 <td className="px-6 py-4 text-sm font-bold">{inv.invoice_number || `INV-${inv.id.substring(0, 8)}`}</td>
@@ -310,6 +321,7 @@ const InvoicesPage = () => {
   );
 };
 const SupportPage = () => {
+  const { t } = useTranslation();
   const { company } = useCompany();
   const { user } = useAuth();
   const [tickets, setTickets] = useState<any[]>([]);
@@ -358,27 +370,27 @@ const SupportPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black uppercase tracking-tighter">Support</h2>
+        <h2 className="text-2xl font-black uppercase tracking-tighter">{t('support')}</h2>
         <button onClick={() => setShowNew(!showNew)} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all">
-          {showNew ? 'Cancel' : 'New Ticket'}
+          {showNew ? t('cancel') : t('new_ticket')}
         </button>
       </div>
 
       {showNew && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
-          <input type="text" required placeholder="Subject" value={newTicket.subject} onChange={e => setNewTicket({ ...newTicket, subject: e.target.value })}
+          <input type="text" required placeholder={t('subject')} value={newTicket.subject} onChange={e => setNewTicket({ ...newTicket, subject: e.target.value })}
             className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium" />
-          <textarea rows={4} required placeholder="Describe your issue..." value={newTicket.message} onChange={e => setNewTicket({ ...newTicket, message: e.target.value })}
+          <textarea rows={4} required placeholder={t('describe_issue')} value={newTicket.message} onChange={e => setNewTicket({ ...newTicket, message: e.target.value })}
             className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium resize-none" />
           <div className="flex items-center gap-4">
             <select value={newTicket.priority} onChange={e => setNewTicket({ ...newTicket, priority: e.target.value })}
               className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium">
-              <option value="low">Low Priority</option>
-              <option value="medium">Medium Priority</option>
-              <option value="high">High Priority</option>
+              <option value="low">{t('low_priority')}</option>
+              <option value="medium">{t('medium_priority')}</option>
+              <option value="high">{t('high_priority')}</option>
             </select>
             <button type="submit" disabled={submitting} className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all disabled:opacity-50">
-              {submitting ? 'Submitting...' : 'Submit Ticket'}
+              {submitting ? t('submitting') : t('submit_ticket')}
             </button>
           </div>
         </form>
@@ -388,28 +400,28 @@ const SupportPage = () => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Subject</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Priority</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Status</th>
-              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Date</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('subject')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('priority')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('status')}</th>
+              <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('date')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {tickets.length === 0 ? (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-zinc-400">No support tickets</td></tr>
+              <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-zinc-400">{t('no_support_tickets')}</td></tr>
             ) : tickets.map((t: any) => (
               <tr key={t.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                 <td className="px-6 py-4 text-sm font-bold">{t.subject}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${t.priority === 'high' ? 'bg-red-500/10 text-red-500' :
-                      t.priority === 'low' ? 'bg-zinc-500/10 text-zinc-500' :
-                        'bg-amber-500/10 text-amber-500'
+                    t.priority === 'low' ? 'bg-zinc-500/10 text-zinc-500' :
+                      'bg-amber-500/10 text-amber-500'
                     }`}>{t.priority}</span>
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${t.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-500' :
-                      t.status === 'open' ? 'bg-blue-500/10 text-blue-500' :
-                        'bg-amber-500/10 text-amber-500'
+                    t.status === 'open' ? 'bg-blue-500/10 text-blue-500' :
+                      'bg-amber-500/10 text-amber-500'
                     }`}>{t.status}</span>
                 </td>
                 <td className="px-6 py-4 text-xs text-zinc-500">
@@ -425,6 +437,7 @@ const SupportPage = () => {
 };
 
 export default function ClientPortal() {
+  const { t } = useTranslation();
   const { user, profile, signOut } = useAuth();
   const { company, role } = useCompany();
   const displayName = profile?.fullName || profile?.displayName || user?.email?.split('@')[0] || 'Client';
@@ -436,15 +449,15 @@ export default function ClientPortal() {
         <div className="p-8">
           <Link to="/" className="flex items-center gap-2 mb-12">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl">Z</div>
-            <span className="text-xl font-black tracking-tighter uppercase">Client Portal</span>
+            <span className="text-xl font-black tracking-tighter uppercase">{t('client_portal')}</span>
           </Link>
           <nav className="space-y-2">
             {[
-              { icon: Briefcase, label: 'Overview', path: '' },
-              { icon: FileText, label: 'Quotes', path: 'quotes' },
-              { icon: FileText, label: 'Contracts', path: 'contracts' },
-              { icon: CreditCard, label: 'Invoices', path: 'invoices' },
-              { icon: MessageSquare, label: 'Support', path: 'support' },
+              { icon: Briefcase, label: t('overview'), path: '' },
+              { icon: FileText, label: t('quotes'), path: 'quotes' },
+              { icon: FileText, label: t('contracts'), path: 'contracts' },
+              { icon: CreditCard, label: t('invoices'), path: 'invoices' },
+              { icon: MessageSquare, label: t('support'), path: 'support' },
             ].map((item) => (
               <NavLink
                 key={item.label}
@@ -463,7 +476,7 @@ export default function ClientPortal() {
         </div>
         <div className="mt-auto p-8">
           <div className="bg-white/5 p-4 rounded-2xl border border-white/10 mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Connected to</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">{t('connected_to')}</p>
             <p className="text-xs font-bold truncate">{company?.name || 'No company'}</p>
           </div>
           <button
@@ -471,7 +484,7 @@ export default function ClientPortal() {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-red-500/10 hover:text-red-500 transition-all group"
           >
             <LogOut size={18} />
-            <span className="text-xs font-bold uppercase tracking-widest">Logout</span>
+            <span className="text-xs font-bold uppercase tracking-widest">{t('logout')}</span>
           </button>
         </div>
       </aside>

@@ -19,21 +19,22 @@ type MenuItem = {
   moduleCode: string; // key into MODULE_ACCESS
 };
 
-const menuItems: MenuItem[] = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', moduleCode: 'dashboard' },
-  { id: 'hr', icon: Users, label: 'HR Management', path: '/dashboard/hr', moduleCode: 'hr' },
-  { id: 'accounting', icon: BarChart3, label: 'Accounting', path: '/dashboard/accounting', moduleCode: 'accounting' },
-  { id: 'logistics', icon: Truck, label: 'Logistics', path: '/dashboard/logistics', moduleCode: 'logistics' },
-  { id: 'crm', icon: Briefcase, label: 'CRM', path: '/dashboard/crm', moduleCode: 'crm' },
-  { id: 'projects', icon: FolderKanban, label: 'Projects', path: '/dashboard/projects', moduleCode: 'projects' },
-  { id: 'store', icon: ShoppingBag, label: 'Store & POS', path: '/dashboard/store', moduleCode: 'store' },
-  { id: 'meetings', icon: MessageSquare, label: 'Meetings & Chat', path: '/dashboard/meetings', moduleCode: 'meetings' },
-  { id: 'rare', icon: BrainCircuit, label: 'RARE AI', path: '/dashboard/rare', moduleCode: 'rare' },
-  { id: 'integrations', icon: Plug, label: 'Integrations', path: '/dashboard/integrations', moduleCode: 'integrations' },
-  { id: 'portal-builder', icon: PanelLeft, label: 'Portal Builder', path: '/dashboard/portal-builder', moduleCode: 'portal_builder' },
-  { id: 'billing', icon: CreditCard, label: 'Billing', path: '/dashboard/billing', moduleCode: 'dashboard' },
-  { id: 'academy', icon: GraduationCap, label: 'Academy', path: '/dashboard/academy', moduleCode: 'academy' },
-  { id: 'help', icon: HelpCircle, label: 'Help Center', path: '/dashboard/help', moduleCode: 'help' },
+// Label keys resolved via t() at render time
+const menuItems: (Omit<MenuItem, 'label'> & { labelKey: string })[] = [
+  { id: 'dashboard', icon: LayoutDashboard, labelKey: 'nav_dashboard', path: '/dashboard', moduleCode: 'dashboard' },
+  { id: 'hr', icon: Users, labelKey: 'nav_hr', path: '/dashboard/hr', moduleCode: 'hr' },
+  { id: 'accounting', icon: BarChart3, labelKey: 'nav_accounting', path: '/dashboard/accounting', moduleCode: 'accounting' },
+  { id: 'logistics', icon: Truck, labelKey: 'nav_logistics', path: '/dashboard/logistics', moduleCode: 'logistics' },
+  { id: 'crm', icon: Briefcase, labelKey: 'nav_crm', path: '/dashboard/crm', moduleCode: 'crm' },
+  { id: 'projects', icon: FolderKanban, labelKey: 'nav_projects', path: '/dashboard/projects', moduleCode: 'projects' },
+  { id: 'store', icon: ShoppingBag, labelKey: 'nav_store', path: '/dashboard/store', moduleCode: 'store' },
+  { id: 'meetings', icon: MessageSquare, labelKey: 'nav_meetings', path: '/dashboard/meetings', moduleCode: 'meetings' },
+  { id: 'rare', icon: BrainCircuit, labelKey: 'nav_rare', path: '/dashboard/rare', moduleCode: 'rare' },
+  { id: 'integrations', icon: Plug, labelKey: 'nav_integrations', path: '/dashboard/integrations', moduleCode: 'integrations' },
+  { id: 'portal-builder', icon: PanelLeft, labelKey: 'nav_portal_builder', path: '/dashboard/portal-builder', moduleCode: 'portal_builder' },
+  { id: 'billing', icon: CreditCard, labelKey: 'nav_billing', path: '/dashboard/billing', moduleCode: 'dashboard' },
+  { id: 'academy', icon: GraduationCap, labelKey: 'nav_academy', path: '/dashboard/academy', moduleCode: 'academy' },
+  { id: 'help', icon: HelpCircle, labelKey: 'nav_help', path: '/dashboard/help', moduleCode: 'help' },
 ];
 
 export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCollapsed: (c: boolean) => void }) {
@@ -45,7 +46,7 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
   const visibleItems = menuItems.filter(item => {
     const mod = MODULE_ACCESS[item.moduleCode];
     return mod ? userLevel >= mod.read : false;
-  });
+  }).map(item => ({ ...item, label: t(item.labelKey) }));
 
   return (
     <motion.aside
@@ -95,7 +96,7 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
       <div className="p-4 border-t border-[var(--border-soft)]">
         <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-secondary)] hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-all group">
           <LogOut size={20} className={collapsed ? 'mx-auto' : ''} />
-          {!collapsed && <span className="text-sm font-bold uppercase tracking-tight">Logout</span>}
+          {!collapsed && <span className="text-sm font-bold uppercase tracking-tight">{t('logout')}</span>}
         </button>
       </div>
     </motion.aside>

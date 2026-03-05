@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../components/ThemeProvider';
 import { useCompany } from '../contexts/CompanyContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +32,7 @@ interface ChatMsg {
 
 export default function EmployeePortal() {
   const { language, mode, t: translate } = useTheme();
+  const { t } = useTranslation();
   const { company, role, membership } = useCompany();
   const { profile, user } = useAuth();
   const companyId = company?.id;
@@ -215,10 +217,10 @@ export default function EmployeePortal() {
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: 'Working Hours', value: `${dashStats.hours}h`, icon: Clock, color: 'text-blue-600', sub: 'This month' },
-                { label: 'Leaves Balance', value: `${dashStats.leaveBalance} Days`, icon: Calendar, color: 'text-orange-600', sub: 'Remaining this year' },
-                { label: 'Next Payout', value: `AED ${dashStats.nextPayout.toLocaleString()}`, icon: Wallet, color: 'text-green-600', sub: 'Latest payroll' },
-                { label: 'Active Tasks', value: String(dashStats.activeTasks), icon: CheckCircle2, color: 'text-purple-600', sub: 'Open projects' },
+                { label: t('working_hours'), value: `${dashStats.hours}h`, icon: Clock, color: 'text-blue-600', sub: t('this_month') },
+                { label: t('leaves_balance'), value: `${dashStats.leaveBalance} ${t('days')}`, icon: Calendar, color: 'text-orange-600', sub: t('remaining_this_year') },
+                { label: t('next_payout'), value: `AED ${dashStats.nextPayout.toLocaleString()}`, icon: Wallet, color: 'text-green-600', sub: t('latest_payroll') },
+                { label: t('active_tasks'), value: String(dashStats.activeTasks), icon: CheckCircle2, color: 'text-purple-600', sub: t('open_projects') },
               ].map((stat, i) => (
                 <div key={i} className="glass-card p-6">
                   <div className="flex items-center gap-3 mb-4 font-bold text-sm opacity-80">
@@ -235,11 +237,11 @@ export default function EmployeePortal() {
               <div className="lg:col-span-2 space-y-8">
                 <div className="glass-card p-8">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold">Active Projects</h2>
+                    <h2 className="text-xl font-bold">{t('active_projects')}</h2>
                   </div>
                   <div className="space-y-4">
                     {tasks.length === 0 ? (
-                      <p className="text-sm text-[var(--text-secondary)]">No active projects yet.</p>
+                      <p className="text-sm text-[var(--text-secondary)]">{t('no_active_projects')}</p>
                     ) : tasks.map((task, i) => (
                       <div key={i} className="flex items-center justify-between p-4 bg-black/5 rounded-xl border border-[var(--border-soft)]">
                         <div>
@@ -261,15 +263,15 @@ export default function EmployeePortal() {
 
               <div className="space-y-8">
                 <div className="glass-card p-8 bg-blue-600 text-white border-0 relative overflow-hidden">
-                  <h2 className="text-xl font-bold mb-4 relative z-10">RARE AI Assistant</h2>
+                  <h2 className="text-xl font-bold mb-4 relative z-10">{t('rare_ai_assistant')}</h2>
                   <p className="text-sm opacity-80 mb-6 relative z-10">
-                    Ask RARE about your tasks, schedule, or any work-related question.
+                    {t('rare_ai_desc')}
                   </p>
                   <button
                     onClick={() => setIsRareOpen(true)}
                     className="w-full bg-white text-blue-600 py-3 rounded-xl font-bold hover:bg-blue-50 transition-all relative z-10 flex items-center justify-center gap-2"
                   >
-                    <Bot className="w-5 h-5" /> Chat with RARE
+                    <Bot className="w-5 h-5" /> {t('chat_with_rare')}
                   </button>
                 </div>
               </div>
@@ -281,27 +283,27 @@ export default function EmployeePortal() {
         return (
           <div className="space-y-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Accounting & Finance</h2>
+              <h2 className="text-2xl font-bold">{t('accounting_finance')}</h2>
               <div className="flex gap-3">
                 <button className="glass-card px-4 py-2 flex items-center gap-2 text-sm font-bold">
-                  <Download className="w-4 h-4" /> Export
+                  <Download className="w-4 h-4" /> {t('export')}
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="glass-card p-6 bg-gradient-to-br from-blue-600/5 to-cyan-600/5 border-blue-500/20">
-                <div className="text-sm font-bold text-blue-600 mb-2 uppercase tracking-wider">Total Revenue</div>
+                <div className="text-sm font-bold text-blue-600 mb-2 uppercase tracking-wider">{t('total_revenue')}</div>
                 <div className="text-3xl font-bold">AED {accSummary.revenue.toLocaleString()}</div>
-                <div className="text-xs text-[var(--text-secondary)] font-bold mt-2">From paid invoices</div>
+                <div className="text-xs text-[var(--text-secondary)] font-bold mt-2">{t('from_paid_invoices')}</div>
               </div>
               <div className="glass-card p-6">
-                <div className="text-sm font-bold text-red-600 mb-2 uppercase tracking-wider">Total Payments</div>
+                <div className="text-sm font-bold text-red-600 mb-2 uppercase tracking-wider">{t('total_payments')}</div>
                 <div className="text-3xl font-bold">AED {accSummary.expenses.toLocaleString()}</div>
-                <div className="text-xs text-[var(--text-secondary)] font-bold mt-2">All recorded payments</div>
+                <div className="text-xs text-[var(--text-secondary)] font-bold mt-2">{t('all_recorded_payments')}</div>
               </div>
               <div className="glass-card p-6">
-                <div className="text-sm font-bold text-green-600 mb-2 uppercase tracking-wider">Estimated Tax</div>
+                <div className="text-sm font-bold text-green-600 mb-2 uppercase tracking-wider">{t('estimated_tax')}</div>
                 <div className="text-3xl font-bold">AED {accSummary.taxDue.toLocaleString()}</div>
                 <div className="text-xs text-[var(--text-secondary)] font-bold mt-2">{taxRates.length} active tax rule{taxRates.length !== 1 ? 's' : ''}</div>
               </div>
@@ -309,26 +311,26 @@ export default function EmployeePortal() {
 
             <div className="glass-card overflow-hidden">
               <div className="p-6 border-b border-[var(--border-soft)] flex items-center justify-between">
-                <h3 className="font-bold">Recent Invoices</h3>
+                <h3 className="font-bold">{t('recent_invoices')}</h3>
                 <div className="flex gap-2">
                   <div className="relative">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="text" value={invoiceSearch} onChange={e => setInvoiceSearch(e.target.value)} placeholder="Search invoices..." className="bg-black/5 border border-[var(--border-soft)] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:ring-1 focus:ring-blue-500" />
+                    <input type="text" value={invoiceSearch} onChange={e => setInvoiceSearch(e.target.value)} placeholder={t('search_invoices')} className="bg-black/5 border border-[var(--border-soft)] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:ring-1 focus:ring-blue-500" />
                   </div>
                 </div>
               </div>
               <table className="w-full text-left text-sm">
                 <thead className="bg-black/5 text-[var(--text-muted)] font-bold uppercase text-[10px] tracking-widest">
                   <tr>
-                    <th className="px-6 py-4">Invoice #</th>
-                    <th className="px-6 py-4">Amount</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">{t('invoice_num')}</th>
+                    <th className="px-6 py-4">{t('amount')}</th>
+                    <th className="px-6 py-4">{t('status')}</th>
+                    <th className="px-6 py-4">{t('date')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-soft)]">
                   {invoices.length === 0 ? (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-[var(--text-secondary)]">No invoices found.</td></tr>
+                    <tr><td colSpan={4} className="px-6 py-8 text-center text-[var(--text-secondary)]">{t('no_invoices_found')}</td></tr>
                   ) : invoices.filter(inv => !invoiceSearch || inv.invoice_number?.toLowerCase().includes(invoiceSearch.toLowerCase())).map((inv, i) => (
                     <tr key={i} className="hover:bg-black/5 transition-colors">
                       <td className="px-6 py-4 font-bold text-blue-600">{inv.invoice_number}</td>
@@ -353,31 +355,31 @@ export default function EmployeePortal() {
         return (
           <div className="space-y-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">HR & People Operations</h2>
+              <h2 className="text-2xl font-bold">{t('hr_people_ops')}</h2>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-3 space-y-8">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="glass-card p-6">
-                    <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Total Employees</div>
+                    <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">{t('total_employees')}</div>
                     <div className="text-2xl font-bold">{hrStats.total}</div>
                   </div>
                   <div className="glass-card p-6">
-                    <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Attendance Today</div>
+                    <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">{t('attendance_today')}</div>
                     <div className="text-2xl font-bold">{hrStats.attendanceRate}%</div>
                   </div>
                   <div className="glass-card p-6">
-                    <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Pending Leave Requests</div>
+                    <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">{t('pending_leave_requests')}</div>
                     <div className="text-2xl font-bold">{hrStats.pendingLeaves}</div>
                   </div>
                 </div>
 
                 <div className="glass-card p-8">
-                  <h3 className="font-bold mb-6">Employee Directory</h3>
+                  <h3 className="font-bold mb-6">{t('employee_directory')}</h3>
                   <div className="space-y-4">
                     {employees.length === 0 ? (
-                      <p className="text-sm text-[var(--text-secondary)]">No employees registered yet.</p>
+                      <p className="text-sm text-[var(--text-secondary)]">{t('no_employees')}</p>
                     ) : employees.map((emp, i) => (
                       <div key={i} className="flex items-center justify-between p-4 bg-black/5 rounded-xl border border-[var(--border-soft)]">
                         <div className="flex items-center gap-4">
@@ -385,7 +387,7 @@ export default function EmployeePortal() {
                             {(emp.employee_code || 'E')[0].toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-bold text-sm">{emp.job_title || 'Employee'}</div>
+                            <div className="font-bold text-sm">{emp.job_title || t('employee')}</div>
                             <div className="text-xs text-[var(--text-secondary)]">Code: {emp.employee_code || '-'}</div>
                           </div>
                         </div>
@@ -402,11 +404,11 @@ export default function EmployeePortal() {
               <div className="space-y-6">
                 <div className="glass-card p-6">
                   <h3 className="font-bold mb-4 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600" /> Document Vault
+                    <FileText className="w-4 h-4 text-blue-600" /> {t('document_vault')}
                   </h3>
                   <div className="space-y-3">
                     {documents.length === 0 ? (
-                      <p className="text-xs text-[var(--text-secondary)]">No documents uploaded.</p>
+                      <p className="text-xs text-[var(--text-secondary)]">{t('no_documents')}</p>
                     ) : documents.map((doc, i) => (
                       <div key={i} className="flex items-center justify-between p-3 bg-black/5 rounded-lg text-xs hover:bg-black/10 transition-all cursor-pointer">
                         <span className="truncate">{doc.title}</span>
@@ -427,35 +429,35 @@ export default function EmployeePortal() {
         return (
           <div className="space-y-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Logistics & Fleet</h2>
+              <h2 className="text-2xl font-bold">{t('logistics_fleet')}</h2>
             </div>
 
             {vehicles.length === 0 && logTasks.length === 0 ? (
               <div className="glass-card p-12 text-center">
                 <Truck className="w-12 h-12 mx-auto mb-4 text-[var(--text-muted)]" />
-                <h3 className="font-bold text-lg mb-2">Fleet Not Configured</h3>
-                <p className="text-sm text-[var(--text-secondary)]">No vehicles or logistics tasks have been set up for this company yet.</p>
+                <h3 className="font-bold text-lg mb-2">{t('fleet_not_configured')}</h3>
+                <p className="text-sm text-[var(--text-secondary)]">{t('fleet_not_configured_desc')}</p>
               </div>
             ) : (
               <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="glass-card p-6">
-                      <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Total Vehicles</div>
+                      <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">{t('total_vehicles')}</div>
                       <div className="text-2xl font-bold">{vehicles.length}</div>
                     </div>
                     <div className="glass-card p-6">
-                      <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Available</div>
+                      <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">{t('available')}</div>
                       <div className="text-2xl font-bold text-green-600">{vehicles.filter((v: any) => v.status === 'available').length}</div>
                     </div>
                     <div className="glass-card p-6">
-                      <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">Active Tasks</div>
+                      <div className="text-xs font-bold text-[var(--text-muted)] uppercase mb-2">{t('active_tasks')}</div>
                       <div className="text-2xl font-bold text-blue-600">{logTasks.filter((t: any) => t.status === 'in_transit').length}</div>
                     </div>
                   </div>
 
                   <div className="glass-card p-6">
-                    <h3 className="font-bold mb-4">Vehicles</h3>
+                    <h3 className="font-bold mb-4">{t('vehicles')}</h3>
                     <div className="space-y-3">
                       {vehicles.map((v: any, i: number) => (
                         <div key={i} className="flex items-center justify-between p-4 bg-black/5 rounded-xl border border-[var(--border-soft)]">
@@ -477,10 +479,10 @@ export default function EmployeePortal() {
 
                 <div className="space-y-6">
                   <div className="glass-card p-6">
-                    <h3 className="font-bold mb-4">Recent Tasks</h3>
+                    <h3 className="font-bold mb-4">{t('recent_tasks')}</h3>
                     <div className="space-y-3">
                       {logTasks.length === 0 ? (
-                        <p className="text-xs text-[var(--text-secondary)]">No logistics tasks.</p>
+                        <p className="text-xs text-[var(--text-secondary)]">{t('no_logistics_tasks')}</p>
                       ) : logTasks.slice(0, 8).map((t: any, i: number) => (
                         <div key={i} className="flex items-center justify-between p-3 bg-black/5 rounded-lg border border-[var(--border-soft)]">
                           <div>
@@ -509,10 +511,10 @@ export default function EmployeePortal() {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">C</div>
                   <div>
-                    <div className="font-bold text-sm">Company Chat</div>
+                    <div className="font-bold text-sm">{t('company_chat')}</div>
                     <div className="text-[10px] text-green-500 flex items-center gap-1">
                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                      Live
+                      {t('live')}
                     </div>
                   </div>
                 </div>
@@ -522,7 +524,7 @@ export default function EmployeePortal() {
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                     <MessageSquare className="w-12 h-12 mb-2" />
-                    <p className="text-xs font-medium">No messages yet. Start the conversation.</p>
+                    <p className="text-xs font-medium">{t('no_messages_yet')}</p>
                   </div>
                 ) : messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.sender_id === membership?.id ? 'justify-end' : 'justify-start'}`}>
@@ -547,7 +549,7 @@ export default function EmployeePortal() {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    placeholder="Type a message..."
+                    placeholder={t('type_message')}
                     className="flex-1 bg-black/5 border border-[var(--border-soft)] p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                   <button
@@ -580,18 +582,18 @@ export default function EmployeePortal() {
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          {isSidebarOpen && <span className="text-xl font-bold tracking-tight hidden lg:block">ZIEN Portal</span>}
+          {isSidebarOpen && <span className="text-xl font-bold tracking-tight hidden lg:block">{t('zien_portal')}</span>}
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'accounting', label: 'Accounting', icon: BarChart3 },
-            { id: 'hr', label: 'HR & People', icon: Users },
-            { id: 'payroll', label: 'Payroll', icon: Wallet },
-            { id: 'sales', label: 'Sales & CRM', icon: TrendingUp },
-            { id: 'logistics', label: 'Logistics', icon: Truck },
-            { id: 'chat', label: 'Messages', icon: MessageSquare },
+            { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard },
+            { id: 'accounting', label: t('accounting'), icon: BarChart3 },
+            { id: 'hr', label: t('hr_people'), icon: Users },
+            { id: 'payroll', label: t('payroll'), icon: Wallet },
+            { id: 'sales', label: t('sales_crm'), icon: TrendingUp },
+            { id: 'logistics', label: t('logistics'), icon: Truck },
+            { id: 'chat', label: t('messages'), icon: MessageSquare },
           ].map((item) => (
             <button
               key={item.id}
@@ -610,7 +612,7 @@ export default function EmployeePortal() {
         <div className="p-4 border-t border-[var(--border-soft)]">
           <button className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-red-50 text-red-600 transition-all">
             <LogOut className="w-6 h-6 shrink-0" />
-            {isSidebarOpen && <span className="font-bold text-sm hidden lg:block">Logout</span>}
+            {isSidebarOpen && <span className="font-bold text-sm hidden lg:block">{t('logout')}</span>}
           </button>
         </div>
       </aside>
@@ -656,12 +658,12 @@ export default function EmployeePortal() {
                 }`}
             >
               <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">{isClockedIn ? 'Clock Out' : 'Clock In'}</span>
+              <span className="hidden sm:inline">{isClockedIn ? t('clock_out') : t('clock_in')}</span>
             </button>
 
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <div className="text-xs font-bold">{profile?.fullName || user?.name || 'Employee'}</div>
+                <div className="text-xs font-bold">{profile?.fullName || user?.name || t('employee')}</div>
                 <div className="text-[10px] text-blue-600 font-bold uppercase tracking-widest">{role || 'employee'}</div>
               </div>
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg" />
@@ -696,8 +698,8 @@ export default function EmployeePortal() {
                 <div className="flex items-center gap-3">
                   <BrainCircuit className="w-6 h-6" />
                   <div>
-                    <div className="font-bold text-sm">RARE AI Assistant</div>
-                    <div className="text-[10px] opacity-80 uppercase tracking-widest">Tenant Isolated • Role Aware</div>
+                    <div className="font-bold text-sm">{t('rare_ai_assistant')}</div>
+                    <div className="text-[10px] opacity-80 uppercase tracking-widest">{t('tenant_isolated_role_aware')}</div>
                   </div>
                 </div>
                 <button onClick={() => setIsRareOpen(false)} className="p-1 hover:bg-white/10 rounded-lg">
@@ -715,12 +717,12 @@ export default function EmployeePortal() {
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                     <Bot className="w-12 h-12 mb-2" />
-                    <p className="text-xs font-medium">How can I assist you with {activeTab} today?</p>
+                    <p className="text-xs font-medium">{t('rare_assist_prompt', { tab: activeTab })}</p>
                   </div>
                 )}
                 {isRareLoading && (
                   <div className="flex items-center gap-2 text-blue-600 text-xs font-bold animate-pulse">
-                    <Sparkles className="w-4 h-4" /> RARE is thinking...
+                    <Sparkles className="w-4 h-4" /> {t('rare_thinking')}
                   </div>
                 )}
               </div>
@@ -732,7 +734,7 @@ export default function EmployeePortal() {
                     value={rareQuery}
                     onChange={(e) => setRareQuery(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleRareAsk()}
-                    placeholder="Ask RARE anything..."
+                    placeholder={t('ask_rare_anything')}
                     className="flex-1 bg-black/5 border border-[var(--border-soft)] p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                   <button

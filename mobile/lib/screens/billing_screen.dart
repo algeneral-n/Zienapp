@@ -76,32 +76,31 @@ class _BillingScreenState extends ConsumerState<BillingScreen>
             ],
           ),
         ),
-        body: billing.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : billing.error != null
+        body:
+            billing.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : billing.error != null
                 ? _ErrorView(
-                    error: billing.error!,
-                    onRetry: () =>
-                        ref.read(billingProvider.notifier).loadAll(),
-                  )
+                  error: billing.error!,
+                  onRetry: () => ref.read(billingProvider.notifier).loadAll(),
+                )
                 : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _OverviewTab(
-                        billing: billing,
-                        t: t,
-                        onManagePortal: _handleManagePortal,
-                      ),
-                      _PlansTab(
-                        billing: billing,
-                        t: t,
-                        interval: _interval,
-                        onIntervalChanged: (v) =>
-                            setState(() => _interval = v),
-                        onSelectPlan: _handleSelectPlan,
-                      ),
-                    ],
-                  ),
+                  controller: _tabController,
+                  children: [
+                    _OverviewTab(
+                      billing: billing,
+                      t: t,
+                      onManagePortal: _handleManagePortal,
+                    ),
+                    _PlansTab(
+                      billing: billing,
+                      t: t,
+                      interval: _interval,
+                      onIntervalChanged: (v) => setState(() => _interval = v),
+                      onSelectPlan: _handleSelectPlan,
+                    ),
+                  ],
+                ),
       ),
     );
   }
@@ -120,16 +119,13 @@ class _BillingScreenState extends ConsumerState<BillingScreen>
   Future<void> _handleSelectPlan(BillingPlan plan) async {
     final url = await ref
         .read(billingProvider.notifier)
-        .createCheckoutSession(
-          planCode: plan.code,
-          billingInterval: _interval,
-        );
+        .createCheckoutSession(planCode: plan.code, billingInterval: _interval);
     if (url != null) {
       await _openUrl(url);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not start checkout')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not start checkout')));
     }
   }
 }
@@ -161,8 +157,11 @@ class _OverviewTab extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.workspace_premium,
-                  size: 64, color: theme.colorScheme.primary),
+              Icon(
+                Icons.workspace_premium,
+                size: 64,
+                color: theme.colorScheme.primary,
+              ),
               const SizedBox(height: 16),
               Text(
                 t('subscription_plan'),
@@ -260,8 +259,11 @@ class _OverviewTab extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber,
-                      color: Colors.amber.shade700, size: 24),
+                  Icon(
+                    Icons.warning_amber,
+                    color: Colors.amber.shade700,
+                    size: 24,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -354,8 +356,10 @@ class _CurrentPlanCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -385,16 +389,18 @@ class _CurrentPlanCard extends StatelessWidget {
             children: [
               _PlanStat(
                 label: t('amount_due'),
-                value: plan != null
-                    ? '${plan!.currency} ${sub.billingInterval == 'yearly' ? plan!.priceYearly : plan!.priceMonthly}'
-                    : '—',
+                value:
+                    plan != null
+                        ? '${plan!.currency} ${sub.billingInterval == 'yearly' ? plan!.priceYearly : plan!.priceMonthly}'
+                        : '—',
               ),
               const SizedBox(width: 24),
               _PlanStat(
                 label: t('next_billing_date'),
-                value: sub.currentPeriodEnd != null
-                    ? sub.currentPeriodEnd!.substring(0, 10)
-                    : '—',
+                value:
+                    sub.currentPeriodEnd != null
+                        ? sub.currentPeriodEnd!.substring(0, 10)
+                        : '—',
               ),
             ],
           ),
@@ -467,8 +473,9 @@ class _ActionCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border:
-                Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: theme.dividerColor.withValues(alpha: 0.3),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,8 +494,7 @@ class _ActionCard extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   fontSize: 10,
-                  color:
-                      theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -559,8 +565,9 @@ class _UsageCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: pct,
-              backgroundColor:
-                  theme.colorScheme.onSurface.withValues(alpha: 0.08),
+              backgroundColor: theme.colorScheme.onSurface.withValues(
+                alpha: 0.08,
+              ),
               valueColor: AlwaysStoppedAnimation<Color>(barColor),
               minHeight: 6,
             ),
@@ -610,25 +617,25 @@ class _PlansTab extends StatelessWidget {
 
         // Plans Grid
         ...billing.plans.map((plan) {
-          final isCurrent =
-              plan.code == billing.subscription?.planCode;
-          final price = interval == 'yearly'
-              ? plan.priceYearly
-              : plan.priceMonthly;
+          final isCurrent = plan.code == billing.subscription?.planCode;
+          final price =
+              interval == 'yearly' ? plan.priceYearly : plan.priceMonthly;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isCurrent
-                    ? theme.colorScheme.primary
-                    : theme.dividerColor.withValues(alpha: 0.3),
+                color:
+                    isCurrent
+                        ? theme.colorScheme.primary
+                        : theme.dividerColor.withValues(alpha: 0.3),
                 width: isCurrent ? 2 : 1,
               ),
-              color: isCurrent
-                  ? theme.colorScheme.primary.withValues(alpha: 0.05)
-                  : theme.colorScheme.surface,
+              color:
+                  isCurrent
+                      ? theme.colorScheme.primary.withValues(alpha: 0.05)
+                      : theme.colorScheme.surface,
             ),
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -637,7 +644,9 @@ class _PlansTab extends StatelessWidget {
                 if (isCurrent)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 3),
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary,
                       borderRadius: BorderRadius.circular(8),
@@ -677,8 +686,9 @@ class _PlansTab extends StatelessWidget {
                         text: interval == 'yearly' ? ' /yr' : ' /mo',
                         style: TextStyle(
                           fontSize: 14,
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                     ],
@@ -687,16 +697,17 @@ class _PlansTab extends StatelessWidget {
                 const SizedBox(height: 12),
                 _PlanFeature(Icons.people, 'Up to ${plan.maxUsers} users'),
                 _PlanFeature(
-                    Icons.bolt, '${plan.maxUsagePerService} AI queries/mo'),
-                ...plan.features.take(4).map(
-                      (f) => _PlanFeature(Icons.check_circle, f),
-                    ),
+                  Icons.bolt,
+                  '${plan.maxUsagePerService} AI queries/mo',
+                ),
+                ...plan.features
+                    .take(4)
+                    .map((f) => _PlanFeature(Icons.check_circle, f)),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed:
-                        isCurrent ? null : () => onSelectPlan(plan),
+                    onPressed: isCurrent ? null : () => onSelectPlan(plan),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -742,10 +753,9 @@ class _PlanFeature extends StatelessWidget {
               text,
               style: TextStyle(
                 fontSize: 13,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.7),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -770,8 +780,11 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
-                size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 16),
             Text(error, textAlign: TextAlign.center),
             const SizedBox(height: 16),

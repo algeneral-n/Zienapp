@@ -38,20 +38,21 @@ class BillingPlan {
   });
 
   factory BillingPlan.fromJson(Map<String, dynamic> json) => BillingPlan(
-        id: json['id']?.toString() ?? '',
-        code: json['code']?.toString() ?? '',
-        nameAr: json['name_ar']?.toString() ?? json['code']?.toString() ?? '',
-        nameEn: json['name_en']?.toString() ?? json['code']?.toString() ?? '',
-        priceMonthly: (json['price_monthly'] as num?)?.toDouble() ?? 0,
-        priceYearly: (json['price_yearly'] as num?)?.toDouble() ?? 0,
-        currency: json['currency']?.toString() ?? 'SAR',
-        maxUsers: (json['max_users'] as num?)?.toInt() ?? 0,
-        maxUsagePerService: (json['max_usage_per_service'] as num?)?.toInt() ?? 0,
-        features: (json['features'] is List)
+    id: json['id']?.toString() ?? '',
+    code: json['code']?.toString() ?? '',
+    nameAr: json['name_ar']?.toString() ?? json['code']?.toString() ?? '',
+    nameEn: json['name_en']?.toString() ?? json['code']?.toString() ?? '',
+    priceMonthly: (json['price_monthly'] as num?)?.toDouble() ?? 0,
+    priceYearly: (json['price_yearly'] as num?)?.toDouble() ?? 0,
+    currency: json['currency']?.toString() ?? 'SAR',
+    maxUsers: (json['max_users'] as num?)?.toInt() ?? 0,
+    maxUsagePerService: (json['max_usage_per_service'] as num?)?.toInt() ?? 0,
+    features:
+        (json['features'] is List)
             ? (json['features'] as List).map((e) => e.toString()).toList()
             : [],
-        isActive: json['is_active'] == true,
-      );
+    isActive: json['is_active'] == true,
+  );
 }
 
 class BillingSubscription {
@@ -202,9 +203,10 @@ class BillingNotifier extends StateNotifier<BillingState> {
       BillingUsage? usage;
 
       if (plansRes.isSuccess && plansRes.data?['plans'] is List) {
-        plans = (plansRes.data!['plans'] as List)
-            .map((e) => BillingPlan.fromJson(e as Map<String, dynamic>))
-            .toList();
+        plans =
+            (plansRes.data!['plans'] as List)
+                .map((e) => BillingPlan.fromJson(e as Map<String, dynamic>))
+                .toList();
       }
 
       if (subRes.isSuccess && subRes.data?['subscription'] != null) {
@@ -242,11 +244,14 @@ class BillingNotifier extends StateNotifier<BillingState> {
     final companyId = ref.read(companyProvider).activeCompany?.id;
     if (companyId == null) return null;
 
-    final res = await _api.post('/api/billing/create-checkout-session', body: {
-      'companyId': companyId,
-      'planCode': planCode,
-      'billingInterval': billingInterval,
-    });
+    final res = await _api.post(
+      '/api/billing/create-checkout-session',
+      body: {
+        'companyId': companyId,
+        'planCode': planCode,
+        'billingInterval': billingInterval,
+      },
+    );
 
     if (res.isSuccess && res.data?['url'] != null) {
       return res.data!['url'] as String;
@@ -259,9 +264,10 @@ class BillingNotifier extends StateNotifier<BillingState> {
     final companyId = ref.read(companyProvider).activeCompany?.id;
     if (companyId == null) return null;
 
-    final res = await _api.post('/api/billing/create-portal-session', body: {
-      'companyId': companyId,
-    });
+    final res = await _api.post(
+      '/api/billing/create-portal-session',
+      body: {'companyId': companyId},
+    );
 
     if (res.isSuccess && res.data?['url'] != null) {
       return res.data!['url'] as String;
@@ -272,7 +278,8 @@ class BillingNotifier extends StateNotifier<BillingState> {
 
 // ─── Riverpod Providers ──────────────────────────────────────────────────
 
-final billingProvider =
-    StateNotifierProvider<BillingNotifier, BillingState>((ref) {
+final billingProvider = StateNotifierProvider<BillingNotifier, BillingState>((
+  ref,
+) {
   return BillingNotifier(ref);
 });

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { HeaderControls } from '../components/HeaderControls';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,10 +29,11 @@ const BillingModule = React.lazy(() => import('./modules/BillingModule'));
 
 export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(false);
+  const { t } = useTranslation();
   const { user, profile } = useAuth();
   const { company: activeCompany, role } = useCompany();
 
-  const displayName = profile?.full_name || profile?.display_name || user?.email?.split('@')[0] || 'User';
+  const displayName = profile?.full_name || profile?.display_name || user?.email?.split('@')[0] || t('user', 'User');
   const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
   const roleName = (role || 'member').replace(/_/g, ' ');
 
@@ -47,7 +49,7 @@ export default function Dashboard() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
               <input
                 type="text"
-                placeholder="Search everything..."
+                placeholder={t('search_everything', 'Search everything...')}
                 className="w-full bg-zinc-100 dark:bg-zinc-900 border-none rounded-2xl py-2.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-600 transition-all text-sm font-medium"
               />
             </div>
@@ -72,7 +74,7 @@ export default function Dashboard() {
 
         {/* Content Area */}
         <div className="p-8">
-          <React.Suspense fallback={<div className="flex items-center justify-center h-64">Loading Module...</div>}>
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64">{t('loading_module', 'Loading Module...')}</div>}>
             <Routes>
               <Route path="/" element={<Overview />} />
               <Route path="/hr/*" element={<HRModule />} />

@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useCompany } from '../../contexts/CompanyContext';
 import { supabase } from '../../services/supabase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 const Spinner = () => <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>;
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <div className={`bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-200 dark:border-zinc-800 ${className}`}>{children}</div>

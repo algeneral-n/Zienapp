@@ -4,7 +4,7 @@
 
 import { supabase } from './supabase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
     const { data: { session } } = await supabase.auth.getSession();

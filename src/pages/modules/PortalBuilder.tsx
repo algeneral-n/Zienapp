@@ -13,7 +13,7 @@ import { useCompany } from '../../contexts/CompanyContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabase';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -530,8 +530,8 @@ export default function PortalBuilder() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${activeTab === tab.id
-                                    ? 'bg-white dark:bg-zinc-700 shadow text-blue-600'
-                                    : 'text-zinc-500 hover:text-zinc-700'
+                                ? 'bg-white dark:bg-zinc-700 shadow text-blue-600'
+                                : 'text-zinc-500 hover:text-zinc-700'
                                 }`}
                         >
                             <tab.icon size={14} />

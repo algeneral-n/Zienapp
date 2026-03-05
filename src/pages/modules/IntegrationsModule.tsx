@@ -4,6 +4,7 @@ import {
   Plug, Search, Check, X, Loader2, ExternalLink,
   Wifi, WifiOff, RefreshCw, AlertTriangle, Shield, Zap,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../components/ThemeProvider';
 import { useCompany } from '../../contexts/CompanyContext';
 import { integrationsService } from '../../services/integrationsService';
@@ -33,6 +34,7 @@ interface TenantIntegration {
 
 export default function IntegrationsModule() {
   const { language } = useTheme();
+  const { t } = useTranslation();
   const { activeCompany } = useCompany();
   const companyId = activeCompany?.id;
 
@@ -112,11 +114,11 @@ export default function IntegrationsModule() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black uppercase tracking-tighter">{language === 'ar' ? 'التكاملات' : 'Integrations'}</h1>
-          <p className="text-sm text-zinc-500 mt-1">{language === 'ar' ? 'اربط أدوات عملك بمنصة ZIEN' : 'Connect your business tools to the ZIEN platform'}</p>
+          <h1 className="text-3xl font-black uppercase tracking-tighter">{t('integrations')}</h1>
+          <p className="text-sm text-zinc-500 mt-1">{t('integrations_desc')}</p>
         </div>
         <button onClick={fetchData} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all">
-          <RefreshCw size={14} /> {language === 'ar' ? 'تحديث' : 'Refresh'}
+          <RefreshCw size={14} /> {t('refresh')}
         </button>
       </div>
 
@@ -130,10 +132,10 @@ export default function IntegrationsModule() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: language === 'ar' ? 'متاح' : 'Available', value: catalog.length, icon: Plug, color: 'text-blue-600 bg-blue-50 dark:bg-blue-600/10' },
-          { label: language === 'ar' ? 'متصل' : 'Connected', value: connectedProviders.size, icon: Wifi, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' },
-          { label: language === 'ar' ? 'مجاني' : 'Free', value: catalog.filter(c => !c.price_monthly).length, icon: Zap, color: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' },
-          { label: language === 'ar' ? 'فئات' : 'Categories', value: categories.length - 1, icon: Shield, color: 'text-zinc-600 bg-zinc-100 dark:bg-zinc-800' },
+          { label: t('int_available'), value: catalog.length, icon: Plug, color: 'text-blue-600 bg-blue-50 dark:bg-blue-600/10' },
+          { label: t('int_connected'), value: connectedProviders.size, icon: Wifi, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' },
+          { label: t('int_free'), value: catalog.filter(c => !c.price_monthly).length, icon: Zap, color: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' },
+          { label: t('int_categories'), value: categories.length - 1, icon: Shield, color: 'text-zinc-600 bg-zinc-100 dark:bg-zinc-800' },
         ].map(s => (
           <div key={s.label} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 ${s.color}`}><s.icon size={16} /></div>
@@ -149,7 +151,7 @@ export default function IntegrationsModule() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
           <input
             type="text"
-            placeholder={language === 'ar' ? 'ابحث عن تكامل...' : 'Search integrations...'}
+            placeholder={t('search_integrations')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
@@ -162,7 +164,7 @@ export default function IntegrationsModule() {
               onClick={() => setFilterCat(cat)}
               className={`px-3 py-2 rounded-xl text-xs font-bold transition-all capitalize ${filterCat === cat ? 'bg-blue-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200'}`}
             >
-              {cat === 'all' ? (language === 'ar' ? 'الكل' : 'All') : cat}
+              {cat === 'all' ? t('all') : cat}
             </button>
           ))}
         </div>
@@ -195,20 +197,20 @@ export default function IntegrationsModule() {
                 </div>
                 {isConnected ? (
                   <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10">
-                    <Wifi size={10} /> {language === 'ar' ? 'متصل' : 'Connected'}
+                    <Wifi size={10} /> {t('int_connected')}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-500 dark:bg-zinc-800">
-                    <WifiOff size={10} /> {language === 'ar' ? 'غير متصل' : 'Offline'}
+                    <WifiOff size={10} /> {t('offline')}
                   </span>
                 )}
               </div>
 
-              <p className="text-xs text-zinc-500 mb-4 line-clamp-2">{item.description || (language === 'ar' ? 'تكامل مع ' + item.provider : `Integrate with ${item.provider}`)}</p>
+              <p className="text-xs text-zinc-500 mb-4 line-clamp-2">{item.description || t('integrate_with', { provider: item.provider })}</p>
 
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold">
-                  {item.price_monthly ? `${item.price_monthly} AED/${language === 'ar' ? 'شهر' : 'mo'}` : (language === 'ar' ? 'مجاني' : 'Free')}
+                  {item.price_monthly ? `${item.price_monthly} AED/${t('month_short')}` : t('int_free')}
                 </span>
                 {isConnected ? (
                   <button
@@ -217,7 +219,7 @@ export default function IntegrationsModule() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 transition-all disabled:opacity-50"
                   >
                     {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
-                    {language === 'ar' ? 'قطع الاتصال' : 'Disconnect'}
+                    {t('disconnect')}
                   </button>
                 ) : (
                   <button
@@ -226,7 +228,7 @@ export default function IntegrationsModule() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
                   >
                     {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />}
-                    {language === 'ar' ? 'ربط' : 'Connect'}
+                    {t('connect')}
                   </button>
                 )}
               </div>
@@ -238,8 +240,8 @@ export default function IntegrationsModule() {
       {filtered.length === 0 && (
         <div className="text-center py-16 text-zinc-400">
           <Plug className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p className="font-bold">{language === 'ar' ? 'لا توجد تكاملات مطابقة' : 'No matching integrations'}</p>
-          <p className="text-xs mt-1">{language === 'ar' ? 'حاول تغيير معايير البحث' : 'Try adjusting your search criteria'}</p>
+          <p className="font-bold">{t('no_matching_integrations')}</p>
+          <p className="text-xs mt-1">{t('try_adjusting_search')}</p>
         </div>
       )}
     </div>
