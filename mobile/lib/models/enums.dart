@@ -20,21 +20,22 @@ enum PlatformRole {
 }
 
 /// Company-level roles (within a tenant)
+/// ⚠️ Levels MUST match web/src/lib/permissions.ts ROLE_LEVEL exactly
 enum CompanyRole {
-  companyGm('company_gm', 100),
-  assistantGm('assistant_gm', 95),
-  executiveSecretary('executive_secretary', 90),
-  departmentManager('department_manager', 80),
-  supervisor('supervisor', 70),
-  seniorEmployee('senior_employee', 60),
-  employee('employee', 50),
-  newHire('new_hire', 40),
-  trainee('trainee', 35),
-  hrOfficer('hr_officer', 65),
-  accountant('accountant', 65),
-  salesRep('sales_rep', 55),
-  fieldEmployee('field_employee', 45),
-  driver('driver', 40),
+  companyGm('company_gm', 90),
+  assistantGm('assistant_gm', 85),
+  executiveSecretary('executive_secretary', 75),
+  departmentManager('department_manager', 65),
+  hrOfficer('hr_officer', 60),
+  accountant('accountant', 60),
+  supervisor('supervisor', 55),
+  seniorEmployee('senior_employee', 45),
+  salesRep('sales_rep', 45),
+  employee('employee', 35),
+  fieldEmployee('field_employee', 35),
+  driver('driver', 30),
+  newHire('new_hire', 20),
+  trainee('trainee', 15),
   clientUser('client_user', 10);
 
   const CompanyRole(this.value, this.level);
