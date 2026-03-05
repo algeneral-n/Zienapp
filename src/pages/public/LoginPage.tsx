@@ -48,7 +48,7 @@ export default function LoginPage() {
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/portal`,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -154,7 +154,7 @@ export default function LoginPage() {
           >
             <div className="text-center mb-8">
               <div className="relative inline-block mb-6">
-                <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20 animate-pulse"></div>
+                <div className="absolute inset-0 bg-brand-light0 blur-3xl opacity-20 animate-pulse"></div>
                 <img
                   src={ASSETS.LOGO_PRIMARY}
                   alt="Logo"
@@ -163,18 +163,18 @@ export default function LoginPage() {
                 />
               </div>
               <h2 className="text-3xl font-black tracking-tight mb-1">{t.welcome}</h2>
-              <p className="text-[10px] text-blue-600 font-black uppercase tracking-[0.2em]">{t.tagline}</p>
+              <p className="text-[10px] text-brand font-black uppercase tracking-[0.2em]">{t.tagline}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">{t.emailPhone}</label>
               <div className="relative">
-                <Mail className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Mail className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full bg-black/5 border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-brand/50"
                   placeholder="Email or 05xxxxxxxx"
                   required
                 />
@@ -184,15 +184,15 @@ export default function LoginPage() {
             <div>
               <div className="flex justify-between mb-2">
                 <label className="text-sm font-medium">{t.password}</label>
-                <button type="button" onClick={() => setView('forgot')} className="text-xs text-blue-600 font-bold hover:underline">{t.forgot}</button>
+                <button type="button" onClick={() => setView('forgot')} className="text-xs text-brand font-bold hover:underline">{t.forgot}</button>
               </div>
               <div className="relative">
-                <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-black/5 border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-brand/50"
                   placeholder="••••••••"
                   required
                 />
@@ -204,7 +204,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 disabled:opacity-50"
+              className="w-full bg-brand text-white py-4 rounded-xl font-bold hover:bg-brand-hover transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand/20 disabled:opacity-50"
             >
               {loading ? '...' : t.login}
               <ArrowRight className="w-5 h-5" />
@@ -222,7 +222,7 @@ export default function LoginPage() {
             className="space-y-6"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-blue-600/10 rounded-xl text-blue-600">
+              <div className="p-3 bg-brand/10 rounded-xl text-brand">
                 {view === 'forgot' ? <KeyRound className="w-6 h-6" /> : <UserPlus className="w-6 h-6" />}
               </div>
               <div>
@@ -252,12 +252,12 @@ export default function LoginPage() {
                 {language === 'ar' ? 'البريد الإلكتروني أو الهاتف' : 'Email or Phone'}
               </label>
               <div className="relative">
-                <Mail className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Mail className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full bg-black/5 border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-brand/50"
                   placeholder={language === 'ar' ? 'البريد الإلكتروني أو الهاتف المسجل' : 'Registered Email or Phone'}
                   required
                 />
@@ -269,14 +269,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50 shadow-lg shadow-blue-600/20"
+              className="w-full bg-brand text-white py-4 rounded-xl font-bold hover:bg-brand-hover transition-all disabled:opacity-50 shadow-lg shadow-brand/20"
             >
               {loading
                 ? (language === 'ar' ? 'جاري التحقق...' : 'Verifying...')
                 : (language === 'ar' ? 'التحقق من الهوية' : 'Verify Identity')}
             </button>
 
-            <button type="button" onClick={() => setView('login')} className="w-full text-sm font-bold text-[var(--text-muted)] hover:text-blue-600 transition-colors">
+            <button type="button" onClick={() => setView('login')} className="w-full text-sm font-bold text-[var(--text-muted)] hover:text-brand transition-colors">
               {language === 'ar' ? 'العودة لتسجيل الدخول' : 'Return to Login'}
             </button>
           </motion.form>
@@ -301,12 +301,12 @@ export default function LoginPage() {
                 {language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
               </label>
               <div className="relative">
-                <Smartphone className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Smartphone className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type="tel"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full bg-black/5 border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-brand/50"
                   placeholder="+971 5x xxx xxxx"
                   required
                 />
@@ -318,7 +318,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50"
+              className="w-full bg-brand text-white py-4 rounded-xl font-bold hover:bg-brand-hover transition-all disabled:opacity-50"
             >
               {loading
                 ? (language === 'ar' ? 'جاري إرسال الرمز...' : 'Sending Code...')
@@ -349,7 +349,7 @@ export default function LoginPage() {
                 type="text"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                className="w-full bg-black/5 border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-[1em]"
+                className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-brand/50 text-center text-2xl tracking-[1em]"
                 maxLength={6}
                 required
               />
@@ -358,7 +358,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50"
+              className="w-full bg-brand text-white py-4 rounded-xl font-bold hover:bg-brand-hover transition-all disabled:opacity-50"
             >
               {loading
                 ? (language === 'ar' ? 'جاري التحقق...' : 'Verifying...')
@@ -373,7 +373,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] px-4 sm:px-6 py-20 relative overflow-hidden">
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand/10 blur-[120px] rounded-full"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] rounded-full"></div>
       </div>
 
@@ -396,7 +396,7 @@ export default function LoginPage() {
                 <button
                   onClick={() => handleOAuthLogin('google')}
                   disabled={loading}
-                  className="w-full bg-white text-gray-700 border border-gray-300 p-3.5 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-50 transition-all font-bold text-sm disabled:opacity-50 shadow-sm"
+                  className="w-full bg-white text-gray-700 border border-gray-300 p-3.5 rounded-xl flex items-center justify-center gap-3 hover:bg-[var(--surface-2)] transition-all font-bold text-sm disabled:opacity-50 shadow-sm"
                 >
                   <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
                   {t.google}
@@ -414,7 +414,7 @@ export default function LoginPage() {
               <button
                 onClick={() => setView('phone-login')}
                 disabled={loading}
-                className="w-full mt-4 glass-card p-4 flex items-center justify-center gap-3 hover:bg-black/5 transition-all font-bold text-sm disabled:opacity-50"
+                className="w-full mt-4 glass-card p-4 flex items-center justify-center gap-3 hover:bg-[var(--surface-2)] transition-all font-bold text-sm disabled:opacity-50"
               >
                 <Phone className="w-5 h-5 text-green-600" />
                 {t.phone}
@@ -428,10 +428,10 @@ export default function LoginPage() {
             {view === 'login' ? (
               <>
                 {language === 'ar' ? 'أول مرة هنا؟' : 'First time here?'}
-                <button onClick={() => setView('register')} className="text-blue-600 font-bold hover:underline ml-1">{t.register}</button>
+                <button onClick={() => setView('register')} className="text-brand font-bold hover:underline ml-1">{t.register}</button>
               </>
             ) : (
-              <button onClick={() => setView('login')} className="text-blue-600 font-bold hover:underline">{language === 'ar' ? 'العودة لتسجيل الدخول' : 'Back to Login'}</button>
+              <button onClick={() => setView('login')} className="text-brand font-bold hover:underline">{language === 'ar' ? 'العودة لتسجيل الدخول' : 'Back to Login'}</button>
             )}
           </p>
           <div className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">

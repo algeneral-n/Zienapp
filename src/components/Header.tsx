@@ -51,9 +51,8 @@ export default function Header() {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`px-5 py-3 rounded-full transition-all duration-500 border border-transparent hover:bg-brand hover:text-white hover:shadow-lg hover:shadow-brand/20 ${
-                location.pathname === item.path ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-secondary)]'
-              }`}
+              className={`px-5 py-3 rounded-full transition-all duration-500 border border-transparent hover:bg-brand hover:text-white hover:shadow-lg hover:shadow-brand/20 ${location.pathname === item.path ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-secondary)]'
+                }`}
             >
               {item.label}
             </button>
@@ -143,11 +142,10 @@ export default function Header() {
                 <button
                   key={item.path}
                   onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
-                  className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm uppercase tracking-wider transition-all ${
-                    location.pathname === item.path
+                  className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm uppercase tracking-wider transition-all ${location.pathname === item.path
                       ? 'bg-brand text-white shadow-lg shadow-brand/20'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </button>

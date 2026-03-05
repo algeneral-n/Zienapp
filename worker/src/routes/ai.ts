@@ -156,38 +156,37 @@ async function handleRARE(
   // Build system prompt based on agent type and mode
   const systemPrompt = buildSystemPrompt(body.agentType, body.mode, membership.role);
 
-  // Call Gemini API
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GOOGLE_API_KEY}`;
-
-  const geminiRes = await fetch(geminiUrl, {
+  // Call OpenAI API
+  const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
     body: JSON.stringify({
-      contents: [
-        { role: 'user', parts: [{ text: `${systemPrompt}\n\nUser query: ${body.prompt}` }] },
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: body.prompt },
       ],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 4096,
-      },
+      temperature: 0.7,
+      max_tokens: 4096,
     }),
   });
 
-  if (!geminiRes.ok) {
-    const errText = await geminiRes.text();
-    console.error('Gemini error:', errText);
+  if (!openaiRes.ok) {
+    const errText = await openaiRes.text();
+    console.error('OpenAI error:', errText);
     return errorResponse('AI service unavailable', 502);
   }
 
-  const geminiData = (await geminiRes.json()) as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+  const openaiData = (await openaiRes.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
 
   const responseText =
-    geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No response generated';
+    openaiData.choices?.[0]?.message?.content ?? 'No response generated';
 
   // Log usage (with action classification)
   await supabase.from('ai_usage_logs').insert({
@@ -196,9 +195,9 @@ async function handleRARE(
     agent_type: body.agentType,
     mode: body.mode,
     module_code: body.moduleCode,
-    model_name: 'gemini-2.0-flash',
-    tokens_in: geminiData.usageMetadata?.promptTokenCount ?? 0,
-    tokens_out: geminiData.usageMetadata?.candidatesTokenCount ?? 0,
+    model_name: 'gpt-4o-mini',
+    tokens_in: openaiData.usage?.prompt_tokens ?? 0,
+    tokens_out: openaiData.usage?.completion_tokens ?? 0,
     query_text: body.prompt.substring(0, 500),
     response_summary: responseText.substring(0, 500),
     action_level: permCheck.actionLevel,
@@ -311,26 +310,32 @@ Provide your analysis as a structured deliberation with:
 
 Be thorough, data-driven, and consider multiple perspectives. Respond in the same language as the question.`;
 
-  // Call Gemini with high token limit for comprehensive analysis
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GOOGLE_API_KEY}`;
-
-  const geminiRes = await fetch(geminiUrl, {
+  // Call OpenAI with high token limit for comprehensive analysis
+  const senateRes = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
     body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: senatePrompt }] }],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 8192 },
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are a council of expert advisors for the ZIEN platform.' },
+        { role: 'user', content: senatePrompt },
+      ],
+      temperature: 0.4,
+      max_tokens: 8192,
     }),
   });
 
-  if (!geminiRes.ok) return errorResponse('AI service unavailable', 502);
+  if (!senateRes.ok) return errorResponse('AI service unavailable', 502);
 
-  const geminiData = (await geminiRes.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+  const senateData = (await senateRes.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
 
-  const deliberation = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || 'No deliberation generated';
+  const deliberation = senateData.choices?.[0]?.message?.content || 'No deliberation generated';
 
   // Also query with a different temperature/persona for diversity if OpenAI key available
   let secondOpinion = null;
@@ -370,9 +375,9 @@ Be thorough, data-driven, and consider multiple perspectives. Respond in the sam
     user_id: userId,
     agent_type: 'senate',
     mode: 'deliberate',
-    model_name: 'gemini-2.0-flash' + (secondOpinion ? '+gpt-4o-mini' : ''),
-    tokens_in: geminiData.usageMetadata?.promptTokenCount ?? 0,
-    tokens_out: geminiData.usageMetadata?.candidatesTokenCount ?? 0,
+    model_name: 'gpt-4o' + (secondOpinion ? '+gpt-4o-mini' : ''),
+    tokens_in: senateData.usage?.prompt_tokens ?? 0,
+    tokens_out: senateData.usage?.completion_tokens ?? 0,
     query_text: body.prompt.substring(0, 500),
     response_summary: deliberation.substring(0, 500),
     is_sensitive: true,
@@ -382,7 +387,7 @@ Be thorough, data-driven, and consider multiple perspectives. Respond in the sam
     deliberation,
     second_opinion: secondOpinion,
     topic: body.topic || 'Strategic Decision',
-    models_used: secondOpinion ? ['gemini-2.0-flash', 'gpt-4o-mini'] : ['gemini-2.0-flash'],
+    models_used: secondOpinion ? ['gpt-4o', 'gpt-4o-mini'] : ['gpt-4o'],
   });
 }
 
@@ -416,7 +421,7 @@ async function handleMaestro(
 
   if (!membership) return errorResponse('Not a member', 403);
 
-  // Step 1: Classify the task using Gemini
+  // Step 1: Classify the task using OpenAI
   const classifyPrompt = `Classify the following user query into one of these agent categories and action modes.
 
 Agent categories: ${Object.keys(AGENT_MIN_LEVEL).join(', ')}
@@ -427,24 +432,27 @@ User query: "${body.prompt}"
 Respond ONLY with valid JSON (no markdown):
 {"agent": "category_name", "mode": "action_mode", "confidence": 0.95, "reasoning": "brief explanation"}`;
 
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GOOGLE_API_KEY}`;
-
-  const classifyRes = await fetch(geminiUrl, {
+  const classifyRes = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
     body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: classifyPrompt }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 256 },
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: classifyPrompt }],
+      temperature: 0.1,
+      max_tokens: 256,
     }),
   });
 
   if (!classifyRes.ok) return errorResponse('Classification service unavailable', 502);
 
   const classifyData = (await classifyRes.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    choices?: Array<{ message?: { content?: string } }>;
   };
 
-  const classText = classifyData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const classText = classifyData.choices?.[0]?.message?.content || '';
 
   let classification: { agent: string; mode: string; confidence: number; reasoning: string };
   try {
@@ -467,23 +475,31 @@ Respond ONLY with valid JSON (no markdown):
   // Step 3: Execute with the routed agent
   const systemPrompt = buildSystemPrompt(classification.agent, classification.mode, membership.role);
 
-  const execRes = await fetch(geminiUrl, {
+  const execRes = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
     body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\nUser query: ${body.prompt}` }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: body.prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 4096,
     }),
   });
 
   if (!execRes.ok) return errorResponse('AI service unavailable', 502);
 
   const execData = (await execRes.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
 
-  const response = execData.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+  const response = execData.choices?.[0]?.message?.content || 'No response';
 
   // Log maestro routing
   await supabase.from('ai_usage_logs').insert({
@@ -492,9 +508,9 @@ Respond ONLY with valid JSON (no markdown):
     agent_type: classification.agent,
     mode: classification.mode,
     module_code: 'maestro',
-    model_name: 'gemini-2.0-flash',
-    tokens_in: execData.usageMetadata?.promptTokenCount ?? 0,
-    tokens_out: execData.usageMetadata?.candidatesTokenCount ?? 0,
+    model_name: 'gpt-4o-mini',
+    tokens_in: execData.usage?.prompt_tokens ?? 0,
+    tokens_out: execData.usage?.completion_tokens ?? 0,
     query_text: body.prompt.substring(0, 500),
     response_summary: response.substring(0, 500),
     action_level: permCheck.actionLevel,
@@ -510,8 +526,8 @@ Respond ONLY with valid JSON (no markdown):
       reasoning: classification.reasoning,
     },
     tokens: {
-      input: execData.usageMetadata?.promptTokenCount ?? 0,
-      output: execData.usageMetadata?.candidatesTokenCount ?? 0,
+      input: execData.usage?.prompt_tokens ?? 0,
+      output: execData.usage?.completion_tokens ?? 0,
     },
   });
 }
