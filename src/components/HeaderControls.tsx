@@ -21,20 +21,20 @@ export function HeaderControls() {
   }, []);
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 w-full md:w-auto">
       {/* Language Switcher */}
       <div className="relative group">
-        <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+        <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border-soft)] hover:bg-[var(--surface-2)] transition-colors text-[var(--text-primary)]">
           <Globe size={16} />
           <span className="text-xs font-medium uppercase">{i18n.language}</span>
         </button>
-        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+        <div className="absolute left-0 md:right-0 md:left-auto top-full mt-2 w-48 bg-[var(--bg-primary)] border border-[var(--border-soft)] rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[70] overflow-hidden max-h-[50vh]">
           <div className="max-h-64 overflow-y-auto">
             {LANGUAGES.map((lang) => (
               <button
                 key={lang.code}
                 onClick={() => { i18n.changeLanguage(lang.code); setLanguage(lang.code as any); }}
-                className={`w-full text-left px-4 py-2 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between ${i18n.language === lang.code ? 'text-emerald-500 font-semibold' : ''}`}
+                className={`w-full text-left px-4 py-2 text-xs hover:bg-[var(--surface-2)] transition-colors flex items-center justify-between text-[var(--text-primary)] ${i18n.language === lang.code ? 'text-brand font-semibold' : ''}`}
               >
                 {lang.name}
                 {i18n.language === lang.code && <Check size={14} />}
@@ -44,39 +44,40 @@ export function HeaderControls() {
         </div>
       </div>
 
-      {/* Theme Switcher Dropdown */}
-      <div className="relative" ref={themeRef}>
+      {/* Theme Switcher — Inline (no dropdown overflow) */}
+      <div ref={themeRef}>
         <button
           onClick={() => setIsThemeOpen(!isThemeOpen)}
-          className="p-2 rounded-full border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border-soft)] hover:bg-[var(--surface-2)] transition-colors text-[var(--text-primary)]"
         >
-          <Palette size={18} />
+          <Palette size={16} />
+          <span className="text-xs font-medium md:hidden">{t('appearance', 'Appearance')}</span>
         </button>
 
         {isThemeOpen && (
-          <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden p-2">
+          <div className="mt-2 w-full md:absolute md:right-0 md:top-full md:w-64 bg-[var(--bg-primary)] border border-[var(--border-soft)] rounded-xl shadow-xl z-[70] overflow-hidden p-2">
 
             {/* Theme Variants */}
-            <div className="mb-4">
-              <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2">{t('theme_style', 'Theme Style')}</div>
+            <div className="mb-3">
+              <div className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2 px-2">{t('theme_style', 'Theme Style')}</div>
               <div className="space-y-1">
                 <button
                   onClick={() => setVariant('default')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${variant === 'default' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors text-[var(--text-primary)] ${variant === 'default' ? 'bg-brand/10 text-brand font-medium' : 'hover:bg-[var(--surface-2)]'}`}
                 >
                   <div className="flex items-center gap-2"><Palette size={16} /> {t('theme_default', 'Default')}</div>
                   {variant === 'default' && <Check size={16} />}
                 </button>
                 <button
                   onClick={() => setVariant('glass')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${variant === 'glass' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors text-[var(--text-primary)] ${variant === 'glass' ? 'bg-brand/10 text-brand font-medium' : 'hover:bg-[var(--surface-2)]'}`}
                 >
                   <div className="flex items-center gap-2"><Palette size={16} /> {t('theme_glass', 'Glass')}</div>
                   {variant === 'glass' && <Check size={16} />}
                 </button>
                 <button
                   onClick={() => setVariant('dark-green')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${variant === 'dark-green' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 font-medium' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors text-[var(--text-primary)] ${variant === 'dark-green' ? 'bg-emerald-500/10 text-emerald-400 font-medium' : 'hover:bg-[var(--surface-2)]'}`}
                 >
                   <div className="flex items-center gap-2"><Leaf size={16} /> {t('theme_dark_green', 'Dark Green')}</div>
                   {variant === 'dark-green' && <Check size={16} />}
@@ -84,29 +85,29 @@ export function HeaderControls() {
               </div>
             </div>
 
-            <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-2"></div>
+            <div className="h-px bg-[var(--border-soft)] my-2"></div>
 
             {/* Appearance (Light/Dark) */}
             <div>
-              <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2">{t('appearance', 'Appearance')}</div>
-              <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
+              <div className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2 px-2">{t('appearance', 'Appearance')}</div>
+              <div className="flex bg-[var(--surface-2)] rounded-lg p-1">
                 <button
                   onClick={() => setTheme('light')}
-                  className={`flex-1 flex justify-center p-2 rounded-md transition-all ${theme === 'light' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  className={`flex-1 flex justify-center p-2 rounded-md transition-all ${theme === 'light' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)]'}`}
                   title={t('light', 'Light')}
                 >
                   <Sun size={16} />
                 </button>
                 <button
                   onClick={() => setTheme('dark')}
-                  className={`flex-1 flex justify-center p-2 rounded-md transition-all ${theme === 'dark' ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-400'}`}
+                  className={`flex-1 flex justify-center p-2 rounded-md transition-all ${theme === 'dark' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)]'}`}
                   title={t('dark', 'Dark')}
                 >
                   <Moon size={16} />
                 </button>
                 <button
                   onClick={() => setTheme('system')}
-                  className={`flex-1 flex justify-center p-2 rounded-md transition-all ${theme === 'system' ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-400'}`}
+                  className={`flex-1 flex justify-center p-2 rounded-md transition-all ${theme === 'system' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)]'}`}
                   title={t('system', 'System')}
                 >
                   <Monitor size={16} />

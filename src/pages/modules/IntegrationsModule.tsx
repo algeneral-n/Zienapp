@@ -52,17 +52,36 @@ export default function IntegrationsModule() {
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Fallback catalog for public showcase mode
+  const FALLBACK_CATALOG: CatalogItem[] = [
+    { id: 'whatsapp', name: 'WhatsApp Business', provider: 'whatsapp', category: 'communication', description: 'Official WhatsApp Business API for customer messaging and notifications', icon_url: null, price_monthly: 0, is_active: true, features: ['Messaging', 'Notifications', 'Templates'] },
+    { id: 'vonage', name: 'Vonage', provider: 'vonage', category: 'communication', description: 'SMS, Voice, and Video communication platform', icon_url: null, price_monthly: 49, is_active: true, features: ['SMS', 'Voice', 'Video'] },
+    { id: 'stripe', name: 'Stripe', provider: 'stripe', category: 'payment', description: 'Online payment processing for internet businesses', icon_url: null, price_monthly: 0, is_active: true, features: ['Payments', 'Invoicing', 'Subscriptions'] },
+    { id: 'moyasar', name: 'Moyasar', provider: 'moyasar', category: 'payment', description: 'Saudi Arabia payment gateway with Mada and SADAD support', icon_url: null, price_monthly: 0, is_active: true, features: ['Mada', 'SADAD', 'Apple Pay'] },
+    { id: 'google-workspace', name: 'Google Workspace', provider: 'google', category: 'productivity', description: 'Google Suite integration for Drive, Calendar, and Gmail', icon_url: null, price_monthly: 0, is_active: true, features: ['Drive', 'Calendar', 'Gmail'] },
+    { id: 'microsoft-365', name: 'Microsoft 365', provider: 'microsoft', category: 'productivity', description: 'Microsoft Office suite with Teams, Outlook, and OneDrive', icon_url: null, price_monthly: 0, is_active: true, features: ['Teams', 'Outlook', 'OneDrive'] },
+    { id: 'zapier', name: 'Zapier', provider: 'zapier', category: 'automation', description: 'Connect and automate workflows between 5000+ apps', icon_url: null, price_monthly: 29, is_active: true, features: ['Workflows', 'Triggers', 'Actions'] },
+    { id: 'slack', name: 'Slack', provider: 'slack', category: 'communication', description: 'Team messaging and collaboration platform', icon_url: null, price_monthly: 0, is_active: true, features: ['Channels', 'DMs', 'Bots'] },
+    { id: 'quickbooks', name: 'QuickBooks', provider: 'quickbooks', category: 'accounting', description: 'Accounting software for small and medium businesses', icon_url: null, price_monthly: 15, is_active: true, features: ['Invoicing', 'Expenses', 'Reports'] },
+    { id: 'xero', name: 'Xero', provider: 'xero', category: 'accounting', description: 'Cloud accounting software for growing businesses', icon_url: null, price_monthly: 13, is_active: true, features: ['Bank Feeds', 'Payroll', 'Projects'] },
+    { id: 'shopify', name: 'Shopify', provider: 'shopify', category: 'ecommerce', description: 'E-commerce platform for online and retail stores', icon_url: null, price_monthly: 39, is_active: true, features: ['Store', 'Inventory', 'Analytics'] },
+    { id: 'salla', name: 'Salla', provider: 'salla', category: 'ecommerce', description: 'Saudi e-commerce platform for Arabic online stores', icon_url: null, price_monthly: 0, is_active: true, features: ['Arabic Store', 'Payments', 'Shipping'] },
+  ];
+
   const fetchData = async () => {
     setLoading(true);
     try {
       const catalogResult = await integrationsService.getCatalog();
-      setCatalog((catalogResult as any)?.catalog || catalogResult || []);
+      const items = (catalogResult as any)?.catalog || catalogResult || [];
+      setCatalog(items.length > 0 ? items : FALLBACK_CATALOG);
       if (companyId) {
         const connResult = await integrationsService.getCompanyIntegrations(companyId);
         setConnected((connResult as any)?.integrations || connResult || []);
       }
     } catch (e: any) {
-      setError(e.message);
+      // Use fallback catalog on API error
+      setCatalog(FALLBACK_CATALOG);
+      if (!isPublicMode) setError(e.message);
     } finally {
       setLoading(false);
     }

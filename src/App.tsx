@@ -64,11 +64,11 @@ function AppRoutes() {
           <Route path="/integrations" element={<IntegrationsModule />} />
           <Route path="/privacy" element={<LegalPage />} />
           <Route path="/terms" element={<LegalPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<OnboardingWizard />} />
         </Route>
 
-        {/* ─── Auth routes (no layout chrome) ────────────────────── */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<OnboardingWizard />} />
+        {/* ─── Auth routes (callback only — no layout chrome) ──── */}
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/no-access" element={<NoAccessPage />} />
 
