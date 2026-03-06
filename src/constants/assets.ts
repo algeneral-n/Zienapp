@@ -11,11 +11,11 @@ export const ASSETS = {
   LOGO_GOLD: "/input_file_16.png",
   LOGO_WHITE: "/input_file_11.png",
   LOGO_SHIELD: "https://lh3.googleusercontent.com/p/AF1QipNm7hVlbynpufJ0AYs8CZUtmCmUhV38ehv17oi2=w243-h203-n-k-no-nu",
-  
+
   // Characters
   RARE_AGENT: "https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w141-h235-n-k-no-nu",
   RARE_CHARACTER: "https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w141-h235-n-k-no-nu",
-  
+
   // Dashboard & Features
   DASHBOARD_INVOICES: "https://lh3.googleusercontent.com/p/AF1QipMTWzrywgzSxXWwjgPJ9k1OsOWNiBCKmd00adb4=w141-h118-n-k-no-nu",
   USER_MANAGEMENT: "https://lh3.googleusercontent.com/p/AF1QipOYNgk4T03rnwxTL1hMHg6laY7EQ0WGbMaIBXfw=w141-h141-n-k-no-nu",
@@ -25,10 +25,10 @@ export const ASSETS = {
   SECURITY_SHIELD: "/input_file_10.png",
   PLATFORM_APP_DARK: "/input_file_12.png",
   PLATFORM_APP_LIGHT: "/input_file_13.png",
-  
+
   // Hero
   HERO_SHIELD: "/input_file_3.png",
-  
+
   // Landing Page Carousel
   LANDING_1: "https://lh3.googleusercontent.com/p/AF1QipMvY2-IPoxLaToodwo7egfEuzhKGkjOX1jxceA_=w243-h304-n-k-no-nu",
   LANDING_2: "https://lh3.googleusercontent.com/p/AF1QipNmr43mTEUk82q4c3EwAyP_Rqet8Mtxyl1STbJY=w243-h174-n-k-no-nu",

@@ -67,6 +67,7 @@ export const MODULE_ACCESS: Record<string, { read: number; write: number }> = {
   crm: { read: 45, write: 55 },
   projects: { read: 35, write: 45 },
   store: { read: 35, write: 55 },
+  chat: { read: 15, write: 15 },
   meetings: { read: 15, write: 35 },
   rare: { read: 55, write: 85 },
   integrations: { read: 55, write: 75 },

@@ -44,11 +44,10 @@ export function HeaderControls({ inline = false }: HeaderControlsProps) {
               <button
                 key={lang.code}
                 onClick={() => { i18n.changeLanguage(lang.code); setLanguage(lang.code as any); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                  i18n.language === lang.code
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${i18n.language === lang.code
                     ? 'bg-brand text-white border-brand shadow-sm shadow-brand/20'
                     : 'border-[var(--border-soft)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
-                }`}
+                  }`}
               >
                 {lang.code.toUpperCase()}
               </button>

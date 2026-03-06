@@ -23,6 +23,7 @@ const RAREManagement = React.lazy(() => import('./modules/RAREManagement'));
 const StoreModule = React.lazy(() => import('./modules/StoreModule'));
 const ProjectsModule = React.lazy(() => import('./modules/ProjectsModule'));
 const MeetingsModule = React.lazy(() => import('./modules/MeetingsModule'));
+const ChatModule = React.lazy(() => import('./modules/ChatModule'));
 const IntegrationsModule = React.lazy(() => import('./modules/IntegrationsModule'));
 const PortalBuilder = React.lazy(() => import('./modules/PortalBuilder'));
 const BillingModule = React.lazy(() => import('./modules/BillingModule'));
@@ -87,6 +88,7 @@ export default function Dashboard() {
               <Route path="/store" element={<StoreModule />} />
               <Route path="/projects" element={<ProjectsModule />} />
               <Route path="/meetings" element={<MeetingsModule />} />
+              <Route path="/chat" element={<ChatModule />} />
               <Route path="/integrations" element={<IntegrationsModule />} />
               <Route path="/portal-builder" element={<PortalBuilder />} />
               <Route path="/billing/*" element={<BillingModule />} />

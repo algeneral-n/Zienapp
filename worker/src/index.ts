@@ -16,6 +16,10 @@ import { handleHR } from './routes/hr';
 import { handleCRM } from './routes/crm';
 import { handleFounder } from './routes/founder';
 import { handleVonage } from './routes/vonage';
+import { handleChat } from './routes/chat';
+import { handleProjects } from './routes/projects';
+import { handleLogistics as handleLogisticsV2 } from './routes/logistics';
+import { handleMeetings } from './routes/meetings';
 import { corsHeaders, handleCors, getAllowedOrigin } from './cors';
 
 export interface Env {
@@ -102,6 +106,22 @@ export default {
 
       if (path.startsWith('/api/vonage/')) {
         return handleVonage(request, env, path);
+      }
+
+      if (path.startsWith('/api/chat/')) {
+        return handleChat(request, env, path);
+      }
+
+      if (path.startsWith('/api/projects/')) {
+        return handleProjects(request, env, path);
+      }
+
+      if (path.startsWith('/api/logistics-v2/')) {
+        return handleLogisticsV2(request, env, path.replace('/api/logistics-v2', '/api/logistics'));
+      }
+
+      if (path.startsWith('/api/meetings/')) {
+        return handleMeetings(request, env, path);
       }
 
       // 404

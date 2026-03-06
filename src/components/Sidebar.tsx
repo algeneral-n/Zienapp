@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, BarChart3, Truck,
   MessageSquare, ShoppingBag, Briefcase, BrainCircuit,
   Settings, HelpCircle, GraduationCap, FileText,
-  ChevronLeft, ChevronRight, LogOut, FolderKanban, Plug, PanelLeft, CreditCard
+  ChevronLeft, ChevronRight, LogOut, FolderKanban, Plug, PanelLeft, CreditCard, Video
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCompany } from '../contexts/CompanyContext';
@@ -29,7 +29,8 @@ const menuItems: (Omit<MenuItem, 'label'> & { labelKey: string })[] = [
   { id: 'crm', icon: Briefcase, labelKey: 'nav_crm', path: '/dashboard/crm', moduleCode: 'crm' },
   { id: 'projects', icon: FolderKanban, labelKey: 'nav_projects', path: '/dashboard/projects', moduleCode: 'projects' },
   { id: 'store', icon: ShoppingBag, labelKey: 'nav_store', path: '/dashboard/store', moduleCode: 'store' },
-  { id: 'meetings', icon: MessageSquare, labelKey: 'nav_meetings', path: '/dashboard/meetings', moduleCode: 'meetings' },
+  { id: 'chat', icon: MessageSquare, labelKey: 'nav_chat', path: '/dashboard/chat', moduleCode: 'chat' },
+  { id: 'meetings', icon: Video, labelKey: 'nav_meetings', path: '/dashboard/meetings', moduleCode: 'meetings' },
   { id: 'rare', icon: BrainCircuit, labelKey: 'nav_rare', path: '/dashboard/rare', moduleCode: 'rare' },
   { id: 'integrations', icon: Plug, labelKey: 'nav_integrations', path: '/dashboard/integrations', moduleCode: 'integrations' },
   { id: 'portal-builder', icon: PanelLeft, labelKey: 'nav_portal_builder', path: '/dashboard/portal-builder', moduleCode: 'portal_builder' },
