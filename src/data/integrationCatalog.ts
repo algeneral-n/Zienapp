@@ -51,7 +51,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'stripe',
                 name: 'Stripe',
-                logo: 'https://cdn.brandfetch.io/idxAg10C0L/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/stripe.com',
                 description: 'بوابة الدفع العالمية الأكثر موثوقية. يدعم بطاقات الائتمان وGoogle Pay وApple Pay وأكثر من 135 عملة.',
                 website: 'https://stripe.com',
                 category: 'payment',
@@ -67,7 +67,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'tabby',
                 name: 'Tabby',
-                logo: 'https://cdn.brandfetch.io/idrMKHVN0l/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/tabby.ai',
                 description: 'منصة الشراء الآن والدفع لاحقاً الرائدة في الشرق الأوسط. تقسيم المدفوعات إلى 4 أقساط بدون فوائد.',
                 website: 'https://tabby.ai',
                 category: 'payment',
@@ -83,7 +83,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'tamara',
                 name: 'Tamara',
-                logo: 'https://cdn.brandfetch.io/idaxBZFj7E/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/tamara.co',
                 description: 'السعودي الرائد. الدفع الآن أو لاحقاً أو بالتقسيط BNPL حل مع ضمان الحماية الكاملة للتاجر.',
                 website: 'https://tamara.co',
                 category: 'payment',
@@ -99,7 +99,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'telr',
                 name: 'Telr',
-                logo: null,
+                logo: 'https://logo.clearbit.com/telr.com',
                 description: 'بوابة دفع إقليمية متكاملة. تدعم أكثر من 120 عملة مع الامتثال PCI DSS لأقصى أمان.',
                 website: 'https://telr.com',
                 category: 'payment',
@@ -115,7 +115,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'paypal',
                 name: 'PayPal',
-                logo: 'https://cdn.brandfetch.io/idPQMrMmNZ/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/paypal.com',
                 description: 'المحفظة الرقمية العالمية الأكثر انتشاراً أكثر من 400 مليون مستخدم في 200 دولة.',
                 website: 'https://paypal.com',
                 category: 'payment',
@@ -144,7 +144,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'meta-ads',
                 name: 'Meta Ads',
-                logo: 'https://cdn.brandfetch.io/idPTe2zYid/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/meta.com',
                 description: 'الإعلانات على فيسبوك وإنستغرام. إزالة ملقات Custom Audiences, Pixel, Conversions API.',
                 website: 'https://business.facebook.com',
                 category: 'advertising',
@@ -160,7 +160,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'google-ads',
                 name: 'Google Ads',
-                logo: 'https://cdn.brandfetch.io/idVZRxGAoa/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/google.com',
                 description: 'إعلانات Google بما في ذلك Search، Shopping، Performance Max. Smart Bidding بأهداف محسّنة.',
                 website: 'https://ads.google.com',
                 category: 'advertising',
@@ -176,7 +176,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'youtube-ads',
                 name: 'YouTube Ads',
-                logo: 'https://cdn.brandfetch.io/idVZRxGAoa/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/youtube.com',
                 description: 'إعلانات الفيديو على يوتيوب أكبر 2 منصة. Stream, Bumper, Discovery. القياس والتحسين المستمر.',
                 website: 'https://ads.google.com/intl/ar/home/campaigns/video-ads/',
                 category: 'advertising',
@@ -192,7 +192,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'tiktok-ads',
                 name: 'TikTok Ads',
-                logo: 'https://cdn.brandfetch.io/id2S-38w6V/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/tiktok.com',
                 description: 'إعلانات TikTok أسرع منصة نمواً. أنواع إعلانات أصلية In-Feed, TopView, Brand Takeover, Branded Effects.',
                 website: 'https://ads.tiktok.com',
                 category: 'advertising',
@@ -208,7 +208,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'snapchat-ads',
                 name: 'Snapchat Ads',
-                logo: 'https://cdn.brandfetch.io/idkuvjSbMf/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/snapchat.com',
                 description: 'إعلانات سناب شات. حملات Story Ads, AR Lenses, Dynamic Ads. الوصول إلى جمهور يصعب الوصول إليه.',
                 website: 'https://forbusiness.snapchat.com',
                 category: 'advertising',
@@ -224,7 +224,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'linkedin-ads',
                 name: 'LinkedIn Ads',
-                logo: 'https://cdn.brandfetch.io/id3k1lxgpj/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/linkedin.com',
                 description: 'التسويق المهني B2B. إعلانات للأفراد الأهداف العليا. المحتوى المدعوم والرسائل المباشرة.',
                 website: 'https://business.linkedin.com/marketing-solutions',
                 category: 'advertising',
@@ -240,7 +240,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'x-ads',
                 name: 'X (Twitter) Ads',
-                logo: 'https://cdn.brandfetch.io/idS5WhqBbM/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/x.com',
                 description: 'إعلانات X تويتر. Promoted Tweets, Trends, إعلانات الفيديو التفاعلية. استهداف الاهتمامات والمحادثات.',
                 website: 'https://ads.twitter.com',
                 category: 'advertising',
@@ -269,7 +269,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'google-workspace',
                 name: 'Google Workspace',
-                logo: 'https://cdn.brandfetch.io/idVZRxGAoa/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/google.com',
                 description: 'مجموعة Google الكاملة للأعمال. Gmail, Drive, Calendar, Meet, Chat للمؤسسات.',
                 website: 'https://workspace.google.com',
                 category: 'google',
@@ -285,7 +285,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'google-analytics',
                 name: 'Google Analytics',
-                logo: 'https://cdn.brandfetch.io/idVZRxGAoa/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/google.com',
                 description: 'تحليلات الويب المتقدمة GA4. تتبع المستخدمين والتحويلات وسلوك الاستخدام بالذكاء الاصطناعي.',
                 website: 'https://analytics.google.com',
                 category: 'google',
@@ -301,7 +301,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'google-maps',
                 name: 'Google Maps',
-                logo: 'https://cdn.brandfetch.io/idVZRxGAoa/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/google.com',
                 description: 'خرائط Google للأعمال. تتبع المواقع, Geocoding, حساب المسافات والتوجيه.',
                 website: 'https://cloud.google.com/maps-platform',
                 category: 'google',
@@ -317,7 +317,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'google-cloud-ai',
                 name: 'Google Cloud AI',
-                logo: 'https://cdn.brandfetch.io/idVZRxGAoa/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/cloud.google.com',
                 description: 'خدمات الذكاء الاصطناعي السحابية من Google. Vertex AI, Vision, NLP, Translation, Speech.',
                 website: 'https://cloud.google.com/ai-platform',
                 category: 'google',
@@ -346,7 +346,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'whatsapp-business',
                 name: 'WhatsApp Business',
-                logo: null,
+                logo: 'https://logo.clearbit.com/whatsapp.com',
                 description: 'واجهة WhatsApp Business API الرسمية. رسائل الأعمال، الإشعارات، القوالب، الروبوتات.',
                 website: 'https://business.whatsapp.com',
                 category: 'communication',
@@ -362,7 +362,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'vonage',
                 name: 'Vonage',
-                logo: null,
+                logo: 'https://logo.clearbit.com/vonage.com',
                 description: 'منصة اتصالات متعددة القنوات. SMS, Voice, Video, المصادقة الثنائية.',
                 website: 'https://vonage.com',
                 category: 'communication',
@@ -378,7 +378,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'twilio',
                 name: 'Twilio',
-                logo: null,
+                logo: 'https://logo.clearbit.com/twilio.com',
                 description: 'بنية تحتية اتصالات سحابية. SMS, Voice, Video, Email عبر SendGrid. Flex Contact Center.',
                 website: 'https://twilio.com',
                 category: 'communication',
@@ -407,7 +407,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'quickbooks',
                 name: 'QuickBooks',
-                logo: 'https://cdn.brandfetch.io/idBQ7a8IFJ/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/quickbooks.intuit.com',
                 description: 'نظام المحاسبة الأكثر شيوعاً للشركات الصغيرة والمتوسطة. فواتير، مصروفات، رواتب، ضرائب.',
                 website: 'https://quickbooks.intuit.com',
                 category: 'accounting_hr',
@@ -423,7 +423,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'xero',
                 name: 'Xero',
-                logo: null,
+                logo: 'https://logo.clearbit.com/xero.com',
                 description: 'نظام محاسبة سحابي بديهي للشركات الصغيرة. فواتير، مطابقة بنكية، كشف رواتب.',
                 website: 'https://xero.com',
                 category: 'accounting_hr',
@@ -439,7 +439,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'zatca',
                 name: 'ZATCA (هيئة الزكاة والضريبة)',
-                logo: null,
+                logo: 'https://logo.clearbit.com/zatca.gov.sa',
                 description: 'التكامل المباشر مع هيئة الزكاة والضريبة والجمارك السعودية. إصدار فواتير إلكترونية متوافقة.',
                 website: 'https://zatca.gov.sa',
                 category: 'accounting_hr',
@@ -455,7 +455,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'bamboohr',
                 name: 'BambooHR',
-                logo: null,
+                logo: 'https://logo.clearbit.com/bamboohr.com',
                 description: 'نظام الموارد البشرية الشامل. بيانات الموظفين، الأداء، التوظيف، الإجازات، كشوف الرواتب.',
                 website: 'https://bamboohr.com',
                 category: 'accounting_hr',
@@ -484,7 +484,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'hubspot',
                 name: 'HubSpot CRM',
-                logo: 'https://cdn.brandfetch.io/idVfzaXWOE/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/hubspot.com',
                 description: 'منصة CRM والتسويق الأشمل. إدارة العملاء، خطوط المبيعات، التسويق الآلي، خدمة العملاء.',
                 website: 'https://hubspot.com',
                 category: 'sales_marketing',
@@ -500,7 +500,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'mailchimp',
                 name: 'Mailchimp',
-                logo: null,
+                logo: 'https://logo.clearbit.com/mailchimp.com',
                 description: 'منصة التسويق بالبريد الإلكتروني الأشهر. حملات، أتمتة، صفحات هبوط، تحليلات.',
                 website: 'https://mailchimp.com',
                 category: 'sales_marketing',
@@ -516,7 +516,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'klaviyo',
                 name: 'Klaviyo',
-                logo: null,
+                logo: 'https://logo.clearbit.com/klaviyo.com',
                 description: 'منصة التسويق الآلي الأكثر تطوراً للتجارة الإلكترونية. Email + SMS + Push بالذكاء الاصطناعي.',
                 website: 'https://klaviyo.com',
                 category: 'sales_marketing',
@@ -532,7 +532,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'sendgrid',
                 name: 'SendGrid',
-                logo: null,
+                logo: 'https://logo.clearbit.com/sendgrid.com',
                 description: 'بنية تحتية لإرسال البريد الإلكتروني. Transactional + Marketing Email. موثوقية 99.99%.',
                 website: 'https://sendgrid.com',
                 category: 'sales_marketing',
@@ -548,7 +548,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'semrush',
                 name: 'SEMrush',
-                logo: null,
+                logo: 'https://logo.clearbit.com/semrush.com',
                 description: 'أداة SEO والتسويق الرقمي الأكثر احترافية. تحليل الكلمات المفتاحية، المنافسين، الروابط.',
                 website: 'https://semrush.com',
                 category: 'sales_marketing',
@@ -564,7 +564,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'hotjar',
                 name: 'Hotjar',
-                logo: null,
+                logo: 'https://logo.clearbit.com/hotjar.com',
                 description: 'تحليل سلوك المستخدم. خرائط الحرارة، تسجيل الجلسات، استطلاعات الرأي لتحسين التحويل.',
                 website: 'https://hotjar.com',
                 category: 'sales_marketing',
@@ -593,7 +593,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'microsoft365',
                 name: 'Microsoft 365',
-                logo: null,
+                logo: 'https://logo.clearbit.com/microsoft.com',
                 description: 'مجموعة أدوات Microsoft الكاملة. Teams، Outlook، SharePoint، OneDrive، Power BI، Azure AD.',
                 website: 'https://microsoft.com/microsoft-365',
                 category: 'management',
@@ -609,7 +609,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'slack',
                 name: 'Slack',
-                logo: 'https://cdn.brandfetch.io/id4CVK7olR/theme/dark/logo.svg?c=1dxbfHSJFAPEADiU-Qvs38',
+                logo: 'https://logo.clearbit.com/slack.com',
                 description: 'منصة التواصل الفوري للفرق. قنوات، رسائل مباشرة، تكاملات، تطبيقات، ملفات.',
                 website: 'https://slack.com',
                 category: 'management',
@@ -625,7 +625,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'jira',
                 name: 'Jira & Confluence',
-                logo: null,
+                logo: 'https://logo.clearbit.com/atlassian.com',
                 description: 'إدارة المشاريع والتوثيق من Atlassian. Scrum، Kanban، Roadmaps، قاعدة المعرفة.',
                 website: 'https://atlassian.com/software/jira',
                 category: 'management',
@@ -641,7 +641,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'docusign',
                 name: 'DocuSign',
-                logo: null,
+                logo: 'https://logo.clearbit.com/docusign.com',
                 description: 'التوقيع الإلكتروني الأكثر موثوقية عالمياً. توقيع العقود والوثائق القانونية بأمان تام.',
                 website: 'https://docusign.com',
                 category: 'management',
@@ -657,7 +657,7 @@ export const INTEGRATION_GROUPS: IntegrationGroup[] = [
             {
                 id: 'zapier',
                 name: 'Zapier Automation',
-                logo: null,
+                logo: 'https://logo.clearbit.com/zapier.com',
                 description: 'أتمتة العمليات بين آلاف التطبيقات. إنشاء Workflows تلقائية بدون كود مع دعم AI.',
                 website: 'https://zapier.com',
                 category: 'management',

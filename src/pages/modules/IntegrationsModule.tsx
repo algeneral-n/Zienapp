@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -6,11 +6,13 @@ import {
   ChevronDown, ChevronUp, UserPlus, Mail, Star,
   CreditCard, Megaphone, Chrome, MessageSquare,
   Calculator, TrendingUp, Layers, Globe, Lock, Sparkles,
+  Loader2, CheckCircle, AlertCircle,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../components/ThemeProvider';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { connectIntegration, disconnectIntegration } from '../../services/integrationService';
 import {
   INTEGRATION_GROUPS,
   ALL_INTEGRATIONS,
@@ -33,17 +35,33 @@ function IntegrationDetail({
   isPublic,
   onClose,
   onRegister,
+  onSubscribe,
 }: {
   item: (typeof ALL_INTEGRATIONS)[0];
   isAr: boolean;
   isPublic: boolean;
   onClose: () => void;
   onRegister: () => void;
+  onSubscribe: (integrationId: string, planId: string) => Promise<void>;
 }) {
   const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<string>('basic');
+  const [subscribeState, setSubscribeState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [subscribeError, setSubscribeError] = useState('');
   const plan = item.plans.find((p) => p.id === selectedPlan) || item.plans[0];
   const planLabel = PLAN_LABELS[item.requiredPlan];
+
+  const handleSubscribe = async () => {
+    setSubscribeState('loading');
+    setSubscribeError('');
+    try {
+      await onSubscribe(item.id, selectedPlan);
+      setSubscribeState('success');
+    } catch (err: any) {
+      setSubscribeState('error');
+      setSubscribeError(err?.message || (isAr ? 'فشل تفعيل التكامل' : 'Failed to activate integration'));
+    }
+  };
 
   return (
     <motion.div
@@ -184,9 +202,30 @@ function IntegrationDetail({
                 </a>
               </>
             ) : (
-              <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-brand text-white hover:bg-brand-hover transition-all shadow-lg shadow-brand/20">
-                <Sparkles size={14} /> {isAr ? 'اشترك الآن' : 'Subscribe Now'} — {plan?.price || 0} AED
-              </button>
+              <div className="flex-1 space-y-2">
+                {subscribeState === 'success' ? (
+                  <div className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-emerald-500 text-white">
+                    <CheckCircle size={14} /> {isAr ? 'تم التفعيل بنجاح' : 'Activated Successfully'}
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleSubscribe}
+                    disabled={subscribeState === 'loading'}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-brand text-white hover:bg-brand-hover transition-all shadow-lg shadow-brand/20 disabled:opacity-60"
+                  >
+                    {subscribeState === 'loading' ? (
+                      <><Loader2 size={14} className="animate-spin" /> {isAr ? 'جاري التفعيل...' : 'Activating...'}</>
+                    ) : (
+                      <><Sparkles size={14} /> {isAr ? 'اشترك الآن' : 'Subscribe Now'} — {plan?.price || 0} AED</>
+                    )}
+                  </button>
+                )}
+                {subscribeState === 'error' && (
+                  <div className="flex items-center gap-2 text-xs text-red-500 px-1">
+                    <AlertCircle size={12} /> {subscribeError}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -211,6 +250,12 @@ export default function IntegrationsModule() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [detailItem, setDetailItem] = useState<(typeof ALL_INTEGRATIONS)[0] | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
+
+  /* ── Subscribe handler ─────────────────────────────────── */
+  const handleSubscribe = useCallback(async (integrationCode: string, planId: string) => {
+    if (!companyId) throw new Error(isAr ? 'لم يتم تحديد الشركة' : 'No company selected');
+    await connectIntegration(companyId, integrationCode, { plan: planId });
+  }, [companyId, isAr]);
 
   /* ── Filtering ─────────────────────────────────────────── */
   const filteredGroups =
@@ -553,6 +598,7 @@ export default function IntegrationsModule() {
             isPublic={isPublicMode}
             onClose={() => setDetailItem(null)}
             onRegister={() => { setDetailItem(null); navigate('/register'); }}
+            onSubscribe={handleSubscribe}
           />
         )}
       </AnimatePresence>
