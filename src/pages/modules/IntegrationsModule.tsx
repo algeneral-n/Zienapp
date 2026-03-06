@@ -1,40 +1,202 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
-  Plug, Search, Check, X, Loader2, ExternalLink,
-  Wifi, WifiOff, RefreshCw, AlertTriangle, Shield, Zap,
-  UserPlus, Mail,
+  Plug, Search, Check, X, ExternalLink,
+  ChevronDown, ChevronUp, UserPlus, Mail, Star,
+  CreditCard, Megaphone, Chrome, MessageSquare,
+  Calculator, TrendingUp, Layers, Globe, Lock, Sparkles,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../components/ThemeProvider';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { integrationsService } from '../../services/integrationsService';
+import {
+  INTEGRATION_GROUPS,
+  ALL_INTEGRATIONS,
+  PLAN_LABELS,
+  type Integration,
+  type IntegrationGroup,
+  type IntegrationPlan,
+} from '../../data/integrationCatalog';
 
-interface CatalogItem {
-  id: string;
-  name: string;
-  provider: string;
-  category: string;
-  description: string;
-  icon_url: string | null;
-  price_monthly: number;
-  is_active: boolean;
-  features: string[];
+/* ── Icon map for group icons ──────────────────────────────── */
+const GROUP_ICONS: Record<string, React.ElementType> = {
+  CreditCard, Megaphone, Chrome, MessageSquare,
+  Calculator, TrendingUp, Layers,
+};
+
+/* ── Expanded card modal ───────────────────────────────────── */
+function IntegrationDetail({
+  item,
+  isAr,
+  isPublic,
+  onClose,
+  onRegister,
+}: {
+  item: (typeof ALL_INTEGRATIONS)[0];
+  isAr: boolean;
+  isPublic: boolean;
+  onClose: () => void;
+  onRegister: () => void;
+}) {
+  const { t } = useTranslation();
+  const [selectedPlan, setSelectedPlan] = useState<string>('basic');
+  const plan = item.plans.find((p) => p.id === selectedPlan) || item.plans[0];
+  const planLabel = PLAN_LABELS[item.requiredPlan];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.92, opacity: 0, y: 20 }}
+        transition={{ type: 'spring', duration: 0.45 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl border border-[var(--border-soft)] bg-[var(--bg-primary)] shadow-2xl"
+      >
+        {/* Close btn */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[var(--surface-2)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] z-10"
+        >
+          <X size={16} />
+        </button>
+
+        <div className="p-6 space-y-5">
+          {/* Header */}
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--surface-2)] flex items-center justify-center overflow-hidden shrink-0">
+              {item.logo ? (
+                <img src={item.logo} alt={item.name} className="w-9 h-9 object-contain" />
+              ) : (
+                <span className="text-2xl font-black text-brand">{item.name.charAt(0)}</span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-black text-[var(--text-primary)] leading-tight">{item.name}</h2>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">{item.groupName}</p>
+              {planLabel && (
+                <span className={`inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${planLabel.color}`}>
+                  {isAr ? planLabel.ar : planLabel.en}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Description */}
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed" dir={isAr ? 'rtl' : 'ltr'}>
+            {item.description}
+          </p>
+
+          {/* Features */}
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">
+              {isAr ? 'المميزات' : 'Features'}
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {item.features.map((f, i) => (
+                <span key={i} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--surface-2)] text-[11px] font-medium text-[var(--text-primary)]">
+                  <Check size={10} className="text-brand" /> {f}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Website */}
+          <a
+            href={item.website}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 text-xs text-brand hover:underline"
+          >
+            <Globe size={12} /> {item.website}
+          </a>
+
+          {/* Pricing plans */}
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-3">
+              {isAr ? 'خطط الأسعار' : 'Pricing Plans'}
+            </h4>
+            <div className="grid grid-cols-3 gap-2">
+              {item.plans.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedPlan(p.id)}
+                  className={`rounded-xl border p-3 text-center transition-all ${
+                    selectedPlan === p.id
+                      ? 'border-brand bg-brand/5 ring-2 ring-brand/20'
+                      : 'border-[var(--border-soft)] hover:border-brand/40'
+                  }`}
+                >
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">{p.name}</div>
+                  <div className="text-lg font-black text-[var(--text-primary)] mt-0.5">
+                    {p.price === 0 ? (isAr ? 'مجاني' : 'Free') : p.price}
+                  </div>
+                  {p.price > 0 && <div className="text-[10px] text-[var(--text-secondary)]">AED/{isAr ? 'شهر' : 'mo'}</div>}
+                  <div className="text-[10px] text-[var(--text-secondary)] mt-1 line-clamp-1">{p.limit}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Selected plan features */}
+          {plan && (
+            <div className="bg-[var(--surface-2)] rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[var(--text-primary)]">{plan.name}</span>
+                <span className="text-sm font-black text-brand">
+                  {plan.price === 0 ? (isAr ? 'مجاني' : 'Free') : `${plan.price} AED/${isAr ? 'شهر' : 'mo'}`}
+                </span>
+              </div>
+              <ul className="space-y-1.5">
+                {plan.features.map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                    <Check size={10} className="text-emerald-500 shrink-0" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-3 pt-2">
+            {isPublic ? (
+              <>
+                <button
+                  onClick={onRegister}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-brand text-white hover:bg-brand-hover transition-all shadow-lg shadow-brand/20"
+                >
+                  <Lock size={14} /> {isAr ? 'سجّل للاشتراك' : 'Register to Subscribe'}
+                </button>
+                <a
+                  href={item.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold border border-[var(--border-soft)] text-[var(--text-primary)] hover:bg-[var(--surface-2)] transition-all"
+                >
+                  <ExternalLink size={14} />
+                </a>
+              </>
+            ) : (
+              <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-brand text-white hover:bg-brand-hover transition-all shadow-lg shadow-brand/20">
+                <Sparkles size={14} /> {isAr ? 'اشترك الآن' : 'Subscribe Now'} — {plan?.price || 0} AED
+              </button>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 }
 
-interface TenantIntegration {
-  id: string;
-  company_id: string;
-  catalog_id: string;
-  provider: string;
-  status: 'active' | 'inactive' | 'error';
-  config: Record<string, unknown>;
-  last_health_check: string | null;
-  created_at: string;
-}
-
+/* ── Main component ────────────────────────────────────────── */
 export default function IntegrationsModule() {
   const { language } = useTheme();
   const { t } = useTranslation();
@@ -43,250 +205,360 @@ export default function IntegrationsModule() {
   const { user } = useAuth();
   const companyId = activeCompany?.id;
   const isPublicMode = !user || !companyId;
+  const isAr = language === 'ar';
 
-  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
-  const [connected, setConnected] = useState<TenantIntegration[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterCat, setFilterCat] = useState('all');
-  const [connectingId, setConnectingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [activeGroup, setActiveGroup] = useState<string>('all');
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [detailItem, setDetailItem] = useState<(typeof ALL_INTEGRATIONS)[0] | null>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
 
-  // Fallback catalog for public showcase mode
-  const FALLBACK_CATALOG: CatalogItem[] = [
-    { id: 'whatsapp', name: 'WhatsApp Business', provider: 'whatsapp', category: 'communication', description: 'Official WhatsApp Business API for customer messaging and notifications', icon_url: null, price_monthly: 0, is_active: true, features: ['Messaging', 'Notifications', 'Templates'] },
-    { id: 'vonage', name: 'Vonage', provider: 'vonage', category: 'communication', description: 'SMS, Voice, and Video communication platform', icon_url: null, price_monthly: 49, is_active: true, features: ['SMS', 'Voice', 'Video'] },
-    { id: 'stripe', name: 'Stripe', provider: 'stripe', category: 'payment', description: 'Online payment processing for internet businesses', icon_url: null, price_monthly: 0, is_active: true, features: ['Payments', 'Invoicing', 'Subscriptions'] },
-    { id: 'moyasar', name: 'Moyasar', provider: 'moyasar', category: 'payment', description: 'Saudi Arabia payment gateway with Mada and SADAD support', icon_url: null, price_monthly: 0, is_active: true, features: ['Mada', 'SADAD', 'Apple Pay'] },
-    { id: 'google-workspace', name: 'Google Workspace', provider: 'google', category: 'productivity', description: 'Google Suite integration for Drive, Calendar, and Gmail', icon_url: null, price_monthly: 0, is_active: true, features: ['Drive', 'Calendar', 'Gmail'] },
-    { id: 'microsoft-365', name: 'Microsoft 365', provider: 'microsoft', category: 'productivity', description: 'Microsoft Office suite with Teams, Outlook, and OneDrive', icon_url: null, price_monthly: 0, is_active: true, features: ['Teams', 'Outlook', 'OneDrive'] },
-    { id: 'zapier', name: 'Zapier', provider: 'zapier', category: 'automation', description: 'Connect and automate workflows between 5000+ apps', icon_url: null, price_monthly: 29, is_active: true, features: ['Workflows', 'Triggers', 'Actions'] },
-    { id: 'slack', name: 'Slack', provider: 'slack', category: 'communication', description: 'Team messaging and collaboration platform', icon_url: null, price_monthly: 0, is_active: true, features: ['Channels', 'DMs', 'Bots'] },
-    { id: 'quickbooks', name: 'QuickBooks', provider: 'quickbooks', category: 'accounting', description: 'Accounting software for small and medium businesses', icon_url: null, price_monthly: 15, is_active: true, features: ['Invoicing', 'Expenses', 'Reports'] },
-    { id: 'xero', name: 'Xero', provider: 'xero', category: 'accounting', description: 'Cloud accounting software for growing businesses', icon_url: null, price_monthly: 13, is_active: true, features: ['Bank Feeds', 'Payroll', 'Projects'] },
-    { id: 'shopify', name: 'Shopify', provider: 'shopify', category: 'ecommerce', description: 'E-commerce platform for online and retail stores', icon_url: null, price_monthly: 39, is_active: true, features: ['Store', 'Inventory', 'Analytics'] },
-    { id: 'salla', name: 'Salla', provider: 'salla', category: 'ecommerce', description: 'Saudi e-commerce platform for Arabic online stores', icon_url: null, price_monthly: 0, is_active: true, features: ['Arabic Store', 'Payments', 'Shipping'] },
-  ];
+  /* ── Filtering ─────────────────────────────────────────── */
+  const filteredGroups =
+    activeGroup === 'all'
+      ? INTEGRATION_GROUPS
+      : INTEGRATION_GROUPS.filter((g) => g.id === activeGroup);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const catalogResult = await integrationsService.getCatalog();
-      const items = (catalogResult as any)?.catalog || catalogResult || [];
-      setCatalog(items.length > 0 ? items : FALLBACK_CATALOG);
-      if (companyId) {
-        const connResult = await integrationsService.getCompanyIntegrations(companyId);
-        setConnected((connResult as any)?.integrations || connResult || []);
-      }
-    } catch (e: any) {
-      // Use fallback catalog on API error
-      setCatalog(FALLBACK_CATALOG);
-      if (!isPublicMode) setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const searchLower = search.toLowerCase();
+  const filteredGroupsWithSearch = filteredGroups
+    .map((g) => ({
+      ...g,
+      integrations: g.integrations.filter(
+        (i) =>
+          !search ||
+          i.name.toLowerCase().includes(searchLower) ||
+          i.description.toLowerCase().includes(searchLower) ||
+          i.features.some((f) => f.toLowerCase().includes(searchLower)),
+      ),
+    }))
+    .filter((g) => g.integrations.length > 0);
 
-  useEffect(() => { fetchData(); }, [companyId]);
+  const totalCount = ALL_INTEGRATIONS.length;
+  const visibleCount = filteredGroupsWithSearch.reduce((n, g) => n + g.integrations.length, 0);
 
-  const handleConnect = async (catalogItem: CatalogItem) => {
-    if (!companyId) return;
-    setConnectingId(catalogItem.id);
-    try {
-      await integrationsService.connect(companyId, catalogItem.provider, { catalog_id: catalogItem.id });
-      await fetchData();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setConnectingId(null);
-    }
-  };
-
-  const handleDisconnect = async (integration: TenantIntegration) => {
-    if (!companyId) return;
-    setConnectingId(integration.id);
-    try {
-      await integrationsService.disconnect(companyId, integration.provider);
-      await fetchData();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setConnectingId(null);
-    }
-  };
-
-  const connectedProviders = new Set(connected.filter(c => c.status === 'active').map(c => c.provider));
-  const connectedMap = new Map(connected.map(c => [c.provider, c]));
-
-  const categories = ['all', ...Array.from(new Set(catalog.map(c => c.category)))];
-  const filtered = catalog.filter(item => {
-    const matchSearch = !search || item.name.toLowerCase().includes(search.toLowerCase()) || item.provider.toLowerCase().includes(search.toLowerCase());
-    const matchCat = filterCat === 'all' || item.category === filterCat;
-    return matchSearch && matchCat;
-  });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-      </div>
-    );
-  }
-
+  /* ── Render ────────────────────────────────────────────── */
   return (
-    <div className={`space-y-8 max-w-6xl mx-auto ${isPublicMode ? 'pt-28 px-4 pb-12' : ''}`}>
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black uppercase tracking-tighter">{t('integrations')}</h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">{t('integrations_desc')}</p>
-        </div>
-        {isPublicMode ? (
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/register')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-brand text-white hover:bg-brand-hover transition-all shadow-lg shadow-brand/20">
-              <UserPlus size={14} /> {t('register')}
-            </button>
-            <button onClick={() => navigate('/contact')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold border border-[var(--border-soft)] text-[var(--text-primary)] hover:bg-[var(--surface-2)] transition-all">
-              <Mail size={14} /> {t('contact')}
-            </button>
+    <div className={`space-y-8 max-w-7xl mx-auto ${isPublicMode ? 'pt-28 px-4 pb-16' : 'px-2'}`} dir={isAr ? 'rtl' : 'ltr'}>
+      {/* ── Hero ──────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand/10 via-[var(--surface-2)] to-brand/5 border border-[var(--border-soft)] p-8 md:p-12">
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, var(--text-primary) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div className="relative z-10 max-w-2xl">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center">
+              <Plug size={20} className="text-brand" />
+            </div>
+            <span className="px-3 py-1 rounded-full bg-brand/10 text-brand text-[11px] font-bold">
+              {totalCount} {isAr ? 'تكامل متاح' : 'Integrations Available'}
+            </span>
           </div>
-        ) : (
-          <button onClick={fetchData} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all">
-            <RefreshCw size={14} /> {t('refresh')}
+          <h1 className="text-3xl md:text-4xl font-black text-[var(--text-primary)] leading-tight">
+            {isAr ? 'سوق التكاملات' : 'Integrations Marketplace'}
+          </h1>
+          <p className="text-sm md:text-base text-[var(--text-secondary)] mt-3 leading-relaxed max-w-xl">
+            {isAr
+              ? 'اكتشف وفعّل التكاملات مع أقوى المنصات العالمية — أنظمة دفع، إعلانات، تحليلات، اتصالات، محاسبة، وإدارة أعمال. كل تكامل بخطط أسعار مرنة.'
+              : 'Discover and activate integrations with the world\'s leading platforms — payments, ads, analytics, communication, accounting, and business management. Flexible pricing plans for every integration.'}
+          </p>
+          {isPublicMode && (
+            <div className="flex items-center gap-3 mt-6 flex-wrap">
+              <button
+                onClick={() => navigate('/register')}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-brand text-white hover:bg-brand-hover transition-all shadow-lg shadow-brand/20"
+              >
+                <UserPlus size={16} /> {isAr ? 'سجّل شركتك لتفعيل التكاملات' : 'Register Your Company to Activate'}
+              </button>
+              <button
+                onClick={() => navigate('/contact')}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold border border-[var(--border-soft)] text-[var(--text-primary)] hover:bg-[var(--surface-2)] transition-all"
+              >
+                <Mail size={16} /> {isAr ? 'تواصل معنا' : 'Contact Us'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Search ──────────────────────────────────────────── */}
+      <div className="relative max-w-xl mx-auto">
+        <Search className={`absolute ${isAr ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-[var(--text-secondary)]`} size={18} />
+        <input
+          type="text"
+          placeholder={isAr ? 'ابحث في التكاملات...' : 'Search integrations...'}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className={`w-full ${isAr ? 'pr-11 pl-4' : 'pl-11 pr-4'} py-3.5 bg-[var(--bg-primary)] border border-[var(--border-soft)] rounded-2xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none focus:ring-2 focus:ring-brand/30 transition-all`}
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className={`absolute ${isAr ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}>
+            <X size={16} />
           </button>
         )}
       </div>
 
-      {error && (
-        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-800 text-red-600 p-4 rounded-2xl text-sm flex items-center gap-2">
-          <AlertTriangle size={16} /> {error}
-          <button onClick={() => setError(null)} className="ml-auto"><X size={14} /></button>
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: t('int_available'), value: catalog.length, icon: Plug, color: 'text-blue-600 bg-blue-50 dark:bg-blue-600/10' },
-          { label: t('int_connected'), value: connectedProviders.size, icon: Wifi, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' },
-          { label: t('int_free'), value: catalog.filter(c => !c.price_monthly).length, icon: Zap, color: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' },
-          { label: t('int_categories'), value: categories.length - 1, icon: Shield, color: 'text-zinc-600 bg-zinc-100 dark:bg-zinc-800' },
-        ].map(s => (
-          <div key={s.label} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 ${s.color}`}><s.icon size={16} /></div>
-            <div className="text-xl font-black">{s.value}</div>
-            <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Search + Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
-          <input
-            type="text"
-            placeholder={t('search_integrations')}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setFilterCat(cat)}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all capitalize ${filterCat === cat ? 'bg-blue-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200'}`}
-            >
-              {cat === 'all' ? t('all') : cat}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((item, i) => {
-          const isConnected = connectedProviders.has(item.provider);
-          const integration = connectedMap.get(item.provider);
-          const isProcessing = connectingId === item.id || connectingId === integration?.id;
-
+      {/* ── Category tabs (horizontal scroll) ───────────────── */}
+      <div ref={tabsRef} className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+        <button
+          onClick={() => setActiveGroup('all')}
+          className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            activeGroup === 'all'
+              ? 'bg-brand text-white shadow-md shadow-brand/20'
+              : 'bg-[var(--surface-2)] text-[var(--text-secondary)] hover:bg-brand/10 hover:text-brand border border-[var(--border-soft)]'
+          }`}
+        >
+          <Plug size={14} />
+          {isAr ? 'الكل' : 'All'} ({totalCount})
+        </button>
+        {INTEGRATION_GROUPS.map((g) => {
+          const Icon = GROUP_ICONS[g.icon] || Plug;
           return (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              className={`bg-white dark:bg-zinc-900 border rounded-2xl p-6 transition-all hover:shadow-lg ${isConnected ? 'border-emerald-300 dark:border-emerald-700' : 'border-zinc-200 dark:border-zinc-800'}`}
+            <button
+              key={g.id}
+              onClick={() => setActiveGroup(g.id)}
+              className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeGroup === g.id
+                  ? 'bg-brand text-white shadow-md shadow-brand/20'
+                  : 'bg-[var(--surface-2)] text-[var(--text-secondary)] hover:bg-brand/10 hover:text-brand border border-[var(--border-soft)]'
+              }`}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg font-black text-blue-600">
-                    {item.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm">{item.name}</h3>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{item.category}</p>
-                  </div>
-                </div>
-                {isConnected ? (
-                  <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10">
-                    <Wifi size={10} /> {t('int_connected')}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-500 dark:bg-zinc-800">
-                    <WifiOff size={10} /> {t('offline')}
-                  </span>
-                )}
-              </div>
-
-              <p className="text-xs text-zinc-500 mb-4 line-clamp-2">{item.description || t('integrate_with', { provider: item.provider })}</p>
-
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold">
-                  {item.price_monthly ? `${item.price_monthly} AED/${t('month_short')}` : t('int_free')}
-                </span>
-                {isPublicMode ? (
-                  <button
-                    onClick={() => navigate('/register')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-brand text-white hover:bg-brand-hover transition-all"
-                  >
-                    <ExternalLink size={12} />
-                    {t('register')}
-                  </button>
-                ) : isConnected ? (
-                  <button
-                    disabled={isProcessing}
-                    onClick={() => integration && handleDisconnect(integration)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 transition-all disabled:opacity-50"
-                  >
-                    {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
-                    {t('disconnect')}
-                  </button>
-                ) : (
-                  <button
-                    disabled={isProcessing}
-                    onClick={() => handleConnect(item)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
-                  >
-                    {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />}
-                    {t('connect')}
-                  </button>
-                )}
-              </div>
-            </motion.div>
+              <Icon size={14} />
+              {isAr ? g.name : g.nameEn} ({g.integrations.length})
+            </button>
           );
         })}
       </div>
 
-      {filtered.length === 0 && (
-        <div className="text-center py-16 text-zinc-400">
-          <Plug className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p className="font-bold">{t('no_matching_integrations')}</p>
-          <p className="text-xs mt-1">{t('try_adjusting_search')}</p>
+      {/* ── Results count ───────────────────────────────────── */}
+      {search && (
+        <p className="text-xs text-[var(--text-secondary)]">
+          {isAr
+            ? `عرض ${visibleCount} من ${totalCount} تكامل`
+            : `Showing ${visibleCount} of ${totalCount} integrations`}
+        </p>
+      )}
+
+      {/* ── Group sections ──────────────────────────────────── */}
+      {filteredGroupsWithSearch.map((group) => {
+        const Icon = GROUP_ICONS[group.icon] || Plug;
+        return (
+          <section key={group.id} className="space-y-4">
+            {/* Group header */}
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${group.color} text-white flex items-center justify-center`}>
+                <Icon size={18} />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-[var(--text-primary)]">{isAr ? group.name : group.nameEn}</h2>
+                <p className="text-[11px] text-[var(--text-secondary)]">
+                  {group.integrations.length} {isAr ? 'تكامل' : 'integrations'}
+                </p>
+              </div>
+            </div>
+
+            {/* Integration cards grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {group.integrations.map((item, idx) => {
+                const planLabel = PLAN_LABELS[item.requiredPlan];
+                const isExpanded = expandedCard === item.id;
+                const minPrice = Math.min(...item.plans.map((p) => p.price));
+                const allItem = ALL_INTEGRATIONS.find((a) => a.id === item.id)!;
+
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.04, duration: 0.3 }}
+                    className="group relative bg-[var(--bg-primary)] border border-[var(--border-soft)] rounded-2xl overflow-hidden hover:shadow-lg hover:border-brand/30 transition-all"
+                  >
+                    {/* Card body */}
+                    <div className="p-5">
+                      {/* Logo + name + plan badge */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-11 h-11 rounded-xl bg-[var(--surface-2)] flex items-center justify-center overflow-hidden shrink-0">
+                          {item.logo ? (
+                            <img src={item.logo} alt={item.name} className="w-7 h-7 object-contain" loading="lazy" />
+                          ) : (
+                            <span className="text-lg font-black text-brand">{item.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-sm text-[var(--text-primary)] truncate">{item.name}</h3>
+                          {planLabel && (
+                            <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[9px] font-bold ${planLabel.color}`}>
+                              {isAr ? planLabel.ar : planLabel.en}
+                            </span>
+                          )}
+                        </div>
+                        {/* Price badge */}
+                        <div className="text-right shrink-0">
+                          <div className="text-xs font-black text-brand">
+                            {minPrice === 0 ? (isAr ? 'مجاني' : 'Free') : `${minPrice}`}
+                          </div>
+                          {minPrice > 0 && (
+                            <div className="text-[9px] text-[var(--text-secondary)]">AED/{isAr ? 'شهر' : 'mo'}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-2 mb-3" dir={isAr ? 'rtl' : 'ltr'}>
+                        {item.description}
+                      </p>
+
+                      {/* Features pills (top 3) */}
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {item.features.slice(0, 3).map((f, fi) => (
+                          <span key={fi} className="px-2 py-0.5 rounded-md bg-[var(--surface-2)] text-[10px] font-medium text-[var(--text-secondary)]">
+                            {f}
+                          </span>
+                        ))}
+                        {item.features.length > 3 && (
+                          <span className="px-2 py-0.5 rounded-md bg-[var(--surface-2)] text-[10px] font-medium text-[var(--text-secondary)]">
+                            +{item.features.length - 3}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Expand / collapse pricing */}
+                      <button
+                        onClick={() => setExpandedCard(isExpanded ? null : item.id)}
+                        className="flex items-center gap-1 text-[11px] font-bold text-brand hover:underline"
+                      >
+                        {isExpanded
+                          ? (isAr ? 'إخفاء الخطط' : 'Hide Plans')
+                          : (isAr ? 'عرض الخطط' : 'View Plans')}
+                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      </button>
+
+                      {/* Expanded pricing */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-3 space-y-2">
+                              {item.plans.map((p) => (
+                                <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--surface-2)]">
+                                  <div>
+                                    <div className="text-xs font-bold text-[var(--text-primary)]">{p.name}</div>
+                                    <div className="text-[10px] text-[var(--text-secondary)]">{p.limit}</div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-sm font-black text-brand">
+                                      {p.price === 0 ? (isAr ? 'مجاني' : 'Free') : `${p.price} AED`}
+                                    </div>
+                                    {p.price > 0 && (
+                                      <div className="text-[9px] text-[var(--text-secondary)]">/{isAr ? 'شهر' : 'month'}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Footer action */}
+                    <div className="border-t border-[var(--border-soft)] p-3 flex items-center gap-2">
+                      {isPublicMode ? (
+                        <>
+                          <button
+                            onClick={() => navigate('/register')}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold bg-brand text-white hover:bg-brand-hover transition-all"
+                          >
+                            <Lock size={12} /> {isAr ? 'سجّل للتفعيل' : 'Register to Activate'}
+                          </button>
+                          <button
+                            onClick={() => setDetailItem(allItem)}
+                            className="px-3 py-2 rounded-xl text-[11px] font-bold border border-[var(--border-soft)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)] transition-all"
+                          >
+                            {isAr ? 'تفاصيل' : 'Details'}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setDetailItem(allItem)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold bg-brand text-white hover:bg-brand-hover transition-all"
+                          >
+                            <Sparkles size={12} /> {isAr ? 'اشترك' : 'Subscribe'}
+                          </button>
+                          <a
+                            href={item.website}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-2 rounded-xl text-[11px] font-bold border border-[var(--border-soft)] text-[var(--text-secondary)] hover:bg-[var(--surface-2)] transition-all"
+                          >
+                            <ExternalLink size={12} />
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+
+      {/* ── Empty state ─────────────────────────────────────── */}
+      {filteredGroupsWithSearch.length === 0 && (
+        <div className="text-center py-20 text-[var(--text-secondary)]">
+          <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
+          <p className="font-bold text-sm">{isAr ? 'لا توجد نتائج' : 'No matching integrations'}</p>
+          <p className="text-xs mt-1 opacity-70">{isAr ? 'جرّب كلمات مختلفة' : 'Try different search terms'}</p>
+          <button onClick={() => { setSearch(''); setActiveGroup('all'); }} className="mt-4 text-xs font-bold text-brand hover:underline">
+            {isAr ? 'إعادة تعيين' : 'Reset Filters'}
+          </button>
         </div>
       )}
+
+      {/* ── CTA banner ──────────────────────────────────────── */}
+      {isPublicMode && (
+        <div className="rounded-3xl bg-gradient-to-r from-brand/10 to-brand/5 border border-brand/20 p-8 md:p-10 text-center space-y-4">
+          <h3 className="text-xl md:text-2xl font-black text-[var(--text-primary)]">
+            {isAr ? 'جاهز لتفعيل التكاملات؟' : 'Ready to Activate Integrations?'}
+          </h3>
+          <p className="text-sm text-[var(--text-secondary)] max-w-lg mx-auto">
+            {isAr
+              ? 'سجّل شركتك على منصة Zien AI واحصل على وصول كامل لجميع التكاملات مع خطط أسعار مرنة ودعم فني متواصل.'
+              : 'Register your company on Zien AI and get full access to all integrations with flexible pricing plans and continuous technical support.'}
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button
+              onClick={() => navigate('/register')}
+              className="flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold bg-brand text-white hover:bg-brand-hover transition-all shadow-lg shadow-brand/20"
+            >
+              <UserPlus size={16} /> {isAr ? 'ابدأ الآن مجاناً' : 'Start Free Now'}
+            </button>
+            <button
+              onClick={() => navigate('/contact')}
+              className="flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold border border-[var(--border-soft)] text-[var(--text-primary)] hover:bg-[var(--surface-2)] transition-all"
+            >
+              <Mail size={16} /> {isAr ? 'تحدث مع فريقنا' : 'Talk to Our Team'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Detail modal ────────────────────────────────────── */}
+      <AnimatePresence>
+        {detailItem && (
+          <IntegrationDetail
+            item={detailItem}
+            isAr={isAr}
+            isPublic={isPublicMode}
+            onClose={() => setDetailItem(null)}
+            onRegister={() => { setDetailItem(null); navigate('/register'); }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
