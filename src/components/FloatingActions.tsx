@@ -34,7 +34,6 @@ interface FloatingActionsProps {
 export default function FloatingActions({ user, pageContext }: FloatingActionsProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const showBack = location.pathname !== '/' && location.pathname !== '';
   const { mode: themeMode } = useTheme();
   const { t: translate, i18n } = useTranslation();
   const { profile } = useAuth();

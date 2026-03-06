@@ -15,7 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
-  const showBackButton = location.pathname !== '/' && location.pathname !== '';
+  const showBackButton = location.pathname !== '/' && location.pathname !== '' && !['/dashboard', '/login', '/register', '/employee', '/client'].includes(location.pathname) && !location.pathname.startsWith('/integrations');
   const { language, t: translate } = useTheme();
   const { user, profile, signOut } = useAuth();
   const isLoggedIn = !!user;
@@ -278,11 +278,10 @@ export default function Header() {
                   <button
                     key={item.path}
                     onClick={() => { navigate(item.path); setMenuOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      location.pathname === item.path || location.pathname.startsWith(item.path + '/')
-                        ? 'bg-brand text-white shadow-lg shadow-brand/20'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+                      ? 'bg-brand text-white shadow-lg shadow-brand/20'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
+                      }`}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
                     {item.label}

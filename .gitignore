@@ -10,3 +10,5 @@ worker/node_modules/
 worker/dist/
 *.OLD
 *.DELETED
+scripts/
+signup.json

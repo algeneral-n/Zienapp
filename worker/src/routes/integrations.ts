@@ -61,12 +61,13 @@ async function getCatalog(request: Request, env: Env): Promise<Response> {
 
   let query = adminClient
     .from('integrations_catalog')
-    .select('id, code, name, category, provider, pricing_model, setup_mode, webhook_support, status')
+    .select('id, code, name, description, category, icon_url, is_active, config_schema, commission_rate, tiered_pricing')
     .order('category')
     .order('name');
 
   if (category) query = query.eq('category', category);
-  if (status) query = query.eq('status', status);
+  if (status === 'active') query = query.eq('is_active', true);
+  else if (status === 'inactive') query = query.eq('is_active', false);
 
   const { data, error } = await query;
   if (error) return errorResponse(error.message, 500);
@@ -95,8 +96,8 @@ async function getCompanyIntegrations(
   const { data, error } = await supabase
     .from('tenant_integrations')
     .select(`
-      id, status, config, enabled_at, disabled_at,
-      integrations_catalog!inner(code, name, category, provider, pricing_model)
+      id, status, config, activated_at,
+      integrations_catalog!inner(code, name, category)
     `)
     .eq('company_id', companyId);
 
@@ -144,9 +145,9 @@ async function connectIntegration(
   // Get integration from catalog
   const { data: integration } = await adminClient
     .from('integrations_catalog')
-    .select('id, code, name, status')
+    .select('id, code, name, is_active')
     .eq('code', body.integrationCode)
-    .eq('status', 'active')
+    .eq('is_active', true)
     .maybeSingle();
 
   if (!integration) return errorResponse('Integration not found or inactive', 404);
@@ -160,8 +161,7 @@ async function connectIntegration(
         integration_id: integration.id,
         config: body.config ?? {},
         status: 'active',
-        enabled_at: new Date().toISOString(),
-        disabled_at: null,
+        activated_at: new Date().toISOString(),
       },
       { onConflict: 'company_id,integration_id' },
     )
@@ -173,11 +173,11 @@ async function connectIntegration(
   // Log audit
   await supabase.from('audit_logs').insert({
     company_id: body.companyId,
-    user_id: userId,
+    member_id: userId,
     action: 'integration.connect',
     entity_type: 'tenant_integrations',
     entity_id: tenantIntg.id,
-    new_values: { integrationCode: body.integrationCode },
+    new_value: { integrationCode: body.integrationCode },
   });
 
   return jsonResponse({
@@ -231,7 +231,7 @@ async function disconnectIntegration(
 
   const { error } = await adminClient
     .from('tenant_integrations')
-    .update({ status: 'inactive', disabled_at: new Date().toISOString() })
+    .update({ status: 'inactive' })
     .eq('company_id', body.companyId)
     .eq('integration_id', integration.id);
 
@@ -240,10 +240,10 @@ async function disconnectIntegration(
   // Log audit
   await supabase.from('audit_logs').insert({
     company_id: body.companyId,
-    user_id: userId,
+    member_id: userId,
     action: 'integration.disconnect',
     entity_type: 'tenant_integrations',
-    new_values: { integrationCode: body.integrationCode },
+    new_value: { integrationCode: body.integrationCode },
   });
 
   return jsonResponse({ integrationCode: body.integrationCode, status: 'inactive' });
