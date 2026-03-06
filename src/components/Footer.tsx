@@ -17,7 +17,6 @@ export default function Footer() {
     { label: translate('features'), path: '/features' },
     { label: translate('integrations'), path: '/integrations' },
     { label: translate('industries'), path: '/industries' },
-    { label: translate('pricing'), path: '/pricing' },
     { label: translate('academy'), path: '/academy' },
     { label: translate('help'), path: '/help' },
     { label: translate('contact'), path: '/contact' },

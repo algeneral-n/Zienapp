@@ -23,6 +23,7 @@ const AcademyPage = React.lazy(() => import('./pages/public/AcademyPage'));
 const HelpCenterPage = React.lazy(() => import('./pages/public/HelpCenterPage'));
 const LegalPage = React.lazy(() => import('./pages/public/LegalPage'));
 const IntegrationsModule = React.lazy(() => import('./pages/modules/IntegrationsModule'));
+const AcceptInvitePage = React.lazy(() => import('./pages/public/AcceptInvitePage'));
 
 // Auth pages
 const AuthCallback = React.lazy(() => import('./pages/auth/AuthCallback'));
@@ -66,6 +67,7 @@ function AppRoutes() {
           <Route path="/terms" element={<LegalPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<OnboardingWizard />} />
+          <Route path="/invite/:token" element={<AcceptInvitePage />} />
         </Route>
 
         {/* ─── Auth routes (callback only — no layout chrome) ──── */}

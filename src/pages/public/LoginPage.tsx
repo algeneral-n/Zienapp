@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
-import { Mail, Lock, ArrowRight, ShieldCheck, Globe, Phone, UserPlus, KeyRound, Smartphone } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ShieldCheck, Globe, Phone, UserPlus, KeyRound, Smartphone, Building2 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 
 type AuthView = 'login' | 'forgot' | 'register' | 'set-password' | 'phone-login' | 'otp-verify';
 
@@ -15,8 +17,10 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -84,6 +88,7 @@ export default function LoginPage() {
   const handleCheckRegistered = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
@@ -92,10 +97,26 @@ export default function LoginPage() {
           redirectTo: `${window.location.origin}/login`,
         });
         if (authError) throw authError;
-        setError(language === 'ar' ? 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.' : 'Password reset link has been sent to your email.');
+        setSuccess(language === 'ar' ? 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.' : 'Password reset link has been sent to your email.');
       } else if (view === 'register') {
-        // For registration, we redirect to the onboarding wizard
-        window.location.href = '/onboarding';
+        // Check if email is allowed to register (invite-only system)
+        const res = await fetch(`${API_URL}/api/auth/check-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: identifier.trim().toLowerCase() }),
+        });
+        const data = await res.json() as { allowed?: boolean; message?: string; full_name?: string };
+        
+        if (!data.allowed) {
+          setError(language === 'ar' 
+            ? 'هذا البريد غير مصرح له بالتسجيل. تواصل مع مسؤول النظام.' 
+            : 'This email is not authorized to register. Contact your administrator.');
+          return;
+        }
+
+        // Email is allowed — move to set-password view
+        if (data.full_name) setFullName(data.full_name);
+        setView('set-password');
       }
     } catch (err: any) {
       setError(err.message || 'Verification failed.');
@@ -120,6 +141,57 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (password.length < 8) {
+      setError(language === 'ar' ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' : 'Password must be at least 8 characters');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError(language === 'ar' ? 'كلمة المرور غير متطابقة' : 'Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: identifier.trim().toLowerCase(),
+          password,
+          full_name: fullName,
+        }),
+      });
+      const data = await res.json() as { success?: boolean; message?: string; existing?: boolean; error?: string };
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Registration failed');
+      }
+
+      // Success! Show message and redirect to login
+      setSuccess(language === 'ar' 
+        ? 'تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.' 
+        : 'Account created successfully! You can now sign in.');
+      setPassword('');
+      setConfirmPassword('');
+      
+      // Auto-redirect to login after 2 seconds
+      setTimeout(() => {
+        setView('login');
+        setSuccess('');
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -199,7 +271,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {error && <p className={`text-sm font-medium ${error.includes('successfully') ? 'text-green-500' : 'text-red-500'}`}>{error}</p>}
+            {error && <p className={`text-sm font-medium text-red-500`}>{error}</p>}
+            {success && <p className="text-sm font-medium text-green-500">{success}</p>}
 
             <button
               type="submit"
@@ -282,6 +355,102 @@ export default function LoginPage() {
           </motion.form>
         );
 
+      case 'set-password':
+        return (
+          <motion.form
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onSubmit={handleSetPassword}
+            className="space-y-6"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-green-500/10 rounded-xl text-green-500">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">
+                  {language === 'ar' ? 'إنشاء كلمة المرور' : 'Create Password'}
+                </h2>
+                <p className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-widest">
+                  {identifier}
+                </p>
+              </div>
+            </div>
+
+            {fullName && (
+              <p className="text-sm text-[var(--text-secondary)]">
+                {language === 'ar' ? `مرحباً ${fullName}` : `Welcome ${fullName}`}
+              </p>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                {language === 'ar' ? 'الاسم الكامل' : 'Full Name'}
+              </label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-brand/50"
+                placeholder={language === 'ar' ? 'الاسم الكامل' : 'Full Name'}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                {language === 'ar' ? 'كلمة المرور' : 'Password'}
+              </label>
+              <div className="relative">
+                <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-brand/50"
+                  placeholder="••••••••"
+                  minLength={8}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                {language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
+              </label>
+              <div className="relative">
+                <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-brand/50"
+                  placeholder="••••••••"
+                  minLength={8}
+                  required
+                />
+              </div>
+            </div>
+
+            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+            {success && <p className="text-green-500 text-sm font-medium">{success}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-all disabled:opacity-50 shadow-lg shadow-green-600/20"
+            >
+              {loading
+                ? (language === 'ar' ? 'جاري إنشاء الحساب...' : 'Creating Account...')
+                : (language === 'ar' ? 'إنشاء الحساب' : 'Create Account')}
+            </button>
+
+            <button type="button" onClick={() => { setView('login'); setError(''); setSuccess(''); }} className="w-full text-sm font-bold text-[var(--text-muted)] hover:text-brand transition-colors">
+              {language === 'ar' ? 'العودة لتسجيل الدخول' : 'Return to Login'}
+            </button>
+          </motion.form>
+        );
+
       case 'phone-login':
         return (
           <motion.form
@@ -323,6 +492,10 @@ export default function LoginPage() {
               {loading
                 ? (language === 'ar' ? 'جاري إرسال الرمز...' : 'Sending Code...')
                 : (language === 'ar' ? 'إرسال الرمز' : 'Send OTP')}
+            </button>
+
+            <button type="button" onClick={() => setView('login')} className="w-full text-sm font-bold text-[var(--text-muted)] hover:text-brand transition-colors">
+              {language === 'ar' ? 'العودة لتسجيل الدخول' : 'Return to Login'}
             </button>
           </motion.form>
         );
@@ -426,12 +599,22 @@ export default function LoginPage() {
         <div className="mt-8 text-center space-y-4">
           <p className="text-sm text-[var(--text-secondary)]">
             {view === 'login' ? (
-              <>
-                {language === 'ar' ? 'أول مرة هنا؟' : 'First time here?'}
-                <button onClick={() => setView('register')} className="text-brand font-bold hover:underline ml-1">{t.register}</button>
-              </>
+              <span className="flex flex-col gap-2 items-center">
+                <span>
+                  {language === 'ar' ? 'لديك دعوة؟' : 'Have an invitation?'}
+                  <button onClick={() => setView('register')} className="text-brand font-bold hover:underline ml-1">
+                    {language === 'ar' ? 'تنشيط الحساب' : 'Activate Account'}
+                  </button>
+                </span>
+                <span>
+                  {language === 'ar' ? 'شركة جديدة؟' : 'New company?'}
+                  <button onClick={() => navigate('/register')} className="text-brand font-bold hover:underline ml-1">
+                    {language === 'ar' ? 'تسجيل شركة' : 'Register Company'}
+                  </button>
+                </span>
+              </span>
             ) : (
-              <button onClick={() => setView('login')} className="text-brand font-bold hover:underline">{language === 'ar' ? 'العودة لتسجيل الدخول' : 'Back to Login'}</button>
+              <button onClick={() => { setView('login'); setError(''); setSuccess(''); }} className="text-brand font-bold hover:underline">{language === 'ar' ? 'العودة لتسجيل الدخول' : 'Back to Login'}</button>
             )}
           </p>
           <div className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">

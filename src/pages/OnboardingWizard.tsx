@@ -244,70 +244,69 @@ export default function OnboardingWizard() {
   const handleCompleteRegistration = async () => {
     setLoading(true);
     setError('');
+    const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
+
     try {
-      // 1. Create Auth User
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      // 1. Register company + GM user via Worker API (server-side user creation)
+      const regRes = await fetch(`${API_URL}/api/auth/register-company`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_name: formData.companyName,
+          company_name_ar: formData.companyNameAr || formData.companyName,
+          industry: formData.industry,
+          company_type: formData.industry || 'startup',
+          company_size: employeeCount,
+          cr_number: formData.tradeLicenseNumber || '',
+          country: formData.country,
+          city: formData.city || '',
+          gm_email: formData.gmEmail,
+          gm_password: formData.gmPassword,
+          gm_name: formData.gmName,
+          gm_phone: phoneNumber || '',
+          selected_modules: selectedModules,
+          billing_cycle: billingCycle,
+        }),
+      });
+      const regData = await regRes.json() as {
+        success?: boolean;
+        error?: string;
+        company?: { id: string; name: string; slug: string };
+        user?: { id: string; email: string };
+        message?: string;
+      };
+
+      if (!regRes.ok || !regData.success) {
+        throw new Error(regData.error || regData.message || 'Registration failed');
+      }
+
+      const companyId = regData.company!.id;
+      const userId = regData.user!.id;
+
+      // 2. Sign in with the newly created credentials
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.gmEmail,
         password: formData.gmPassword,
-        options: { data: { full_name: formData.gmName, phone: phoneNumber || undefined } },
-      });
-      if (signUpError) throw new Error(signUpError.message);
-      if (!authData.user) throw new Error(language === 'ar' ? 'فشل إنشاء الحساب' : 'Account creation failed');
-
-      // 2. Create / upsert profile
-      await supabase.from('profiles').upsert({
-        id: authData.user.id,
-        full_name: formData.gmName,
-        display_name: formData.gmName.split(' ')[0],
-        email: formData.gmEmail,
-        phone: phoneNumber || null,
-        is_active: true,
-      }, { onConflict: 'id' });
-
-      // 3. Create company record
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name_ar: formData.companyNameAr || formData.companyName,
-          name_en: formData.companyName,
-          owner_user_id: authData.user.id,
-          country: formData.country,
-          currency: 'AED',
-          status: 'provisioning',
-          city: formData.city,
-          industry: formData.industry,
-          employee_count: employeeCount,
-          trade_license_number: formData.tradeLicenseNumber,
-        })
-        .select()
-        .single();
-      if (companyError) throw new Error(`Company creation failed: ${companyError.message}`);
-
-      // 4. Create owner membership
-      await supabase.from('company_members').insert({
-        company_id: company.id,
-        user_id: authData.user.id,
-        role: 'company_gm',
-        status: 'active',
-        is_primary: true,
       });
 
-      // 5. Upload documents
-      if (formData.licenseFile) {
-        const licensePath = await uploadFile(formData.licenseFile, company.id, 'trade_license');
-        if (licensePath) {
-          await supabase.from('companies').update({ trade_license_url: licensePath }).eq('id', company.id);
+      // 3. Upload documents (if signed in successfully)
+      if (authData?.user) {
+        if (formData.licenseFile) {
+          const licensePath = await uploadFile(formData.licenseFile, companyId, 'trade_license');
+          if (licensePath) {
+            await supabase.from('companies').update({ trade_license_url: licensePath }).eq('id', companyId);
+          }
+        }
+        if (formData.idFile) {
+          await uploadFile(formData.idFile, companyId, 'gm_id');
         }
       }
-      if (formData.idFile) {
-        await uploadFile(formData.idFile, company.id, 'gm_id');
-      }
 
-      // 6. Start V2 provisioning (blueprint → plan → execute)
+      // 4. Start V2 provisioning (blueprint → plan → execute)
       const empCount = parseInt(employeeCount, 10) || 5;
       const businessSize = empCount > 200 ? 'enterprise' : empCount > 50 ? 'large' : empCount > 10 ? 'medium' : 'small';
       const v2Result = await provisioningService.startV2({
-        companyId: company.id,
+        companyId: companyId,
         country: formData.country,
         industry: formData.industry,
         employeeCount: empCount,
@@ -320,7 +319,7 @@ export default function OnboardingWizard() {
       const region = regionMap[formData.country] || 'GLOBAL';
       try {
         const payResult = await orchestratePayment(
-          company.id,
+          companyId,
           formData.plan,
           region as 'AE' | 'SA' | 'EG' | 'BH' | 'OM' | 'QA' | 'KW' | 'GLOBAL',
           billingCycle,
@@ -337,8 +336,8 @@ export default function OnboardingWizard() {
 
       // 8. Show provisioning status
       setProvisioningResult({
-        tenantId: company.id,
-        companyId: company.id,
+        tenantId: companyId,
+        companyId: companyId,
         jobId: v2Result.jobId,
         status: v2Result.status as ProvisioningResult['status'],
       });

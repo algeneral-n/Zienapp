@@ -1,23 +1,24 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 
 /**
  * Handles OAuth redirects (/auth/callback).
  * Supabase puts the tokens in the URL hash; this page
- * exchanges them for a session then redirects to /portal.
+ * exchanges them for a session then redirects to /dashboard.
  */
 export default function AuthCallback() {
+  const navigate = useNavigate();
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        window.history.replaceState({}, '', '/portal');
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        navigate('/dashboard', { replace: true });
       } else {
-        window.history.replaceState({}, '', '/login');
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        navigate('/login', { replace: true });
       }
     });
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
