@@ -37,7 +37,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 // ─── Provider ──────────────────────────────────────────────────────────────────
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeRaw] = useState<Theme>(() => {
-    return (localStorage.getItem('zien-theme') as Theme) || 'system';
+    return (localStorage.getItem('zien-theme') as Theme) || 'light';
   });
 
   const [language, setLanguageRaw] = useState<Language>(() => {

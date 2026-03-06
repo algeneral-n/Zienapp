@@ -53,7 +53,7 @@ export default function ContactPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white dark:bg-zinc-950 pt-24 px-4 pb-16">
+        <div className="min-h-screen bg-[var(--bg-primary)] pt-28 px-4 pb-16">
             <div className="max-w-6xl mx-auto">
                 <h1 className="text-4xl font-black text-center mb-3 text-zinc-900 dark:text-white tracking-tight">
                     {isArabic ? 'تواصل معنا' : 'Contact Us'}
@@ -165,7 +165,7 @@ export default function ContactPage() {
                     </div>
 
                     {/* Contact Form */}
-                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
+                    <div className="bg-[var(--surface-1)] border border-[var(--border-soft)] rounded-3xl p-8">
                         <h2 className="text-xl font-black mb-6 tracking-tight">
                             {isArabic ? 'أرسل لنا رسالة' : 'Send us a Message'}
                         </h2>

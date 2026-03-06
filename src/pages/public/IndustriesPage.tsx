@@ -16,7 +16,7 @@ const industries = [
 
 export default function IndustriesPage() {
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-950 pt-24 px-4">
+        <div className="min-h-screen bg-[var(--bg-primary)] pt-28 px-4">
             <div className="max-w-6xl mx-auto">
                 <h1 className="text-4xl font-bold text-center mb-4 text-gray-900 dark:text-white">
                     الصناعات المدعومة
