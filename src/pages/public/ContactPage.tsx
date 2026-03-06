@@ -70,12 +70,12 @@ export default function ContactPage() {
                             href="https://chat.whatsapp.com/H8W70Tq6ppF0pXvG2LfvJP?mode=gi_t"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-4 p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800 rounded-2xl hover:shadow-md transition-all group"
+                            className="flex items-center gap-4 p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800 rounded-2xl hover:shadow-md transition-all group overflow-hidden"
                         >
-                            <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
+                            <div className="w-12 h-12 shrink-0 bg-emerald-500 rounded-xl flex items-center justify-center text-white">
                                 <Headphones size={22} />
                             </div>
-                            <div>
+                            <div className="min-w-0 flex-1">
                                 <h3 className="font-bold text-sm text-emerald-800 dark:text-emerald-400">{translate('technical_support')}</h3>
                                 <p className="text-xs text-emerald-600 dark:text-emerald-500">WhatsApp</p>
                                 <p className="text-[10px] text-emerald-500 mt-1">{isArabic ? 'انضم لمجموعة الدعم الفني' : 'Join our tech support group'}</p>
@@ -87,12 +87,12 @@ export default function ContactPage() {
                             href="https://chat.whatsapp.com/HfZlteCotW8Bi6ZsD4GJLs?mode=gi_t"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-4 p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800 rounded-2xl hover:shadow-md transition-all group"
+                            className="flex items-center gap-4 p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800 rounded-2xl hover:shadow-md transition-all group overflow-hidden"
                         >
-                            <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white">
+                            <div className="w-12 h-12 shrink-0 bg-emerald-600 rounded-xl flex items-center justify-center text-white">
                                 <HeartHandshake size={22} />
                             </div>
-                            <div>
+                            <div className="min-w-0 flex-1">
                                 <h3 className="font-bold text-sm text-emerald-800 dark:text-emerald-400">{translate('customer_service')}</h3>
                                 <p className="text-xs text-emerald-600 dark:text-emerald-500">WhatsApp</p>
                                 <p className="text-[10px] text-emerald-500 mt-1">{isArabic ? 'انضم لمجموعة خدمة العملاء' : 'Join our customer service group'}</p>
@@ -104,12 +104,12 @@ export default function ContactPage() {
                             href="https://chat.whatsapp.com/IPu6Tmht8v1GTOwFxZO1Zz?mode=gi_t"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-4 p-5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-800 rounded-2xl hover:shadow-md transition-all group"
+                            className="flex items-center gap-4 p-5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-800 rounded-2xl hover:shadow-md transition-all group overflow-hidden"
                         >
-                            <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center text-white">
+                            <div className="w-12 h-12 shrink-0 bg-amber-500 rounded-xl flex items-center justify-center text-white">
                                 <ShieldAlert size={22} />
                             </div>
-                            <div>
+                            <div className="min-w-0 flex-1">
                                 <h3 className="font-bold text-sm text-amber-800 dark:text-amber-400">{translate('complaints_suggestions')}</h3>
                                 <p className="text-xs text-amber-600 dark:text-amber-500">WhatsApp</p>
                                 <p className="text-[10px] text-amber-500 mt-1">{isArabic ? 'انضم لمجموعة الشكاوى والاقتراحات' : 'Join our complaints & suggestions group'}</p>
@@ -119,12 +119,12 @@ export default function ContactPage() {
                         {/* Email - INFO */}
                         <a
                             href="mailto:INFO@ZIEN-AI.APP"
-                            className="flex items-center gap-4 p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:shadow-md transition-all"
+                            className="flex items-center gap-4 p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:shadow-md transition-all overflow-hidden"
                         >
-                            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
+                            <div className="w-12 h-12 shrink-0 bg-blue-600 rounded-xl flex items-center justify-center text-white">
                                 <Mail size={22} />
                             </div>
-                            <div>
+                            <div className="min-w-0 flex-1">
                                 <h3 className="font-bold text-sm text-zinc-800 dark:text-zinc-300">{isArabic ? 'البريد الإلكتروني' : 'Email'}</h3>
                                 <p className="text-xs text-zinc-600 dark:text-zinc-400">INFO@ZIEN-AI.APP</p>
                                 <p className="text-xs text-zinc-600 dark:text-zinc-400">GM@ZIEN-AI.APP</p>

@@ -243,3 +243,160 @@ html.dark .glass-card {
 .theme-dark-green .accent-blue-600 {
   accent-color: var(--color-brand) !important;
 }
+
+/* ─── Theme Force Overrides ─────────────────────────────────────────────── */
+/* Dark-Green: Force ALL hardcoded Tailwind classes to respect CSS vars */
+html.theme-dark-green {
+  color-scheme: dark;
+}
+
+html.theme-dark-green .bg-white,
+html.theme-dark-green .bg-gray-50,
+html.theme-dark-green .bg-gray-100,
+html.theme-dark-green .bg-slate-50,
+html.theme-dark-green .bg-slate-100,
+html.theme-dark-green .bg-zinc-50,
+html.theme-dark-green .bg-zinc-100 {
+  background-color: var(--bg-primary) !important;
+}
+
+html.theme-dark-green .bg-gray-200,
+html.theme-dark-green .bg-slate-200,
+html.theme-dark-green .bg-zinc-200,
+html.theme-dark-green .bg-zinc-800,
+html.theme-dark-green .bg-zinc-900 {
+  background-color: var(--surface-2) !important;
+}
+
+html.theme-dark-green .bg-emerald-50,
+html.theme-dark-green .bg-green-50,
+html.theme-dark-green .bg-yellow-50,
+html.theme-dark-green .bg-amber-50,
+html.theme-dark-green .bg-orange-50,
+html.theme-dark-green .bg-red-50,
+html.theme-dark-green .bg-blue-50 {
+  background-color: var(--surface-1) !important;
+}
+
+html.theme-dark-green .text-gray-900,
+html.theme-dark-green .text-gray-800,
+html.theme-dark-green .text-gray-700,
+html.theme-dark-green .text-black,
+html.theme-dark-green .text-zinc-900,
+html.theme-dark-green .text-zinc-800,
+html.theme-dark-green .text-zinc-700,
+html.theme-dark-green .text-slate-900,
+html.theme-dark-green .text-slate-800,
+html.theme-dark-green .text-slate-700,
+html.theme-dark-green .text-emerald-800,
+html.theme-dark-green .text-amber-800 {
+  color: #ffffff !important;
+}
+
+html.theme-dark-green .text-gray-600,
+html.theme-dark-green .text-gray-500,
+html.theme-dark-green .text-gray-400,
+html.theme-dark-green .text-zinc-600,
+html.theme-dark-green .text-zinc-500,
+html.theme-dark-green .text-zinc-400,
+html.theme-dark-green .text-zinc-300,
+html.theme-dark-green .text-slate-600,
+html.theme-dark-green .text-slate-500,
+html.theme-dark-green .text-emerald-600,
+html.theme-dark-green .text-emerald-500,
+html.theme-dark-green .text-amber-600,
+html.theme-dark-green .text-amber-500 {
+  color: #ecfdf5 !important;
+}
+
+html.theme-dark-green .border-gray-200,
+html.theme-dark-green .border-gray-300,
+html.theme-dark-green .border-zinc-200,
+html.theme-dark-green .border-zinc-300,
+html.theme-dark-green .border-zinc-800,
+html.theme-dark-green .border-slate-200,
+html.theme-dark-green .border-emerald-200,
+html.theme-dark-green .border-emerald-800,
+html.theme-dark-green .border-amber-200,
+html.theme-dark-green .border-amber-800,
+html.theme-dark-green .border-red-200 {
+  border-color: var(--border-soft) !important;
+}
+
+html.theme-dark-green input::placeholder,
+html.theme-dark-green textarea::placeholder {
+  color: rgba(236, 253, 245, 0.5) !important;
+}
+
+html.theme-dark-green .dark\:bg-emerald-500\/10,
+html.theme-dark-green .dark\:bg-amber-500\/10,
+html.theme-dark-green .dark\:bg-red-900\/20,
+html.theme-dark-green .dark\:bg-zinc-900,
+html.theme-dark-green .dark\:bg-zinc-800 {
+  background-color: var(--surface-1) !important;
+}
+
+html.theme-dark-green .dark\:text-white,
+html.theme-dark-green .dark\:text-emerald-400,
+html.theme-dark-green .dark\:text-amber-400,
+html.theme-dark-green .dark\:text-zinc-300 {
+  color: #ffffff !important;
+}
+
+html.theme-dark-green .dark\:text-zinc-400,
+html.theme-dark-green .dark\:text-emerald-500,
+html.theme-dark-green .dark\:text-amber-500 {
+  color: #ecfdf5 !important;
+}
+
+html.theme-dark-green .dark\:border-emerald-800,
+html.theme-dark-green .dark\:border-amber-800,
+html.theme-dark-green .dark\:border-zinc-800 {
+  border-color: var(--border-soft) !important;
+}
+
+/* Glass: Force overrides with translucent backgrounds */
+html.theme-glass {
+  color-scheme: light;
+}
+
+html.theme-glass body {
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 25%, #ecfeff 50%, #f0fdf4 75%, #eff6ff 100%) !important;
+}
+
+html.theme-glass .bg-white,
+html.theme-glass .bg-gray-50,
+html.theme-glass .bg-gray-100,
+html.theme-glass .bg-slate-50,
+html.theme-glass .bg-zinc-50,
+html.theme-glass .bg-zinc-100 {
+  background: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+html.theme-glass .bg-emerald-50,
+html.theme-glass .bg-green-50,
+html.theme-glass .bg-yellow-50,
+html.theme-glass .bg-amber-50,
+html.theme-glass .bg-zinc-800,
+html.theme-glass .bg-zinc-900 {
+  background: rgba(255, 255, 255, 0.35) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+html.theme-glass .glass-card {
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+html.theme-glass .border-gray-200,
+html.theme-glass .border-zinc-200,
+html.theme-glass .border-slate-200,
+html.theme-glass .border-emerald-200,
+html.theme-glass .border-amber-200 {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}

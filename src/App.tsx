@@ -22,6 +22,7 @@ const IndustriesPage = React.lazy(() => import('./pages/public/IndustriesPage'))
 const AcademyPage = React.lazy(() => import('./pages/public/AcademyPage'));
 const HelpCenterPage = React.lazy(() => import('./pages/public/HelpCenterPage'));
 const LegalPage = React.lazy(() => import('./pages/public/LegalPage'));
+const IntegrationsModule = React.lazy(() => import('./pages/modules/IntegrationsModule'));
 
 // Auth pages
 const AuthCallback = React.lazy(() => import('./pages/auth/AuthCallback'));
@@ -60,6 +61,7 @@ function AppRoutes() {
           <Route path="/industries" element={<IndustriesPage />} />
           <Route path="/academy" element={<AcademyPage />} />
           <Route path="/help" element={<HelpCenterPage />} />
+          <Route path="/integrations" element={<IntegrationsModule />} />
           <Route path="/privacy" element={<LegalPage />} />
           <Route path="/terms" element={<LegalPage />} />
         </Route>

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   Plug, Search, Check, X, Loader2, ExternalLink,
   Wifi, WifiOff, RefreshCw, AlertTriangle, Shield, Zap,
+  UserPlus, Mail,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../components/ThemeProvider';
 import { useCompany } from '../../contexts/CompanyContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { integrationsService } from '../../services/integrationsService';
 
 interface CatalogItem {
@@ -35,8 +38,11 @@ interface TenantIntegration {
 export default function IntegrationsModule() {
   const { language } = useTheme();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { activeCompany } = useCompany();
+  const { user } = useAuth();
   const companyId = activeCompany?.id;
+  const isPublicMode = !user || !companyId;
 
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [connected, setConnected] = useState<TenantIntegration[]>([]);
@@ -47,15 +53,14 @@ export default function IntegrationsModule() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    if (!companyId) return;
     setLoading(true);
     try {
-      const [catalogResult, connResult] = await Promise.all([
-        integrationsService.getCatalog(),
-        integrationsService.getCompanyIntegrations(companyId),
-      ]);
+      const catalogResult = await integrationsService.getCatalog();
       setCatalog((catalogResult as any)?.catalog || catalogResult || []);
-      setConnected((connResult as any)?.integrations || connResult || []);
+      if (companyId) {
+        const connResult = await integrationsService.getCompanyIntegrations(companyId);
+        setConnected((connResult as any)?.integrations || connResult || []);
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -110,16 +115,27 @@ export default function IntegrationsModule() {
   }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className={`space-y-8 max-w-6xl mx-auto ${isPublicMode ? 'pt-28 px-4 pb-12' : ''}`}>
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black uppercase tracking-tighter">{t('integrations')}</h1>
-          <p className="text-sm text-zinc-500 mt-1">{t('integrations_desc')}</p>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">{t('integrations_desc')}</p>
         </div>
-        <button onClick={fetchData} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all">
-          <RefreshCw size={14} /> {t('refresh')}
-        </button>
+        {isPublicMode ? (
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate('/register')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-brand text-white hover:bg-brand-hover transition-all shadow-lg shadow-brand/20">
+              <UserPlus size={14} /> {t('register')}
+            </button>
+            <button onClick={() => navigate('/contact')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold border border-[var(--border-soft)] text-[var(--text-primary)] hover:bg-[var(--surface-2)] transition-all">
+              <Mail size={14} /> {t('contact')}
+            </button>
+          </div>
+        ) : (
+          <button onClick={fetchData} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all">
+            <RefreshCw size={14} /> {t('refresh')}
+          </button>
+        )}
       </div>
 
       {error && (
@@ -212,7 +228,15 @@ export default function IntegrationsModule() {
                 <span className="text-xs font-bold">
                   {item.price_monthly ? `${item.price_monthly} AED/${t('month_short')}` : t('int_free')}
                 </span>
-                {isConnected ? (
+                {isPublicMode ? (
+                  <button
+                    onClick={() => navigate('/register')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-brand text-white hover:bg-brand-hover transition-all"
+                  >
+                    <ExternalLink size={12} />
+                    {t('register')}
+                  </button>
+                ) : isConnected ? (
                   <button
                     disabled={isProcessing}
                     onClick={() => integration && handleDisconnect(integration)}
