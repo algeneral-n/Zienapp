@@ -6,7 +6,8 @@
 
 export const ASSETS = {
   // Logos
-  LOGO_PRIMARY: "https://lh3.googleusercontent.com/p/AF1QipOSvb6mNsga8rsEZHXdW3O8qur9f6rOjecMJC_U=w243-h203-n-k-no-nu",
+  LOGO_PRIMARY: "/zien-platform-logo.svg",
+  LOGO_ICON: "/zien-icon-new.svg",
   LOGO_GOLD: "/input_file_16.png",
   LOGO_WHITE: "/input_file_11.png",
   LOGO_SHIELD: "https://lh3.googleusercontent.com/p/AF1QipNm7hVlbynpufJ0AYs8CZUtmCmUhV38ehv17oi2=w243-h203-n-k-no-nu",

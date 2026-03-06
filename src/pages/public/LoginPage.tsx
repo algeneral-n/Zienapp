@@ -106,10 +106,10 @@ export default function LoginPage() {
           body: JSON.stringify({ email: identifier.trim().toLowerCase() }),
         });
         const data = await res.json() as { allowed?: boolean; message?: string; full_name?: string };
-        
+
         if (!data.allowed) {
-          setError(language === 'ar' 
-            ? 'هذا البريد غير مصرح له بالتسجيل. تواصل مع مسؤول النظام.' 
+          setError(language === 'ar'
+            ? 'هذا البريد غير مصرح له بالتسجيل. تواصل مع مسؤول النظام.'
             : 'This email is not authorized to register. Contact your administrator.');
           return;
         }
@@ -179,12 +179,12 @@ export default function LoginPage() {
       }
 
       // Success! Show message and redirect to login
-      setSuccess(language === 'ar' 
-        ? 'تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.' 
+      setSuccess(language === 'ar'
+        ? 'تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.'
         : 'Account created successfully! You can now sign in.');
       setPassword('');
       setConfirmPassword('');
-      
+
       // Auto-redirect to login after 2 seconds
       setTimeout(() => {
         setView('login');

@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ASSETS, IMAGE_PROPS } from '../constants/assets';
 import {
   LayoutDashboard, Users, BarChart3, Truck,
   MessageSquare, ShoppingBag, Briefcase, BrainCircuit,
@@ -56,11 +57,10 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
       <div className="p-6 flex items-center justify-between">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-brand/20">Z</div>
-            <span className="text-lg font-black tracking-tighter uppercase text-[var(--text-primary)]">Zien</span>
+            <img src={ASSETS.LOGO_PRIMARY} alt="ZIEN Platform" className="h-12 object-contain" {...IMAGE_PROPS} />
           </div>
         )}
-        {collapsed && <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-black text-lg mx-auto shadow-lg shadow-brand/20">Z</div>}
+        {collapsed && <img src={ASSETS.LOGO_ICON} alt="Z" className="w-10 h-10 mx-auto object-contain" {...IMAGE_PROPS} />}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="hidden lg:flex p-1.5 hover:bg-[var(--surface-2)] rounded-lg transition-colors text-[var(--text-muted)]"

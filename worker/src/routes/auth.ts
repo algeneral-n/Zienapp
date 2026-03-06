@@ -461,7 +461,7 @@ async function inviteUser(request: Request, env: Env): Promise<Response> {
     status: 'pending',
     invited_by: userId,
     expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  }, { onConflict: 'company_id,email' }).catch(() => {});
+  }, { onConflict: 'company_id,email' }).catch(() => { });
 
   return jsonResponse({
     success: true,
@@ -571,7 +571,7 @@ async function acceptInvite(request: Request, env: Env): Promise<Response> {
   await admin.from('company_invitations')
     .update({ status: 'accepted', accepted_at: new Date().toISOString() })
     .eq('token', body.token)
-    .catch(() => {});
+    .catch(() => { });
 
   return jsonResponse({
     success: true,
