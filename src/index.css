@@ -55,7 +55,7 @@ html.dark,
 }
 
 /* ─── Glass Theme Variant ─────────────────────────────────────────────────── */
-.theme-glass {
+html.theme-glass {
   --bg-primary: rgba(248, 250, 252, 0.6);
   --bg-secondary: rgba(241, 245, 249, 0.5);
   --surface-1: rgba(255, 255, 255, 0.55);
@@ -97,7 +97,7 @@ html.dark .theme-glass,
   border: 1px solid var(--border-soft) !important;
 }
 
-.theme-dark-green {
+html.theme-dark-green {
   --bg-primary: #022c22;
   --bg-secondary: #064e3b;
   --surface-1: #065f46;
@@ -111,6 +111,14 @@ html.dark .theme-glass,
   --color-brand-hover-val: #059669;
   --color-brand-light-val: rgba(16, 185, 129, 0.1);
   --color-brand-muted-val: rgba(16, 185, 129, 0.2);
+}
+
+/* Override glass-card for dark-green theme */
+html.theme-dark-green .glass-card {
+  background: rgba(6, 95, 70, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
 }
 
 @layer base {

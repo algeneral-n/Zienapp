@@ -79,9 +79,7 @@ export default function LandingPage() {
   }, []);
 
   const [demoStep, setDemoStep] = useState(0);
-  const demoSteps = language === 'ar'
-    ? ['تحليل البيانات...', 'توفير الوحدات...', 'إعداد RARE AI...', 'تأمين المستأجر...', 'جاهز!']
-    : ['Analyzing data...', 'Provisioning modules...', 'Setting up RARE AI...', 'Securing tenant...', 'Ready!'];
+  const demoSteps = [translate('demo_analyzing'), translate('demo_provisioning'), translate('demo_rare'), translate('demo_securing'), translate('demo_ready')];
 
   const handleCreateDemo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +90,7 @@ export default function LandingPage() {
     // Check if user is logged in
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      setDemoError(language === 'ar'
-        ? 'يجب تسجيل الدخول اولا لإنشاء ديمو. سجل حساب مجاني ثم عد هنا.'
-        : 'You must be logged in to create a demo. Register a free account first.');
+      setDemoError(translate('must_login_demo'));
       setDemoLoading(false);
       return;
     }
@@ -148,7 +144,7 @@ export default function LandingPage() {
       setDemoResult(result);
     } catch (err: any) {
       console.error('Demo provisioning error:', err);
-      setDemoError(err?.message || (language === 'ar' ? 'حدث خطأ اثناء الإنشاء' : 'An error occurred during provisioning'));
+      setDemoError(err?.message || translate('error_provisioning'));
     } finally {
       setDemoLoading(false);
     }
@@ -162,9 +158,9 @@ export default function LandingPage() {
     features: translate('features'),
     pricing: translate('pricing'),
     industries: translate('industries'),
-    rareAi: language === 'ar' ? 'مدعوم بذكاء RARE' : "Powered by RARE AI",
-    createDemo: language === 'ar' ? 'إنشاء ديمو' : 'Create Demo',
-    joinNow: language === 'ar' ? 'انضم الآن' : 'Join Now'
+    rareAi: translate('powered_by_rare'),
+    createDemo: translate('create_demo'),
+    joinNow: translate('join_now')
   };
 
   return (
@@ -233,8 +229,8 @@ export default function LandingPage() {
                     <img src={ASSETS.RARE_AGENT} alt="RARE AI" className="w-full h-full object-cover" {...IMAGE_PROPS} />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-blue-600">RARE AI Active</div>
-                    <div className="text-xs text-[var(--text-secondary)]">Intelligent Enterprise Shield</div>
+                    <div className="text-sm font-bold text-blue-600">{translate('rare_ai_active')}</div>
+                    <div className="text-xs text-[var(--text-secondary)]">{translate('intelligent_shield')}</div>
                   </div>
                 </div>
                 <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
@@ -286,7 +282,7 @@ export default function LandingPage() {
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                        <Building2 className="w-4 h-4" /> {language === 'ar' ? 'اسم الشركة' : 'Company Name'}
+                        <Building2 className="w-4 h-4" /> {translate('company_name')}
                       </label>
                       <input
                         required
@@ -299,7 +295,7 @@ export default function LandingPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                        <Users2 className="w-4 h-4" /> {language === 'ar' ? 'عدد الموظفين' : 'Employees'}
+                        <Users2 className="w-4 h-4" /> {translate('employees')}
                       </label>
                       <input
                         required
@@ -314,7 +310,7 @@ export default function LandingPage() {
 
                   <div className="space-y-2">
                     <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                      <Briefcase className="w-4 h-4" /> {language === 'ar' ? 'الخدمات المطلوبة' : 'Requested Services'}
+                      <Briefcase className="w-4 h-4" /> {translate('requested_services')}
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {['Accounting', 'HR', 'CRM', 'Logistics', 'AI Assistant'].map(service => (
@@ -340,7 +336,7 @@ export default function LandingPage() {
 
                   <div className="space-y-2">
                     <label className="text-sm font-bold opacity-60 flex items-center gap-2">
-                      <Upload className="w-4 h-4" /> {language === 'ar' ? 'إرفاق صور' : 'Attach Images'}
+                      <Upload className="w-4 h-4" /> {translate('attach_images')}
                     </label>
                     <label className="w-full border-2 border-dashed border-[var(--border-soft)] p-8 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-black/5 transition-all">
                       <input
@@ -349,7 +345,7 @@ export default function LandingPage() {
                         onChange={e => setDemoForm({ ...demoForm, image: e.target.files?.[0] || null })}
                       />
                       <Upload className={`w-8 h-8 mb-2 ${demoForm.image ? 'text-green-500' : 'text-blue-600'}`} />
-                      <span className="text-xs font-bold">{demoForm.image ? demoForm.image.name : 'Click to upload'}</span>
+                      <span className="text-xs font-bold">{demoForm.image ? demoForm.image.name : translate('click_upload')}</span>
                     </label>
                   </div>
 
@@ -385,7 +381,7 @@ export default function LandingPage() {
                 <div className="space-y-8">
                   <div className="flex items-center justify-between">
                     <h2 className="text-3xl font-bold text-green-600 flex items-center gap-2">
-                      <CheckCircle2 className="w-8 h-8" /> {language === 'ar' ? 'تم إنشاء الديمو بنجاح' : 'Demo Created Successfully'}
+                      <CheckCircle2 className="w-8 h-8" /> {translate('demo_success')}
                     </h2>
                     <button onClick={() => setShowDemoModal(false)} className="p-2 hover:bg-black/5 rounded-full">
                       <X className="w-6 h-6" />
@@ -394,19 +390,19 @@ export default function LandingPage() {
 
                   <div className="glass-card p-6 border-green-500/20 space-y-4">
                     <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
-                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'اسم الشركة' : 'Company'}</span>
+                      <span className="text-sm font-bold opacity-60">{translate('company_name')}</span>
                       <span className="font-bold">{demoForm.companyName}</span>
                     </div>
                     <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
-                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'عدد الموظفين' : 'Employees'}</span>
+                      <span className="text-sm font-bold opacity-60">{translate('employees')}</span>
                       <span className="font-bold">{demoForm.employees}</span>
                     </div>
                     <div className="flex items-center justify-between border-b border-[var(--border-soft)] pb-4">
-                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'معرف الشركة' : 'Company ID'}</span>
+                      <span className="text-sm font-bold opacity-60">{translate('company_id')}</span>
                       <span className="font-bold font-mono text-xs">{demoResult.companyId.substring(0, 12)}...</span>
                     </div>
                     <div className="space-y-2">
-                      <span className="text-sm font-bold opacity-60">{language === 'ar' ? 'الخدمات المفعلة' : 'Active Services'}</span>
+                      <span className="text-sm font-bold opacity-60">{translate('active_services')}</span>
                       <div className="flex flex-wrap gap-2">
                         {demoForm.services.map((s: string) => (
                           <span key={s} className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-[10px] font-bold uppercase">
@@ -423,7 +419,7 @@ export default function LandingPage() {
                       <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md group-hover:scale-110 transition-transform cursor-pointer">
                         <Play className="w-8 h-8 text-white fill-current" />
                       </div>
-                      <p className="text-white font-bold">{language === 'ar' ? 'مشاهدة الديمو التفاعلي' : 'Watch Interactive Demo'}</p>
+                      <p className="text-white font-bold">{translate('watch_demo')}</p>
                     </div>
                   </div>
 
@@ -432,13 +428,13 @@ export default function LandingPage() {
                       onClick={() => navigate('/register')}
                       className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
                     >
-                      {language === 'ar' ? 'ابدأ الآن مجاناً' : 'Start Free Trial'}
+                      {translate('start_free')}
                     </button>
                     <button
                       onClick={() => { setDemoResult(null); setDemoError(null); }}
                       className="px-8 py-4 glass-card rounded-2xl font-bold hover:bg-black/5 transition-all"
                     >
-                      {language === 'ar' ? 'تعديل البيانات' : 'Edit Data'}
+                      {translate('edit_data')}
                     </button>
                   </div>
                 </div>
@@ -462,32 +458,32 @@ export default function LandingPage() {
             {[
               {
                 title: translate('accounting'),
-                desc: language === 'ar' ? "مجموعة مالية كاملة مع فواتير آلية وامتثال ضريبي." : "Full financial suite with automated invoicing and tax compliance.",
+                desc: translate('accounting_desc'),
                 icon: BarChart3
               },
               {
-                title: language === 'ar' ? "إدارة علاقات العملاء والمبيعات" : "CRM & Sales",
-                desc: language === 'ar' ? "إدارة العملاء المحتملين والعروض والعقود في بوابة عملاء موحدة." : "Manage leads, quotes, and contracts in a unified client portal.",
+                title: translate('crm_sales'),
+                desc: translate('crm_sales_desc'),
                 icon: Users
               },
               {
                 title: translate('hr'),
-                desc: language === 'ar' ? "إدارة دورة حياة الموظف الكاملة مع تتبع الحضور." : "Complete employee lifecycle management with attendance tracking.",
+                desc: translate('hr_desc'),
                 icon: Shield
               },
               {
                 title: translate('logistics'),
-                desc: language === 'ar' ? "تتبع في الوقت الفعلي وإرسال المهام للعمليات الميدانية." : "Real-time tracking and task dispatching for field operations.",
+                desc: translate('logistics_desc'),
                 icon: Globe2
               },
               {
                 title: "RARE AI",
-                desc: language === 'ar' ? "وكلاء أذكياء يحللون البيانات ويقدمون رؤى قابلة للتنفيذ." : "Intelligent agents that analyze data and provide actionable insights.",
+                desc: translate('rare_ai_desc'),
                 icon: Zap
               },
               {
-                title: language === 'ar' ? "الأمان" : "Security",
-                desc: language === 'ar' ? "RLS متقدم وعزل متعدد المستأجرين لبياناتك." : "Advanced RLS and multi-tenant isolation for your data.",
+                title: translate('security'),
+                desc: translate('security_desc'),
                 icon: ShieldCheck
               }
             ].map((feature, i) => (
