@@ -45,7 +45,7 @@ export function HeaderControls() {
       </div>
 
       {/* Theme Switcher — Inline (no dropdown overflow) */}
-      <div ref={themeRef}>
+      <div ref={themeRef} className="relative">
         <button
           onClick={() => setIsThemeOpen(!isThemeOpen)}
           className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border-soft)] hover:bg-[var(--surface-2)] transition-colors text-[var(--text-primary)]"
@@ -55,7 +55,7 @@ export function HeaderControls() {
         </button>
 
         {isThemeOpen && (
-          <div className="mt-2 w-full md:absolute md:right-0 md:top-full md:w-64 bg-[var(--bg-primary)] border border-[var(--border-soft)] rounded-xl shadow-xl z-[70] overflow-hidden p-2">
+          <div className="mt-2 w-full md:absolute md:left-0 md:top-full md:w-64 bg-[var(--bg-primary)] border border-[var(--border-soft)] rounded-xl shadow-xl z-[70] overflow-hidden p-2">
 
             {/* Theme Variants */}
             <div className="mb-3">

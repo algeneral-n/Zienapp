@@ -129,11 +129,10 @@ function IntegrationDetail({
                 <button
                   key={p.id}
                   onClick={() => setSelectedPlan(p.id)}
-                  className={`rounded-xl border p-3 text-center transition-all ${
-                    selectedPlan === p.id
+                  className={`rounded-xl border p-3 text-center transition-all ${selectedPlan === p.id
                       ? 'border-brand bg-brand/5 ring-2 ring-brand/20'
                       : 'border-[var(--border-soft)] hover:border-brand/40'
-                  }`}
+                    }`}
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">{p.name}</div>
                   <div className="text-lg font-black text-[var(--text-primary)] mt-0.5">
@@ -299,11 +298,10 @@ export default function IntegrationsModule() {
       <div ref={tabsRef} className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
         <button
           onClick={() => setActiveGroup('all')}
-          className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-            activeGroup === 'all'
+          className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${activeGroup === 'all'
               ? 'bg-brand text-white shadow-md shadow-brand/20'
               : 'bg-[var(--surface-2)] text-[var(--text-secondary)] hover:bg-brand/10 hover:text-brand border border-[var(--border-soft)]'
-          }`}
+            }`}
         >
           <Plug size={14} />
           {isAr ? 'الكل' : 'All'} ({totalCount})
@@ -314,11 +312,10 @@ export default function IntegrationsModule() {
             <button
               key={g.id}
               onClick={() => setActiveGroup(g.id)}
-              className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeGroup === g.id
+              className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${activeGroup === g.id
                   ? 'bg-brand text-white shadow-md shadow-brand/20'
                   : 'bg-[var(--surface-2)] text-[var(--text-secondary)] hover:bg-brand/10 hover:text-brand border border-[var(--border-soft)]'
-              }`}
+                }`}
             >
               <Icon size={14} />
               {isAr ? g.name : g.nameEn} ({g.integrations.length})

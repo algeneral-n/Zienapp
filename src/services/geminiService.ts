@@ -25,9 +25,15 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 export async function generateRAREAnalysis(
   agentType: RAREAgentType,
   query: string,
-  context: RAREContext & { mode: RAREMode; companyId: string },
+  context: RAREContext & { mode: RAREMode; companyId?: string; files?: { data: string; mimeType: string }[] },
 ): Promise<string> {
-  const headers = await getAuthHeaders();
+  let headers: Record<string, string>;
+  try {
+    headers = await getAuthHeaders();
+  } catch {
+    // Not authenticated — throw clear error so the UI can show a login prompt
+    throw new Error('Not authenticated');
+  }
 
   const res = await fetch(`${API_URL}/api/ai/rare`, {
     method: 'POST',
@@ -37,7 +43,8 @@ export async function generateRAREAnalysis(
       mode: context.mode,
       agentType,
       moduleCode: context.moduleCode,
-      companyId: context.companyId,
+      companyId: context.companyId || undefined,
+      files: context.files?.length ? context.files : undefined,
       context: {
         pageCode: context.pageCode,
         userRole: context.userRole,

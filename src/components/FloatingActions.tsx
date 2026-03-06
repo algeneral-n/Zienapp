@@ -232,6 +232,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
     try {
       const response = await generateRAREAnalysis(agentType, enhancedPrompt, {
         ...context,
+        companyId: company?.id || '',
         mode: activeMode,
         files: selectedFiles.map(f => ({ data: f.data, mimeType: f.mimeType }))
       });
@@ -239,7 +240,19 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
       setMessages(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), role: 'ai', text: response, mode: activeMode }]);
       setSelectedFiles([]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', text: language === 'ar' ? 'عذراً، حدث خطأ ما. يرجى المحاولة مرة أخرى.' : 'I encountered an error. Please try again.', mode: activeMode }]);
+      console.error('[RARE] AI response error:', error);
+      const errMsg = error instanceof Error ? error.message : '';
+      let fallback: string;
+      if (errMsg.includes('Not authenticated') || errMsg.includes('401')) {
+        fallback = language === 'ar'
+          ? 'يرجى تسجيل الدخول أولاً لاستخدام الذكاء الاصطناعي RARE.'
+          : 'Please log in first to use RARE AI.';
+      } else {
+        fallback = language === 'ar'
+          ? `عذراً، حدث خطأ: ${errMsg || 'خطأ في خدمة الذكاء الاصطناعي'}. يرجى المحاولة مرة أخرى.`
+          : `Sorry, an error occurred: ${errMsg || 'AI service error'}. Please try again.`;
+      }
+      setMessages(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), role: 'ai', text: fallback, mode: activeMode }]);
     } finally {
       setIsLoading(false);
     }

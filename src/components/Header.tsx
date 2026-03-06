@@ -135,7 +135,7 @@ export default function Header() {
           <div className="flex items-center gap-2 cursor-pointer group" onClick={() => navigate('/')}>
             <div className="relative">
               <div className="absolute inset-0 bg-brand blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500"></div>
-              <img src={ASSETS.LOGO_PRIMARY} alt="Logo" className="w-24 h-24 object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500" {...IMAGE_PROPS} />
+              <img src={ASSETS.LOGO_PRIMARY} alt="Logo" className="w-10 h-10 object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500" {...IMAGE_PROPS} />
             </div>
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function Header() {
               initial={{ opacity: 0, y: -10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.98 }}
-              className="fixed top-[72px] left-1/2 -translate-x-1/2 z-[49] w-[95vw] max-w-2xl bg-[var(--bg-primary)] border border-[var(--border-soft)] rounded-2xl shadow-2xl shadow-black/20 overflow-hidden"
+              className="fixed top-[56px] left-1/2 -translate-x-1/2 z-[49] w-[95vw] max-w-2xl bg-[var(--bg-primary)] border border-[var(--border-soft)] rounded-2xl shadow-2xl shadow-black/20 overflow-hidden"
             >
               <div className="relative border-b border-[var(--border-soft)]">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
@@ -251,7 +251,7 @@ export default function Header() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: language === 'ar' ? -300 : 300 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`fixed top-0 ${language === 'ar' ? 'left-0' : 'right-0'} h-screen w-80 z-[60] bg-[var(--bg-primary)] shadow-[-20px_0_50px_rgba(0,0,0,0.15)] border-l border-[var(--border-soft)] flex flex-col pt-24 px-6 overflow-y-auto`}
+            className={`fixed top-0 ${language === 'ar' ? 'left-0' : 'right-0'} h-screen w-80 z-[60] bg-[var(--bg-primary)] shadow-[-20px_0_50px_rgba(0,0,0,0.15)] border-l border-[var(--border-soft)] flex flex-col pt-16 px-6 overflow-y-auto`}
           >
             {/* User Profile Section */}
             {isLoggedIn && profile && (
