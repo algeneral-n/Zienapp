@@ -3,6 +3,8 @@ import { Routes, Route, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { HeaderControls } from '../components/HeaderControls';
+import GuidedTour from '../components/GuidedTour';
+import { TOUR_STEPS } from '../constants/tourSteps';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompany } from '../contexts/CompanyContext';
 import {
@@ -40,13 +42,16 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <GuidedTour tourKey="dashboard_overview" steps={TOUR_STEPS.dashboard_overview} />
+      <div data-tour="sidebar">
+        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      </div>
 
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
         <header className="h-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-8 sticky top-0 z-30">
           <div className="flex items-center gap-4 flex-1">
-            <div className="relative max-w-md w-full hidden md:block">
+            <div className="relative max-w-md w-full hidden md:block" data-tour="search">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
               <input
                 type="text"
@@ -59,7 +64,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-6">
             <HeaderControls />
             <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800" />
-            <button className="relative p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors">
+            <button data-tour="notifications" className="relative p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors">
               <Bell size={20} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-zinc-950" />
             </button>

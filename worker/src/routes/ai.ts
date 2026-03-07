@@ -114,6 +114,7 @@ async function handleRARE(
     moduleCode?: string;
     companyId: string;
     context?: Record<string, unknown>;
+    language?: string;
   };
 
   if (!body.prompt || !body.companyId) {
@@ -148,7 +149,42 @@ async function handleRARE(
   }
 
   // Build system prompt based on agent type and mode
-  const systemPrompt = buildSystemPrompt(body.agentType, body.mode, membership.role);
+  const systemPrompt = buildSystemPrompt(body.agentType, body.mode, membership.role, body.language);
+
+  // Determine if web search should be enabled
+  const isSearchMode = body.mode === 'search' || body.prompt.match(/\b(search|find|look up|بحث|ابحث|دور|جوجل|google)\b/i);
+
+  // Build OpenAI request body
+  const openaiBody: Record<string, unknown> = {
+    model: isSearchMode ? 'gpt-4o-mini' : 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: body.prompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 4096,
+  };
+
+  // Add web search tool when in search mode
+  if (isSearchMode) {
+    openaiBody.tools = [
+      {
+        type: 'function',
+        function: {
+          name: 'web_search',
+          description: 'Search the internet for current information, news, prices, or any real-time data. Use this when the user asks about external information not available in the company data.',
+          parameters: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: 'The search query to look up on the internet' },
+            },
+            required: ['query'],
+          },
+        },
+      },
+    ];
+    openaiBody.tool_choice = 'auto';
+  }
 
   // Call OpenAI API
   const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -157,15 +193,7 @@ async function handleRARE(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
     },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: body.prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 4096,
-    }),
+    body: JSON.stringify(openaiBody),
   });
 
   if (!openaiRes.ok) {
@@ -174,10 +202,77 @@ async function handleRARE(
     return errorResponse('AI service unavailable', 502);
   }
 
-  const openaiData = (await openaiRes.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+  let openaiData = (await openaiRes.json()) as {
+    choices?: Array<{
+      message?: {
+        content?: string;
+        tool_calls?: Array<{
+          id: string;
+          function: { name: string; arguments: string };
+        }>;
+      };
+      finish_reason?: string;
+    }>;
     usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
+
+  // Handle tool calls (web search)
+  const toolCall = openaiData.choices?.[0]?.message?.tool_calls?.[0];
+  if (toolCall && toolCall.function.name === 'web_search') {
+    const searchArgs = JSON.parse(toolCall.function.arguments) as { query: string };
+
+    // Perform web search via Google Custom Search API or fallback to a summary
+    let searchResult = '';
+    try {
+      if (env.GOOGLE_API_KEY) {
+        const searchRes = await fetch(
+          `https://www.googleapis.com/customsearch/v1?key=${env.GOOGLE_API_KEY}&cx=000000000000000000000:xxxxxxxxxx&q=${encodeURIComponent(searchArgs.query)}&num=5`
+        );
+        if (searchRes.ok) {
+          const searchData = (await searchRes.json()) as {
+            items?: Array<{ title: string; snippet: string; link: string }>;
+          };
+          searchResult = (searchData.items || [])
+            .map((item, i) => `${i + 1}. **${item.title}**\n   ${item.snippet}\n   [${item.link}](${item.link})`)
+            .join('\n\n');
+        }
+      }
+    } catch (e) {
+      console.error('Search error:', e);
+    }
+
+    if (!searchResult) {
+      searchResult = `Web search for "${searchArgs.query}" — I don't have direct internet access in this environment, but based on my training data, here's what I know:`;
+    }
+
+    // Call OpenAI again with the search results
+    const followUpRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: body.prompt },
+          openaiData.choices![0].message,
+          {
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: searchResult || 'No results found.',
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+      }),
+    });
+
+    if (followUpRes.ok) {
+      openaiData = (await followUpRes.json()) as typeof openaiData;
+    }
+  }
 
   const responseText =
     openaiData.choices?.[0]?.message?.content ?? 'No response generated';
@@ -209,7 +304,15 @@ async function handleRARE(
   });
 }
 
-function buildSystemPrompt(agentType: string, mode: string, userRole: string): string {
+// Language name map for multi-language AI responses
+const LANG_NAMES: Record<string, string> = {
+  ar: 'Arabic (العربية)', en: 'English', fr: 'French (Français)', es: 'Spanish (Español)',
+  de: 'German (Deutsch)', tr: 'Turkish (Türkçe)', ru: 'Russian (Русский)', zh: 'Chinese (中文)',
+  ja: 'Japanese (日本語)', ko: 'Korean (한국어)', pt: 'Portuguese (Português)', it: 'Italian (Italiano)',
+  nl: 'Dutch (Nederlands)', hi: 'Hindi (हिन्दी)', ur: 'Urdu (اردو)',
+};
+
+function buildSystemPrompt(agentType: string, mode: string, userRole: string, language?: string): string {
   const roleMap: Record<string, string> = {
     // ─── Core Business Agents (8 original) ──────────────────────────────
     accounting: 'You are an AI accounting assistant for a company using the ZIEN platform. You help with journal entries, financial reports, tax calculations, VAT compliance, and budget analysis.',
@@ -245,12 +348,18 @@ function buildSystemPrompt(agentType: string, mode: string, userRole: string): s
     analyze: 'Analyze the data and provide insights.',
     act: 'Suggest specific actions to take.',
     report: 'Generate a structured report.',
+    search: 'Search the internet for current information and provide comprehensive, well-sourced answers. Use the web_search tool to find up-to-date data.',
   };
 
   const base = roleMap[agentType] ?? 'You are an AI assistant for the ZIEN platform.';
   const modeInstruction = modeMap[mode] ?? '';
 
-  return `${base}\nThe current user has the role: ${userRole}.\nMode: ${mode}. ${modeInstruction}\nRespond in the same language the user writes in. Support Arabic and English.`;
+  const langName = LANG_NAMES[language || 'en'] || LANG_NAMES['en'];
+  const langInstruction = language && language !== 'en'
+    ? `You MUST respond in ${langName}. All your output must be in ${langName}. If the user writes in a different language, still respond in ${langName}.`
+    : `Respond in the same language the user writes in. You support all these languages: ${Object.values(LANG_NAMES).join(', ')}.`;
+
+  return `${base}\nThe current user has the role: ${userRole}.\nMode: ${mode}. ${modeInstruction}\n${langInstruction}`;
 }
 // ─── Senate: Multi-Model Deliberation (Founder/Admin only) ──────────────
 // Inspired by archive SenateEngine.ts — sends the same prompt to multiple models
@@ -266,6 +375,7 @@ async function handleSenate(
     prompt: string;
     companyId: string;
     topic?: string;
+    language?: string;
   };
 
   if (!body.prompt || !body.companyId) {
@@ -296,7 +406,8 @@ Provide your analysis as a structured deliberation with:
 6. **Recommendation** - Clear final recommendation with confidence level (1-10)
 7. **Implementation Steps** - If approved, concrete next steps
 
-Be thorough, data-driven, and consider multiple perspectives. Respond in the same language as the question.`;
+Be thorough, data-driven, and consider multiple perspectives.
+${body.language && LANG_NAMES[body.language] ? `You MUST respond in ${LANG_NAMES[body.language]}.` : 'Respond in the same language as the question.'}`;
 
   // Call OpenAI with high token limit for comprehensive analysis
   const senateRes = await fetch('https://api.openai.com/v1/chat/completions', {

@@ -265,6 +265,26 @@ export default function LogisticsModule() {
         <Routes>
           <Route path="/" element={<TaskFollowUp />} />
           <Route path="/fleet" element={<FleetManagement />} />
+          <Route path="/tracking" element={
+            <div className="text-center py-16">
+              <MapPin size={48} className="mx-auto mb-4 text-zinc-300 dark:text-zinc-600" />
+              <h3 className="text-lg font-bold text-zinc-500">GPS Tracking</h3>
+              <p className="text-sm text-zinc-400 mt-1 max-w-md mx-auto">
+                Real-time vehicle tracking, route history, geofencing alerts, and live map view.
+              </p>
+              <span className="mt-4 inline-block px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 text-xs font-bold rounded-xl uppercase tracking-widest">Coming Soon</span>
+            </div>
+          } />
+          <Route path="/settings" element={
+            <div className="text-center py-16">
+              <Settings size={48} className="mx-auto mb-4 text-zinc-300 dark:text-zinc-600" />
+              <h3 className="text-lg font-bold text-zinc-500">Logistics Settings</h3>
+              <p className="text-sm text-zinc-400 mt-1 max-w-md mx-auto">
+                Configure task categories, vehicle types, driver assignments, and notification preferences.
+              </p>
+              <span className="mt-4 inline-block px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 text-xs font-bold rounded-xl uppercase tracking-widest">Coming Soon</span>
+            </div>
+          } />
         </Routes>
       </motion.div>
     </div>

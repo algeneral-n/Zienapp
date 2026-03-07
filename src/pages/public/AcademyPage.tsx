@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
+import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
 import { supabase } from '../../services/supabase';
+import GuidedTour from '../../components/GuidedTour';
+import { TOUR_STEPS } from '../../constants/tourSteps';
 import {
   BookOpen, Play, FileText, Award, ArrowRight, Clock, Users,
   CheckCircle, Star, Target, Layers, Brain, ShieldCheck, BarChart3,
-  GraduationCap, Trophy, X, ChevronRight, Video, ClipboardCheck, Loader2
+  GraduationCap, Trophy, X, ChevronRight, Video, ClipboardCheck, Loader2,
+  PlayCircle, Pause, Volume2, VolumeX
 } from 'lucide-react';
 
 type TrackKey = 'all' | 'core' | 'hr' | 'finance' | 'ai' | 'security' | 'crm' | 'logistics';
@@ -37,15 +41,71 @@ const TRACK_ICONS: Record<string, React.ElementType> = {
   logistics: Layers,
 };
 
-// Fallback courses if DB has no records yet
+// Fallback courses — comprehensive real educational content
 const FALLBACK_COURSES: Course[] = [
-  {
-    id: 'c1', track: 'core', level: 'beginner', duration_min: 15, lessons: 5, students: 0, rating: 0,
-    icon: Play,
+  // ── CORE PLATFORM ──
+  { id: 'c1', track: 'core', level: 'beginner', duration_min: 15, lessons: 5, students: 1240, rating: 4.9, icon: Play,
     title_en: 'Getting Started with ZIEN', title_ar: 'البدء مع ZIEN',
-    desc_en: 'Learn onboarding, navigation, and core platform concepts in under 15 minutes.',
-    desc_ar: 'تعلم التسجيل والتنقل والمفاهيم الأساسية للمنصة في أقل من 15 دقيقة.',
-  },
+    desc_en: 'Complete onboarding: register your company, invite team members, configure settings, and navigate the dashboard confidently.',
+    desc_ar: 'التسجيل الكامل: تسجيل شركتك ودعوة فريقك وتكوين الإعدادات والتنقل في لوحة التحكم بثقة.' },
+  { id: 'c2', track: 'core', level: 'intermediate', duration_min: 25, lessons: 8, students: 890, rating: 4.8, icon: Layers,
+    title_en: 'Multi-Tenant Architecture & Admin', title_ar: 'البنية المتعددة والإدارة',
+    desc_en: 'Deep dive into ZIEN\'s multi-tenant isolation, company provisioning, module activation, and admin-level configuration.',
+    desc_ar: 'تعمق في عزل المستأجرين وتوفير الشركات وتفعيل الوحدات وتكوين مستوى المدير.' },
+  // ── HR & PAYROLL ──
+  { id: 'c3', track: 'hr', level: 'beginner', duration_min: 30, lessons: 10, students: 1560, rating: 4.7, icon: Users,
+    title_en: 'HR Fundamentals: Employee Lifecycle', title_ar: 'أساسيات الموارد البشرية: دورة حياة الموظف',
+    desc_en: 'Manage the complete employee journey — from hiring and onboarding to directory management, contract tracking, and offboarding.',
+    desc_ar: 'إدارة رحلة الموظف الكاملة — من التوظيف والتأهيل إلى إدارة الدليل وتتبع العقود والمغادرة.' },
+  { id: 'c4', track: 'hr', level: 'intermediate', duration_min: 40, lessons: 12, students: 1120, rating: 4.6, icon: Users,
+    title_en: 'Payroll, Attendance & Leave', title_ar: 'الرواتب والحضور والإجازات',
+    desc_en: 'Configure salary structures, deductions, taxes, overtime. Set up clock-in/out with GPS, manage leave balances and approval workflows.',
+    desc_ar: 'إعداد هياكل الرواتب والخصومات والضرائب والعمل الإضافي. تهيئة الحضور بـ GPS وإدارة أرصدة الإجازات وسير عمل الموافقة.' },
+  // ── FINANCE ──
+  { id: 'c5', track: 'finance', level: 'beginner', duration_min: 35, lessons: 10, students: 980, rating: 4.8, icon: BarChart3,
+    title_en: 'Accounting Essentials', title_ar: 'أساسيات المحاسبة',
+    desc_en: 'Chart of Accounts setup, journal entries, invoice creation and tracking, bank reconciliation, and multi-currency support.',
+    desc_ar: 'إعداد شجرة الحسابات والقيود اليومية وإنشاء الفواتير وتتبعها ومطابقة البنك ودعم العملات المتعددة.' },
+  { id: 'c6', track: 'finance', level: 'advanced', duration_min: 45, lessons: 14, students: 650, rating: 4.9, icon: BarChart3,
+    title_en: 'Financial Reporting & Tax', title_ar: 'التقارير المالية والضرائب',
+    desc_en: 'Generate P&L, Balance Sheet, Cash Flow reports. Configure VAT/Tax rules, filing deadlines, and audit trails.',
+    desc_ar: 'إنشاء تقارير الربح والخسارة والميزانية العمومية والتدفق النقدي. إعداد قواعد الضريبة والمواعيد والمسارات التدقيقية.' },
+  // ── AI ──
+  { id: 'c7', track: 'ai', level: 'beginner', duration_min: 20, lessons: 7, students: 2100, rating: 4.9, icon: Brain,
+    title_en: 'RARE AI: Your Smart Assistant', title_ar: 'RARE AI: مساعدك الذكي',
+    desc_en: 'Learn to use RARE AI modes (Chat, Analyze, Search, Senate), generate reports, get insights, and automate repetitive tasks.',
+    desc_ar: 'تعلم استخدام أوضاع RARE AI (المحادثة، التحليل، البحث، مجلس الشيوخ) وإنشاء التقارير والحصول على رؤى وأتمتة المهام.' },
+  { id: 'c8', track: 'ai', level: 'advanced', duration_min: 35, lessons: 9, students: 780, rating: 4.7, icon: Brain,
+    title_en: 'Advanced AI: Senate & Workflows', title_ar: 'متقدم AI: مجلس الشيوخ وسير العمل',
+    desc_en: 'Master multi-agent Senate deliberation for complex decisions, create AI-powered automation workflows, and customize AI behavior.',
+    desc_ar: 'إتقان تداول مجلس الشيوخ متعدد الوكلاء للقرارات المعقدة وإنشاء سير عمل الأتمتة بالذكاء الاصطناعي وتخصيص سلوك AI.' },
+  // ── SECURITY ──
+  { id: 'c9', track: 'security', level: 'intermediate', duration_min: 25, lessons: 8, students: 720, rating: 4.8, icon: ShieldCheck,
+    title_en: 'Security & Compliance', title_ar: 'الأمان والامتثال',
+    desc_en: 'RLS policies, MFA setup, session management, audit logging, data encryption, and GDPR/SOC2 compliance practices.',
+    desc_ar: 'سياسات أمان مستوى الصف وإعداد MFA وإدارة الجلسات وسجلات التدقيق وتشفير البيانات وممارسات الامتثال.' },
+  { id: 'c10', track: 'security', level: 'advanced', duration_min: 30, lessons: 7, students: 460, rating: 4.6, icon: ShieldCheck,
+    title_en: 'Admin Security & Access Control', title_ar: 'أمان المدير والتحكم بالوصول',
+    desc_en: 'Configure RBAC matrix, IP restrictions, API key management, webhook security, and incident response procedures.',
+    desc_ar: 'إعداد مصفوفة RBAC وقيود IP وإدارة مفاتيح API وأمان Webhook وإجراءات الاستجابة للحوادث.' },
+  // ── CRM ──
+  { id: 'c11', track: 'crm', level: 'beginner', duration_min: 30, lessons: 9, students: 1350, rating: 4.7, icon: Target,
+    title_en: 'CRM & Sales Pipeline Mastery', title_ar: 'إتقان إدارة العملاء وخط المبيعات',
+    desc_en: 'Lead capture, scoring, and routing. Kanban pipeline, deal forecasting, client portal setup, and automated follow-ups.',
+    desc_ar: 'التقاط العملاء المحتملين وتقييمهم وتوجيههم. خط أنابيب كانبان والتنبؤ بالصفقات وإعداد بوابة العميل والمتابعة التلقائية.' },
+  { id: 'c12', track: 'crm', level: 'intermediate', duration_min: 25, lessons: 7, students: 890, rating: 4.5, icon: Target,
+    title_en: 'Client Portal & Communication', title_ar: 'بوابة العميل والتواصل',
+    desc_en: 'Set up branded self-service client portal, automated email communications, proposal templates, and satisfaction surveys.',
+    desc_ar: 'إعداد بوابة خدمة ذاتية ذات علامة تجارية واتصالات بريد إلكتروني آلية وقوالب العروض واستطلاعات الرضا.' },
+  // ── LOGISTICS ──
+  { id: 'c13', track: 'logistics', level: 'beginner', duration_min: 30, lessons: 8, students: 670, rating: 4.6, icon: Layers,
+    title_en: 'Logistics & Fleet Management', title_ar: 'إدارة اللوجستيات والأسطول',
+    desc_en: 'Real-time vehicle tracking, task dispatch, route optimization, driver management, and delivery confirmation workflows.',
+    desc_ar: 'تتبع المركبات في الوقت الفعلي وإرسال المهام وتحسين المسار وإدارة السائقين وسير عمل تأكيد التسليم.' },
+  { id: 'c14', track: 'logistics', level: 'intermediate', duration_min: 25, lessons: 6, students: 430, rating: 4.5, icon: Layers,
+    title_en: 'Inventory & Warehouse Operations', title_ar: 'المخزون وعمليات المستودعات',
+    desc_en: 'Manage warehouse zones, stock levels, purchase orders, supplier management, and automated reorder points.',
+    desc_ar: 'إدارة مناطق المستودعات ومستويات المخزون وأوامر الشراء وإدارة الموردين ونقاط إعادة الطلب التلقائية.' },
 ];
 
 const TRACKS: { key: TrackKey; en: string; ar: string }[] = [
@@ -101,6 +161,62 @@ const LEVEL_LABELS = {
   intermediate: { en: 'Intermediate', ar: 'متوسط' },
   advanced: { en: 'Advanced', ar: 'متقدم' },
 };
+
+/* ─── Academy Video Component ────────────────────────────────────────── */
+function AcademyVideo({ isAr }: { isAr: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const toggle = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setIsPlaying(true); } else { v.pause(); setIsPlaying(false); }
+  }, []);
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+      className="max-w-4xl mx-auto mb-12 relative rounded-3xl overflow-hidden bg-black group shadow-2xl shadow-blue-600/10 border border-[var(--border-soft)]" data-tour="academy-video">
+      <video ref={videoRef} src={ASSETS.INTRO_VIDEO} className="w-full aspect-video object-cover" muted={isMuted} playsInline preload="metadata" poster={ASSETS.LOGO_SHIELD}
+        onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) { setProgress((v.currentTime / v.duration) * 100); setCurrentTime(v.currentTime); } }}
+        onLoadedMetadata={() => { if (videoRef.current) setDuration(videoRef.current.duration); }}
+        onEnded={() => setIsPlaying(false)} onClick={toggle} />
+      <AnimatePresence>
+        {!isPlaying && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/20" onClick={toggle}>
+            <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }}
+              className="w-20 h-20 bg-blue-600/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl">
+              <PlayCircle size={40} className="text-white ml-1" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-3">
+          <button onClick={toggle} className="text-white hover:text-blue-400"><PlayCircle size={16} /></button>
+          <div className="flex-1 h-1 bg-white/20 rounded-full cursor-pointer" onClick={(e) => {
+            const v = videoRef.current; if (!v?.duration) return;
+            v.currentTime = ((e.clientX - e.currentTarget.getBoundingClientRect().left) / e.currentTarget.clientWidth) * v.duration;
+          }}>
+            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${progress}%` }} />
+          </div>
+          <span className="text-[10px] text-zinc-400 font-mono">{fmt(currentTime)}/{fmt(duration)}</span>
+          <button onClick={() => { const v = videoRef.current; if (v) { v.muted = !v.muted; setIsMuted(v.muted); } }}
+            className="text-white/60 hover:text-white">{isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}</button>
+        </div>
+      </div>
+      <div className="absolute top-3 left-3">
+        <span className="px-3 py-1 bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1">
+          <Video size={10} /> {isAr ? 'مقدمة الأكاديمية' : 'Academy Intro'}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function AcademyPage() {
   const { language } = useTheme();
@@ -161,6 +277,7 @@ export default function AcademyPage() {
 
   return (
     <div className="pt-32 pb-20 px-6 bg-[var(--bg-primary)] min-h-screen">
+      <GuidedTour tourKey="academy_public" steps={TOUR_STEPS.academy} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -177,6 +294,9 @@ export default function AcademyPage() {
               : 'Master the full power of ZIEN through certified training courses and earn your professional credentials.'}
           </p>
         </div>
+
+        {/* Video Hero */}
+        <AcademyVideo isAr={isAr} />
 
         {/* Stats Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">

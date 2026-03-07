@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   FolderKanban, CheckCircle2, Clock, AlertCircle, Plus,
-  Calendar, Users, BarChart3, ArrowUpRight, Target, Loader2, X
+  Calendar, Users, BarChart3, ArrowUpRight, Target, Loader2, X, Search
 } from 'lucide-react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { supabase } from '../../services/supabase';
@@ -33,6 +33,7 @@ export default function ProjectsModule() {
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', client_name: '', deadline: '' });
+  const [search, setSearch] = useState('');
 
   const fetchProjects = () => {
     if (!company?.id) return;
@@ -89,14 +90,21 @@ export default function ProjectsModule() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight">Projects</h1>
           <p className="text-zinc-500 mt-1 text-sm">Project management, task tracking, and team collaboration</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
-          <Plus size={16} /> New Project
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+            <input type="text" placeholder="Search projects..." value={search} onChange={e => setSearch(e.target.value)}
+              className="w-48 pl-9 pr-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <button onClick={() => setShowCreate(true)} className="bg-blue-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+            <Plus size={16} /> New Project
+          </button>
+        </div>
       </div>
 
       {/* Create Project Modal */}

@@ -64,8 +64,11 @@ export default function ChatModule() {
     const [newChannelType, setNewChannelType] = useState<'group' | 'department' | 'announcement'>('group');
     const [onlineMembers, setOnlineMembers] = useState<Record<string, string>>({});
     const [showMobileList, setShowMobileList] = useState(true);
+    const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
+    const [presenceUsers, setPresenceUsers] = useState<Record<string, 'online' | 'away'>>({});
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Load channels
     const loadChannels = useCallback(async () => {
@@ -114,6 +117,60 @@ export default function ChatModule() {
 
         return () => { supabase.removeChannel(sub); };
     }, [selectedChannel?.id]);
+
+    // Presence for online status & typing indicators
+    useEffect(() => {
+        if (!selectedChannel?.id || !user?.id) return;
+        const presenceChannel = supabase.channel(`presence-${selectedChannel.id}`, {
+            config: { presence: { key: user.id } },
+        });
+
+        presenceChannel
+            .on('presence', { event: 'sync' }, () => {
+                const state = presenceChannel.presenceState();
+                const onlineMap: Record<string, 'online' | 'away'> = {};
+                const typingMap: Record<string, string> = {};
+                Object.entries(state).forEach(([key, arr]) => {
+                    const latest = (arr as any)[0];
+                    onlineMap[key] = latest?.status || 'online';
+                    if (latest?.typing && key !== user?.id) {
+                        typingMap[key] = latest.name || 'Someone';
+                    }
+                });
+                setPresenceUsers(onlineMap);
+                setTypingUsers(typingMap);
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await presenceChannel.track({
+                        status: 'online',
+                        name: profile?.full_name || 'User',
+                        typing: false,
+                    });
+                }
+            });
+
+        return () => { supabase.removeChannel(presenceChannel); };
+    }, [selectedChannel?.id, user?.id, profile?.full_name]);
+
+    // Broadcast typing indicator
+    const broadcastTyping = useCallback(() => {
+        if (!selectedChannel?.id || !user?.id) return;
+        const ch = supabase.channel(`presence-${selectedChannel.id}`);
+        ch.track({
+            status: 'online',
+            name: profile?.full_name || 'User',
+            typing: true,
+        });
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+            ch.track({
+                status: 'online',
+                name: profile?.full_name || 'User',
+                typing: false,
+            });
+        }, 2000);
+    }, [selectedChannel?.id, user?.id, profile?.full_name]);
 
     // Load presence
     useEffect(() => {
@@ -338,6 +395,12 @@ export default function ChatModule() {
                                     {selectedChannel.description && (
                                         <p className="text-[11px] text-zinc-400">{selectedChannel.description}</p>
                                     )}
+                                    {Object.keys(presenceUsers).length > 0 && (
+                                        <p className="text-[10px] text-green-500 flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                                            {Object.keys(presenceUsers).length} online
+                                        </p>
+                                    )}
                                 </div>
                                 <button className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800">
                                     <UserPlus size={16} className="text-zinc-400" />
@@ -411,6 +474,12 @@ export default function ChatModule() {
 
                             {/* Message Input */}
                             <div className="px-4 py-3 border-t border-zinc-200 dark:border-zinc-800">
+                                {/* Typing Indicator */}
+                                {Object.keys(typingUsers).length > 0 && (
+                                    <div className="text-[11px] text-blue-500 mb-1.5 px-1 animate-pulse">
+                                        {Object.values(typingUsers).join(', ')} {Object.keys(typingUsers).length === 1 ? 'is' : 'are'} typing...
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-4 py-2">
                                     <button className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700">
                                         <Paperclip size={16} className="text-zinc-400" />
@@ -418,7 +487,7 @@ export default function ChatModule() {
                                     <input
                                         type="text"
                                         value={message}
-                                        onChange={e => setMessage(e.target.value)}
+                                        onChange={e => { setMessage(e.target.value); broadcastTyping(); }}
                                         onKeyDown={handleKeyDown}
                                         placeholder="Type a message..."
                                         className="flex-1 bg-transparent border-0 text-sm focus:outline-none focus:ring-0"

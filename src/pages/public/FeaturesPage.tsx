@@ -1,9 +1,72 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
-import { CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, Video, ArrowRight } from 'lucide-react';
+import GuidedTour from '../../components/GuidedTour';
+import { TOUR_STEPS } from '../../constants/tourSteps';
+import { CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, Video, ArrowRight, PlayCircle, Pause, Volume2, VolumeX } from 'lucide-react';
+
+/* ─── Video Component ─────────────────────────────────────────────────── */
+function FeaturesVideo({ language }: { language: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const isAr = language === 'ar';
+
+  const toggle = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setIsPlaying(true); } else { v.pause(); setIsPlaying(false); }
+  }, []);
+
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+      className="max-w-4xl mx-auto mb-24 relative rounded-3xl overflow-hidden bg-black group shadow-2xl shadow-blue-600/10 border border-[var(--border-soft)]">
+      <video ref={videoRef} src={ASSETS.INTRO_VIDEO} className="w-full aspect-video object-cover" muted={isMuted} playsInline preload="metadata" poster={ASSETS.LOGO_SHIELD}
+        onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) { setProgress((v.currentTime / v.duration) * 100); setCurrentTime(v.currentTime); } }}
+        onLoadedMetadata={() => { if (videoRef.current) setDuration(videoRef.current.duration); }}
+        onEnded={() => setIsPlaying(false)} onClick={toggle} />
+      <AnimatePresence>
+        {!isPlaying && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/20" onClick={toggle}>
+            <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }}
+              className="w-20 h-20 bg-blue-600/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl">
+              <PlayCircle size={40} className="text-white ml-1" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-3">
+          <button onClick={toggle} className="text-white hover:text-blue-400"><PlayCircle size={16} /></button>
+          <div className="flex-1 h-1 bg-white/20 rounded-full cursor-pointer" onClick={(e) => {
+            const v = videoRef.current; if (!v?.duration) return;
+            v.currentTime = ((e.clientX - e.currentTarget.getBoundingClientRect().left) / e.currentTarget.clientWidth) * v.duration;
+          }}>
+            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${progress}%` }} />
+          </div>
+          <span className="text-[10px] text-zinc-400 font-mono">{fmt(currentTime)}/{fmt(duration)}</span>
+          <button onClick={() => { const v = videoRef.current; if (v) { v.muted = !v.muted; setIsMuted(v.muted); } }}
+            className="text-white/60 hover:text-white">
+            {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+          </button>
+        </div>
+      </div>
+      <div className="absolute top-3 left-3">
+        <span className="px-3 py-1 bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1">
+          <Video size={10} /> {isAr ? 'عرض المنصة' : 'Platform Demo'}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function FeaturesPage() {
   const { language, t: translate } = useTheme();
@@ -143,6 +206,9 @@ export default function FeaturesPage() {
             {translate('features_hero_desc')}
           </p>
         </div>
+
+        {/* Platform Video */}
+        <FeaturesVideo language={language} />
 
         {/* Main Feature Sections */}
         <div className="space-y-32">

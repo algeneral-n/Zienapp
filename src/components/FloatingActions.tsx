@@ -236,6 +236,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
         ...context,
         companyId: company?.id || '',
         mode: activeMode,
+        language,
         files: selectedFiles.map(f => ({ data: f.data, mimeType: f.mimeType }))
       });
       aiResponse = response;

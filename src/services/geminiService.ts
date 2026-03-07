@@ -44,6 +44,7 @@ export async function generateRAREAnalysis(
       agentType,
       moduleCode: context.moduleCode,
       companyId: context.companyId || undefined,
+      language: context.language || 'en',
       files: context.files?.length ? context.files : undefined,
       context: {
         pageCode: context.pageCode,

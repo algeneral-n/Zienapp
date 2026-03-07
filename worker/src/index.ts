@@ -42,6 +42,9 @@ export interface Env {
   VONAGE_API_SECRET?: string;
   VONAGE_APPLICATION_ID?: string;
   VONAGE_PRIVATE_KEY?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
+  MONGODB_URI?: string;
 }
 
 export default {

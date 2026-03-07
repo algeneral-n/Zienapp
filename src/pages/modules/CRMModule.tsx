@@ -2,11 +2,103 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import {
   Users, FileText, Briefcase, Settings,
-  Plus, Search, Filter, MoreHorizontal, Loader2, X
+  Plus, Search, Filter, MoreHorizontal, Loader2, X,
+  TrendingUp, DollarSign, ArrowRight, Target
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { crmService } from '../../services/crmService';
+
+// ─── Pipeline ───────────────────────────────────────────────────────────
+const PIPELINE_STAGES = [
+  { key: 'lead', label: 'Lead', color: 'bg-zinc-500' },
+  { key: 'contacted', label: 'Contacted', color: 'bg-blue-500' },
+  { key: 'proposal', label: 'Proposal', color: 'bg-amber-500' },
+  { key: 'negotiation', label: 'Negotiation', color: 'bg-purple-500' },
+  { key: 'won', label: 'Won', color: 'bg-emerald-500' },
+  { key: 'lost', label: 'Lost', color: 'bg-red-500' },
+];
+
+const Pipeline = () => {
+  const { company } = useCompany();
+  const [clients, setClients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!company?.id) return;
+    (async () => {
+      try {
+        const result = await crmService.listClients({ limit: 100 });
+        setClients(result.data ?? []);
+      } catch (err) { console.error(err); }
+      finally { setLoading(false); }
+    })();
+  }, [company?.id]);
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>;
+
+  const grouped = PIPELINE_STAGES.map(stage => ({
+    ...stage,
+    items: clients.filter(c => (c.status ?? 'lead') === stage.key),
+  }));
+
+  const totalValue = clients.reduce((s, c) => s + Number(c.total_revenue || 0), 0);
+  const wonValue = grouped.find(g => g.key === 'won')?.items.reduce((s: number, c: any) => s + Number(c.total_revenue || 0), 0) ?? 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black uppercase tracking-tighter">Sales Pipeline</h2>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+            <DollarSign size={14} className="text-blue-600" />
+            <span className="font-bold">{totalValue.toLocaleString()} AED</span>
+            <span className="text-zinc-400 text-xs">pipeline</span>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl">
+            <TrendingUp size={14} className="text-emerald-600" />
+            <span className="font-bold text-emerald-600">{wonValue.toLocaleString()} AED</span>
+            <span className="text-zinc-400 text-xs">won</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+        {grouped.map(stage => (
+          <div key={stage.key} className="min-w-[240px] flex-shrink-0">
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-3 h-3 rounded-full ${stage.color}`} />
+              <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">{stage.label}</span>
+              <span className="ml-auto text-xs font-bold px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full">{stage.items.length}</span>
+            </div>
+            <div className="space-y-3">
+              {stage.items.length === 0 ? (
+                <div className="text-center py-6 text-zinc-400 text-xs border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl">Empty</div>
+              ) : stage.items.map((c: any) => (
+                <motion.div key={c.id} whileHover={{ y: -2 }}
+                  className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 hover:border-blue-600/50 transition-all cursor-pointer">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center font-black text-sm">
+                      {(c.name ?? '?').charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-sm truncate">{c.name}</h4>
+                      <p className="text-[10px] text-zinc-400 truncate">{c.contact_name ?? c.contact_email ?? '-'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold">{Number(c.total_revenue || 0).toLocaleString()} AED</span>
+                    <ArrowRight size={12} className="text-zinc-400" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 // ─── Clients ────────────────────────────────────────────────────────────
 const ClientList = () => {
@@ -15,6 +107,7 @@ const ClientList = () => {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
   const [form, setForm] = useState({ name: '', contact_name: '', contact_email: '', contact_phone: '' });
 
   const fetchClients = async () => {
@@ -55,8 +148,15 @@ const ClientList = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h2 className="text-2xl font-black uppercase tracking-tighter">Clients</h2>
+        <div className="flex items-center gap-3 flex-1 max-w-md">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+            <input type="text" placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
         <button onClick={() => setShowCreate(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all">
           <Plus size={16} /> Add Client
         </button>
@@ -84,9 +184,9 @@ const ClientList = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {clients.length === 0 ? (
-          <div className="col-span-3 text-center py-8 text-zinc-400 text-sm">No clients yet</div>
-        ) : clients.map((client: any) => (
+        {clients.filter(c => !search || c.name?.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
+          <div className="col-span-3 text-center py-8 text-zinc-400 text-sm">No clients found</div>
+        ) : clients.filter(c => !search || c.name?.toLowerCase().includes(search.toLowerCase())).map((client: any) => (
           <div key={client.id} className="bg-white dark:bg-zinc-900 p-6 rounded-[32px] border border-zinc-200 dark:border-zinc-800 hover:border-blue-600/50 transition-all group">
             <div className="flex items-center justify-between mb-6">
               <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center font-black text-xl group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -178,7 +278,7 @@ export default function CRMModule() {
         {[
           { icon: Users, label: 'Clients', path: '' },
           { icon: FileText, label: 'Quotes', path: 'quotes' },
-          { icon: Briefcase, label: 'Projects', path: 'projects' },
+          { icon: Target, label: 'Pipeline', path: 'pipeline' },
           { icon: Settings, label: 'Settings', path: 'settings' },
         ].map((item) => (
           <NavLink
@@ -206,6 +306,8 @@ export default function CRMModule() {
         <Routes>
           <Route path="/" element={<ClientList />} />
           <Route path="/quotes" element={<Quotes />} />
+          <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/settings" element={<div className="text-center py-16 text-zinc-400"><Settings size={40} className="mx-auto mb-4 opacity-30" /><p className="font-bold">CRM Settings</p><p className="text-xs mt-1">Coming soon</p></div>} />
         </Routes>
       </motion.div>
     </div>

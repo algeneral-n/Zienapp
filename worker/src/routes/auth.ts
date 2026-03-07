@@ -459,6 +459,67 @@ async function inviteUser(request: Request, env: Env): Promise<Response> {
     expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   }, { onConflict: 'company_id,email' }).catch(() => { });
 
+  // 5. Get company name for the email
+  const { data: companyData } = await admin
+    .from('companies')
+    .select('name')
+    .eq('id', body.company_id)
+    .single();
+  const companyName = companyData?.name || 'ZIEN Platform';
+
+  // 6. Send invitation email via Resend API
+  let emailSent = false;
+  if (env.RESEND_API_KEY) {
+    const acceptUrl = `https://app.zien-ai.app/auth/accept-invite?token=${invite.token}`;
+    try {
+      const emailRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: env.RESEND_FROM_EMAIL || 'ZIEN Platform <noreply@zien-ai.app>',
+          to: [email],
+          subject: `You're invited to join ${companyName} on ZIEN Platform`,
+          html: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+              <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div style="text-align: center; margin-bottom: 32px;">
+                  <img src="https://app.zien-ai.app/zien-logo.png" alt="ZIEN" style="height: 48px; margin-bottom: 16px;" />
+                  <h1 style="color: #1e293b; font-size: 24px; margin: 0;">You're Invited! 🎉</h1>
+                </div>
+                <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                  ${body.full_name ? `Hi ${body.full_name},` : 'Hello,'}<br><br>
+                  You've been invited to join <strong>${companyName}</strong> on <strong>ZIEN Platform</strong> as <strong>${role}</strong>.
+                </p>
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${acceptUrl}" style="display: inline-block; background: #2563eb; color: white; font-weight: bold; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-size: 16px;">
+                    Accept Invitation
+                  </a>
+                </div>
+                <p style="color: #94a3b8; font-size: 13px; text-align: center;">
+                  This invitation expires in 30 days.<br>
+                  If you didn't expect this email, you can safely ignore it.
+                </p>
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+                <p style="color: #94a3b8; font-size: 12px; text-align: center;">
+                  Powered by ZIEN Platform · Powered by RARE AI
+                </p>
+              </div>
+            </div>
+          `,
+        }),
+      });
+      emailSent = emailRes.ok;
+      if (!emailRes.ok) {
+        console.error('Resend error:', await emailRes.text());
+      }
+    } catch (e) {
+      console.error('Email send error:', e);
+    }
+  }
+
   return jsonResponse({
     success: true,
     invitation: {
@@ -467,7 +528,10 @@ async function inviteUser(request: Request, env: Env): Promise<Response> {
       token: invite.token,
       expires_at: invite.expires_at,
     },
-    message: `Invitation created for ${email}`,
+    email_sent: emailSent,
+    message: emailSent
+      ? `Invitation sent to ${email}`
+      : `Invitation created for ${email} (email delivery requires RESEND_API_KEY)`,
   });
 }
 

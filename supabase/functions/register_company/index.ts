@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
     const { error: memberErr } = await admin.from("company_members").insert({
       company_id: company.id,
       user_id: userId,
-      role: "company_gm",
+      role_code: "company_gm",
       status: "active",
       is_primary: true,
       created_by: userId,
