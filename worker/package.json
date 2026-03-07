@@ -9,8 +9,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250214.0",
-    "wrangler": "^3.105.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "wrangler": "^4.71.0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
