@@ -135,7 +135,7 @@ export default function Header() {
           <div className="flex items-center gap-2 cursor-pointer group" onClick={() => navigate('/')}>
             <div className="relative">
               <div className="absolute inset-0 bg-brand blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500"></div>
-              <img src={ASSETS.LOGO_PRIMARY} alt="Logo" className="w-14 h-14 object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500" {...IMAGE_PROPS} />
+              <img src={ASSETS.LOGO_PRIMARY} alt="ZIEN Platform" className="h-12 object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500" />
             </div>
           </div>
         </div>

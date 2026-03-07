@@ -414,13 +414,13 @@ export default function LandingPage() {
                   </div>
 
                   <div className="aspect-video rounded-3xl bg-slate-900 flex items-center justify-center relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-transparent" />
-                    <div className="z-10 text-center">
-                      <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md group-hover:scale-110 transition-transform cursor-pointer">
-                        <Play className="w-8 h-8 text-white fill-current" />
-                      </div>
-                      <p className="text-white font-bold">{translate('watch_demo')}</p>
-                    </div>
+                    <video
+                      src={ASSETS.INTRO_VIDEO}
+                      className="w-full h-full object-cover"
+                      controls
+                      playsInline
+                      poster={ASSETS.LOGO_SHIELD}
+                    />
                   </div>
 
                   <div className="flex gap-4">
@@ -453,6 +453,29 @@ export default function LandingPage() {
               {translate('features_subtitle')}
             </p>
           </div>
+
+          {/* Video Showcase Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-12 rounded-3xl overflow-hidden shadow-2xl shadow-blue-600/10 border border-[var(--border-soft)] bg-black relative group"
+          >
+            <video
+              src={ASSETS.INTRO_VIDEO}
+              className="w-full aspect-video object-cover"
+              controls
+              playsInline
+              muted
+              preload="metadata"
+              poster={ASSETS.LOGO_SHIELD}
+            />
+            <div className="absolute top-4 left-4 z-10 pointer-events-none">
+              <span className="px-4 py-2 bg-blue-600/90 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest rounded-full">
+                {translate('watch_demo') || 'Watch Platform Demo'}
+              </span>
+            </div>
+          </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[

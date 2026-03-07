@@ -370,7 +370,7 @@ export default function FAQPage() {
               </p>
               <div className="rounded-2xl overflow-hidden border border-[var(--border-soft)] shadow-xl">
                 <img
-                  src={ASSETS.SECURITY_SHIELD}
+                  src={ASSETS.FEATURE_SECURITY_ALT}
                   alt="Security Shield"
                   className="w-full h-auto"
                   {...IMAGE_PROPS}

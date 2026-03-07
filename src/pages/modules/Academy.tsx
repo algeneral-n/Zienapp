@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   GraduationCap, PlayCircle, BookOpen, Award, Search, Loader2,
   Video, Sparkles, Users, BarChart3, ShieldCheck, Truck, Brain, Clock,
+  Pause, Volume2, VolumeX, Maximize, Minimize,
 } from 'lucide-react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { supabase } from '../../services/supabase';
+import { ASSETS } from '../../constants/assets';
 
 // ─── Video Prompts for Academy Content Creation ─────────────────────────────
 const VIDEO_PROMPTS = [
@@ -13,8 +15,8 @@ const VIDEO_PROMPTS = [
     id: 'vp1',
     title_en: 'Platform Overview & First Steps',
     title_ar: 'نظرة عامة على المنصة والخطوات الأولى',
-    desc_en: 'A cinematic walkthrough of the ZIEN Platform — how to sign up, navigate the dashboard, configure your company, and invite your team. Covers multi-tenant architecture basics.',
-    desc_ar: 'جولة سينمائية في منصة ZIEN — كيفية التسجيل، التنقل في لوحة التحكم، إعداد الشركة، ودعوة فريقك. تغطي أساسيات البنية متعددة المستأجرين.',
+    desc_en: 'A cinematic walkthrough of the ZIEN Platform — how to sign up, navigate the dashboard, configure your company, and invite your team.',
+    desc_ar: 'جولة سينمائية في منصة ZIEN — كيفية التسجيل، التنقل في لوحة التحكم، إعداد الشركة، ودعوة فريقك.',
     icon: Sparkles,
     category: 'core',
     duration: '8-12 min',
@@ -33,8 +35,8 @@ Style: Clean, modern UI recordings with smooth transitions, Arabic + English sub
     id: 'vp2',
     title_en: 'HR & Payroll Mastery',
     title_ar: 'إتقان الموارد البشرية والرواتب',
-    desc_en: 'Complete guide to employee management, attendance tracking, leave management, payroll processing, and HR analytics with RARE AI assistance.',
-    desc_ar: 'دليل شامل لإدارة الموظفين، تتبع الحضور، إدارة الإجازات، معالجة الرواتب، وتحليلات الموارد البشرية بمساعدة RARE AI.',
+    desc_en: 'Complete guide to employee management, attendance tracking, leave management, payroll processing, and HR analytics.',
+    desc_ar: 'دليل شامل لإدارة الموظفين، تتبع الحضور، إدارة الإجازات، معالجة الرواتب، وتحليلات الموارد البشرية.',
     icon: Users,
     category: 'hr',
     duration: '15-20 min',
@@ -44,101 +46,271 @@ Scene 1: HR Dashboard overview — employee count cards, department breakdown, a
 Scene 2: Adding employees — profile creation, document upload, contract setup, department assignment.
 Scene 3: Attendance system — clock-in/out, GPS tracking for field workers, overtime calculation.
 Scene 4: Leave management — request flow, approval workflow, balance tracking, calendar view.
-Scene 5: Payroll processing — salary configuration, deductions, bonuses, tax calculation (VAT for UAE/KSA/Egypt).
-Scene 6: Performance reviews — 360 feedback, KPI tracking, goals management.
-Scene 7: RARE AI integration — "Ask RARE about employee performance trends", auto-generate HR reports.
-Scene 8: Reports & analytics — turnover rate, headcount trends, department-level insights.
+Scene 5: Payroll processing — salary configuration, deductions, bonuses, tax calculation.
+Scene 6: RARE AI integration — auto-generate HR reports.
 Style: Split-screen showing UI actions + animated infographics, bilingual subtitles.`,
   },
   {
     id: 'vp3',
     title_en: 'Financial Operations & Accounting',
     title_ar: 'العمليات المالية والمحاسبة',
-    desc_en: 'Master invoicing, chart of accounts, journal entries, financial reports, multi-currency support, and tax compliance across GCC countries.',
-    desc_ar: 'إتقان الفواتير، شجرة الحسابات، القيود اليومية، التقارير المالية، دعم العملات المتعددة، والامتثال الضريبي في دول الخليج.',
+    desc_en: 'Master invoicing, chart of accounts, journal entries, financial reports, and tax compliance.',
+    desc_ar: 'إتقان الفواتير، شجرة الحسابات، القيود اليومية، التقارير المالية، والامتثال الضريبي.',
     icon: BarChart3,
     category: 'finance',
     duration: '18-25 min',
     color: 'from-violet-600 to-purple-500',
     prompt: `Create a comprehensive Accounting & Finance tutorial for ZIEN Platform.
-Scene 1: Accounting Dashboard — revenue/expense overview, cash flow chart, outstanding invoices.
-Scene 2: Chart of Accounts setup — default templates per country, adding custom accounts, hierarchy.
-Scene 3: Journal Entries — manual entries, auto-generated from invoices, reversals.
-Scene 4: Invoice Management — create invoice, send to client, track payments, recurring invoices.
-Scene 5: Expense tracking — employee expenses, approval flow, receipt scanning.
-Scene 6: Multi-currency — setting up currencies, exchange rates, cross-currency transactions.
-Scene 7: Tax compliance — VAT setup (5% UAE, 15% KSA, 14% Egypt), tax reports, filing preparation.
-Scene 8: Financial Reports — P&L, Balance Sheet, Cash Flow Statement, custom date ranges.
-Scene 9: RARE AI — "Generate monthly financial summary", "Flag unusual transactions".
-Style: Professional, screen recordings with financial data (sample company), animated charts, bilingual.`,
+Scene 1: Accounting Dashboard — revenue/expense overview, cash flow chart.
+Scene 2: Chart of Accounts — templates, custom accounts, hierarchy.
+Scene 3: Journal Entries — manual, auto-generated, reversals.
+Scene 4: Invoice Management — create, send, track, recurring.
+Scene 5: Tax compliance — VAT setup, reports, filing.
+Scene 6: Financial Reports — P&L, Balance Sheet, Cash Flow.
+Style: Professional, animated charts, bilingual.`,
   },
   {
     id: 'vp4',
     title_en: 'RARE AI — Your Intelligent Assistant',
     title_ar: 'RARE AI — مساعدك الذكي',
-    desc_en: 'Deep dive into the RARE AI engine — natural language commands, context-aware suggestions, automated workflows, and how AI transforms every module.',
-    desc_ar: 'غوص عميق في محرك RARE AI — الأوامر باللغة الطبيعية، الاقتراحات السياقية، الأتمتة، وكيف يحول الذكاء الاصطناعي كل وحدة.',
+    desc_en: 'Deep dive into the RARE AI engine — natural language commands, context-aware suggestions, and automated workflows.',
+    desc_ar: 'غوص عميق في محرك RARE AI — الأوامر باللغة الطبيعية، الاقتراحات السياقية، والأتمتة.',
     icon: Brain,
     category: 'ai',
     duration: '12-15 min',
     color: 'from-amber-500 to-orange-600',
     prompt: `Create an exciting RARE AI showcase video for ZIEN Platform.
-Scene 1: Dramatic intro — "Meet RARE" — AI brain animation, particles converging into the RARE logo.
-Scene 2: RARE Chat interface — show the floating AI button, open the chat panel.
-Scene 3: Demo RARE across modules:
-  - HR: "Show me employees with expiring contracts this month" → instant table
-  - Finance: "Generate a cash flow forecast for Q2" → chart + insights
-  - CRM: "Draft a follow-up email for client Abdullah" → ready-to-send email
-  - Projects: "What tasks are overdue in Project Alpha?" → task list with owners
-Scene 4: RARE execution mode — "Create an invoice for client XYZ for AED 5,000" → RARE creates it.
-Scene 5: Knowledge Base — RARE learns company-specific context, remembers past conversations.
-Scene 6: Security — data stays within tenant, no cross-company leaks, audit trail.
-Scene 7: Tips & tricks — best prompts, how to train RARE with your data.
-Style: Futuristic, dark theme with blue/amber accents, AI-inspired animations, bilingual subtitles.`,
+Scene 1: Dramatic intro — "Meet RARE" — AI brain animation.
+Scene 2: RARE Chat interface — floating AI button, chat panel.
+Scene 3: Demo across modules: HR, Finance, CRM, Projects.
+Scene 4: Knowledge Base — company-specific context.
+Scene 5: Security — tenant isolation, audit trail.
+Style: Futuristic, dark theme, AI-inspired animations, bilingual subtitles.`,
   },
   {
     id: 'vp5',
     title_en: 'CRM, Sales & Client Portal',
     title_ar: 'إدارة العملاء والمبيعات وبوابة العميل',
-    desc_en: 'Learn lead management, sales pipeline, client communication, deal tracking, and how to set up and customize the client-facing portal.',
-    desc_ar: 'تعلم إدارة العملاء المحتملين، خط المبيعات، التواصل مع العملاء، تتبع الصفقات، وإعداد بوابة العميل.',
+    desc_en: 'Lead management, sales pipeline, client communication, and the client-facing portal.',
+    desc_ar: 'إدارة العملاء المحتملين، خط المبيعات، التواصل، وبوابة العميل.',
     icon: ShieldCheck,
     category: 'crm',
     duration: '14-18 min',
     color: 'from-pink-600 to-rose-500',
     prompt: `Create a CRM & Sales module tutorial for ZIEN Platform.
-Scene 1: CRM Dashboard — pipeline overview (kanban board), deal values, conversion rates.
-Scene 2: Lead Management — adding leads, source tracking, lead scoring, auto-assignment.
-Scene 3: Contact Management — client profiles, communication history, notes, tags.
-Scene 4: Sales Pipeline — drag-and-drop stages, deal creation, probability tracking, forecasting.
-Scene 5: Communication — email templates, WhatsApp integration, call logging, activity timeline.
-Scene 6: Client Portal setup — branding, enabling modules (invoices, projects, support tickets).
-Scene 7: Client experience — how clients log in, view their invoices, track project progress.
-Scene 8: Reports — sales by team member, pipeline value trends, win/loss analysis.
-Style: Dynamic, showing Kanban boards with smooth drag-and-drop, client portal split-screen view, bilingual.`,
+Scene 1: CRM Dashboard — pipeline kanban, deal values, conversion rates.
+Scene 2: Lead & Contact Management — profiles, scoring, auto-assignment.
+Scene 3: Sales Pipeline — drag-and-drop, forecasting.
+Scene 4: Client Portal — branding, self-service.
+Style: Dynamic, Kanban boards, bilingual.`,
   },
   {
     id: 'vp6',
     title_en: 'Logistics, Fleet & GPS Tracking',
     title_ar: 'اللوجستيات والأسطول وتتبع GPS',
-    desc_en: 'Complete logistics operations — vehicle management, driver assignment, route planning, shipment tracking, GPS real-time monitoring, and delivery proof.',
-    desc_ar: 'العمليات اللوجستية الكاملة — إدارة المركبات، تعيين السائقين، تخطيط المسارات، تتبع الشحنات، مراقبة GPS الحية، وإثبات التسليم.',
+    desc_en: 'Vehicle management, driver assignment, route planning, shipment tracking, and GPS monitoring.',
+    desc_ar: 'إدارة المركبات، تعيين السائقين، تخطيط المسارات، تتبع الشحنات، ومراقبة GPS.',
     icon: Truck,
     category: 'logistics',
     duration: '12-16 min',
     color: 'from-indigo-600 to-blue-500',
     prompt: `Create a Logistics & Fleet Management tutorial for ZIEN Platform.
-Scene 1: Logistics Dashboard — vehicle status overview, active shipments map, delivery stats.
-Scene 2: Fleet Management — adding vehicles (plate, model, type), status tracking (available/in-use/maintenance).
-Scene 3: Driver Management — assigning drivers to vehicles, license tracking, performance metrics.
-Scene 4: Route Planning — create routes with waypoints, estimated distance/duration, map visualization.
-Scene 5: Shipment Creation — tracking code generation (ZN-XXXXX), assigning driver/vehicle/route.
-Scene 6: GPS Live Tracking — real-time map view, driver location pings, speed monitoring.
-Scene 7: Delivery Flow — status updates (pending → picked up → in transit → delivered), proof of delivery photo.
-Scene 8: Analytics — delivery success rate, average delivery time, fuel consumption estimates.
-Style: Map-focused with animated route lines, real-time location dots, mobile app GPS view, bilingual subtitles.`,
+Scene 1: Logistics Dashboard — vehicle status, active shipments map.
+Scene 2: Fleet & Driver Management — vehicles, licenses, performance.
+Scene 3: Shipment Creation — tracking codes, route planning.
+Scene 4: GPS Live Tracking — real-time map, delivery flow.
+Style: Map-focused, animated route lines, bilingual subtitles.`,
   },
 ];
+
+// ─── Video Player Component ─────────────────────────────────────────────────
+function VideoHeroCard({ className = '' }: { className?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [showControls, setShowControls] = useState(true);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const hideTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const togglePlay = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setIsPlaying(true); }
+    else { v.pause(); setIsPlaying(false); }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setIsMuted(v.muted);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    const c = containerRef.current;
+    if (!c) return;
+    if (!document.fullscreenElement) {
+      c.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  }, []);
+
+  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    v.currentTime = pct * v.duration;
+  }, []);
+
+  const handleMouseMove = useCallback(() => {
+    setShowControls(true);
+    if (hideTimeout.current) clearTimeout(hideTimeout.current);
+    hideTimeout.current = setTimeout(() => { if (isPlaying) setShowControls(false); }, 3000);
+  }, [isPlaying]);
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    const handleFSChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFSChange);
+    return () => document.removeEventListener('fullscreenchange', handleFSChange);
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative rounded-2xl overflow-hidden bg-black group cursor-pointer ${className}`}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => { if (isPlaying) setShowControls(false); }}
+    >
+      {/* Video */}
+      <video
+        ref={videoRef}
+        src={ASSETS.INTRO_VIDEO}
+        className="w-full aspect-video object-cover"
+        muted={isMuted}
+        playsInline
+        preload="metadata"
+        poster={ASSETS.LOGO_SHIELD}
+        onTimeUpdate={() => {
+          const v = videoRef.current;
+          if (v && v.duration) {
+            setProgress((v.currentTime / v.duration) * 100);
+            setCurrentTime(v.currentTime);
+          }
+        }}
+        onLoadedMetadata={() => {
+          if (videoRef.current) setDuration(videoRef.current.duration);
+        }}
+        onEnded={() => setIsPlaying(false)}
+        onClick={togglePlay}
+      />
+
+      {/* Gradient Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+
+      {/* Top Badge */}
+      <div className="absolute top-4 left-4 z-20">
+        <span className="px-3 py-1.5 bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1.5">
+          <Video size={12} /> ZIEN Platform
+        </span>
+      </div>
+
+      {/* Center Play Button (when paused) */}
+      <AnimatePresence>
+        {!isPlaying && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="absolute inset-0 flex items-center justify-center z-10"
+            onClick={togglePlay}
+          >
+            <motion.div
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-24 h-24 bg-blue-600/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl shadow-blue-600/50 hover:bg-blue-600 transition-colors"
+            >
+              <PlayCircle size={48} className="text-white ml-1" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom Controls */}
+      <AnimatePresence>
+        {(showControls || !isPlaying) && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute bottom-0 left-0 right-0 p-4 z-20"
+          >
+            {/* Bottom Info */}
+            <div className="flex items-end justify-between mb-3">
+              <div>
+                <h3 className="text-white font-black text-lg tracking-tight leading-tight">
+                  ZIEN Platform — Complete Guide
+                </h3>
+                <p className="text-zinc-400 text-xs mt-1">
+                  Powered by RARE AI
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                  className="w-9 h-9 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                >
+                  {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+                  className="w-9 h-9 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                >
+                  {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                className="text-white hover:text-blue-400 transition-colors shrink-0"
+              >
+                {isPlaying ? <Pause size={18} /> : <PlayCircle size={18} />}
+              </button>
+              <div
+                className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer group/bar relative"
+                onClick={(e) => { e.stopPropagation(); handleSeek(e); }}
+              >
+                <div
+                  className="h-full bg-blue-500 rounded-full relative transition-all"
+                  style={{ width: `${progress}%` }}
+                >
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-blue-500 rounded-full scale-0 group-hover/bar:scale-100 transition-transform shadow-lg" />
+                </div>
+              </div>
+              <span className="text-[10px] text-zinc-400 font-mono tabular-nums shrink-0 min-w-[70px] text-right">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function Academy() {
   const { company } = useCompany();
@@ -173,51 +345,8 @@ export default function Academy() {
         </div>
       </div>
 
-      {/* ─── Hero Video Section ──────────────────────────────────────── */}
-      <div className="relative rounded-[32px] overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 border border-zinc-700/50">
-        <div className="grid md:grid-cols-2 gap-0">
-          {/* Video / Image */}
-          <div className="aspect-video md:aspect-auto md:min-h-[320px] relative overflow-hidden">
-            <img
-              src="https://lh3.googleusercontent.com/p/AF1QipPpNvwslevTyVeP6ONqwPD2GojEk3VLodzDCMdn=w243-h174-n-k-no-nu"
-              alt="ZIEN Academy"
-              className="w-full h-full object-cover"
-              loading="eager"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-900/80" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-20 h-20 bg-blue-600/90 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer shadow-2xl shadow-blue-600/40"
-              >
-                <PlayCircle size={40} className="text-white ml-1" />
-              </motion.div>
-            </div>
-          </div>
-          {/* Info */}
-          <div className="p-8 md:p-10 flex flex-col justify-center text-white">
-            <span className="px-3 py-1 bg-blue-600/20 text-blue-400 text-[10px] font-bold uppercase tracking-widest rounded-full w-fit mb-4">
-              Featured Course
-            </span>
-            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-3">
-              ZIEN Platform Complete Guide
-            </h2>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-              From zero to hero — master every module of the ZIEN Platform with hands-on tutorials,
-              real-world scenarios, and RARE AI integration tips.
-            </p>
-            <div className="flex items-center gap-6 text-xs text-zinc-500 mb-6">
-              <span className="flex items-center gap-1.5"><Video size={14} /> 6 Videos</span>
-              <span className="flex items-center gap-1.5"><Clock size={14} /> ~90 min total</span>
-              <span className="flex items-center gap-1.5"><GraduationCap size={14} /> Certificate</span>
-            </div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all w-fit">
-              Start Watching
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* ─── Full-Width Video Hero Card ──────────────────────────────── */}
+      <VideoHeroCard />
 
       {/* ─── Video Prompts Section ───────────────────────────────────── */}
       <div>
