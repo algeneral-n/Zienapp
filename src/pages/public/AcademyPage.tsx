@@ -44,68 +44,96 @@ const TRACK_ICONS: Record<string, React.ElementType> = {
 // Fallback courses — comprehensive real educational content
 const FALLBACK_COURSES: Course[] = [
   // ── CORE PLATFORM ──
-  { id: 'c1', track: 'core', level: 'beginner', duration_min: 15, lessons: 5, students: 1240, rating: 4.9, icon: Play,
+  {
+    id: 'c1', track: 'core', level: 'beginner', duration_min: 15, lessons: 5, students: 1240, rating: 4.9, icon: Play,
     title_en: 'Getting Started with ZIEN', title_ar: 'البدء مع ZIEN',
     desc_en: 'Complete onboarding: register your company, invite team members, configure settings, and navigate the dashboard confidently.',
-    desc_ar: 'التسجيل الكامل: تسجيل شركتك ودعوة فريقك وتكوين الإعدادات والتنقل في لوحة التحكم بثقة.' },
-  { id: 'c2', track: 'core', level: 'intermediate', duration_min: 25, lessons: 8, students: 890, rating: 4.8, icon: Layers,
+    desc_ar: 'التسجيل الكامل: تسجيل شركتك ودعوة فريقك وتكوين الإعدادات والتنقل في لوحة التحكم بثقة.'
+  },
+  {
+    id: 'c2', track: 'core', level: 'intermediate', duration_min: 25, lessons: 8, students: 890, rating: 4.8, icon: Layers,
     title_en: 'Multi-Tenant Architecture & Admin', title_ar: 'البنية المتعددة والإدارة',
     desc_en: 'Deep dive into ZIEN\'s multi-tenant isolation, company provisioning, module activation, and admin-level configuration.',
-    desc_ar: 'تعمق في عزل المستأجرين وتوفير الشركات وتفعيل الوحدات وتكوين مستوى المدير.' },
+    desc_ar: 'تعمق في عزل المستأجرين وتوفير الشركات وتفعيل الوحدات وتكوين مستوى المدير.'
+  },
   // ── HR & PAYROLL ──
-  { id: 'c3', track: 'hr', level: 'beginner', duration_min: 30, lessons: 10, students: 1560, rating: 4.7, icon: Users,
+  {
+    id: 'c3', track: 'hr', level: 'beginner', duration_min: 30, lessons: 10, students: 1560, rating: 4.7, icon: Users,
     title_en: 'HR Fundamentals: Employee Lifecycle', title_ar: 'أساسيات الموارد البشرية: دورة حياة الموظف',
     desc_en: 'Manage the complete employee journey — from hiring and onboarding to directory management, contract tracking, and offboarding.',
-    desc_ar: 'إدارة رحلة الموظف الكاملة — من التوظيف والتأهيل إلى إدارة الدليل وتتبع العقود والمغادرة.' },
-  { id: 'c4', track: 'hr', level: 'intermediate', duration_min: 40, lessons: 12, students: 1120, rating: 4.6, icon: Users,
+    desc_ar: 'إدارة رحلة الموظف الكاملة — من التوظيف والتأهيل إلى إدارة الدليل وتتبع العقود والمغادرة.'
+  },
+  {
+    id: 'c4', track: 'hr', level: 'intermediate', duration_min: 40, lessons: 12, students: 1120, rating: 4.6, icon: Users,
     title_en: 'Payroll, Attendance & Leave', title_ar: 'الرواتب والحضور والإجازات',
     desc_en: 'Configure salary structures, deductions, taxes, overtime. Set up clock-in/out with GPS, manage leave balances and approval workflows.',
-    desc_ar: 'إعداد هياكل الرواتب والخصومات والضرائب والعمل الإضافي. تهيئة الحضور بـ GPS وإدارة أرصدة الإجازات وسير عمل الموافقة.' },
+    desc_ar: 'إعداد هياكل الرواتب والخصومات والضرائب والعمل الإضافي. تهيئة الحضور بـ GPS وإدارة أرصدة الإجازات وسير عمل الموافقة.'
+  },
   // ── FINANCE ──
-  { id: 'c5', track: 'finance', level: 'beginner', duration_min: 35, lessons: 10, students: 980, rating: 4.8, icon: BarChart3,
+  {
+    id: 'c5', track: 'finance', level: 'beginner', duration_min: 35, lessons: 10, students: 980, rating: 4.8, icon: BarChart3,
     title_en: 'Accounting Essentials', title_ar: 'أساسيات المحاسبة',
     desc_en: 'Chart of Accounts setup, journal entries, invoice creation and tracking, bank reconciliation, and multi-currency support.',
-    desc_ar: 'إعداد شجرة الحسابات والقيود اليومية وإنشاء الفواتير وتتبعها ومطابقة البنك ودعم العملات المتعددة.' },
-  { id: 'c6', track: 'finance', level: 'advanced', duration_min: 45, lessons: 14, students: 650, rating: 4.9, icon: BarChart3,
+    desc_ar: 'إعداد شجرة الحسابات والقيود اليومية وإنشاء الفواتير وتتبعها ومطابقة البنك ودعم العملات المتعددة.'
+  },
+  {
+    id: 'c6', track: 'finance', level: 'advanced', duration_min: 45, lessons: 14, students: 650, rating: 4.9, icon: BarChart3,
     title_en: 'Financial Reporting & Tax', title_ar: 'التقارير المالية والضرائب',
     desc_en: 'Generate P&L, Balance Sheet, Cash Flow reports. Configure VAT/Tax rules, filing deadlines, and audit trails.',
-    desc_ar: 'إنشاء تقارير الربح والخسارة والميزانية العمومية والتدفق النقدي. إعداد قواعد الضريبة والمواعيد والمسارات التدقيقية.' },
+    desc_ar: 'إنشاء تقارير الربح والخسارة والميزانية العمومية والتدفق النقدي. إعداد قواعد الضريبة والمواعيد والمسارات التدقيقية.'
+  },
   // ── AI ──
-  { id: 'c7', track: 'ai', level: 'beginner', duration_min: 20, lessons: 7, students: 2100, rating: 4.9, icon: Brain,
+  {
+    id: 'c7', track: 'ai', level: 'beginner', duration_min: 20, lessons: 7, students: 2100, rating: 4.9, icon: Brain,
     title_en: 'RARE AI: Your Smart Assistant', title_ar: 'RARE AI: مساعدك الذكي',
     desc_en: 'Learn to use RARE AI modes (Chat, Analyze, Search, Senate), generate reports, get insights, and automate repetitive tasks.',
-    desc_ar: 'تعلم استخدام أوضاع RARE AI (المحادثة، التحليل، البحث، مجلس الشيوخ) وإنشاء التقارير والحصول على رؤى وأتمتة المهام.' },
-  { id: 'c8', track: 'ai', level: 'advanced', duration_min: 35, lessons: 9, students: 780, rating: 4.7, icon: Brain,
+    desc_ar: 'تعلم استخدام أوضاع RARE AI (المحادثة، التحليل، البحث، مجلس الشيوخ) وإنشاء التقارير والحصول على رؤى وأتمتة المهام.'
+  },
+  {
+    id: 'c8', track: 'ai', level: 'advanced', duration_min: 35, lessons: 9, students: 780, rating: 4.7, icon: Brain,
     title_en: 'Advanced AI: Senate & Workflows', title_ar: 'متقدم AI: مجلس الشيوخ وسير العمل',
     desc_en: 'Master multi-agent Senate deliberation for complex decisions, create AI-powered automation workflows, and customize AI behavior.',
-    desc_ar: 'إتقان تداول مجلس الشيوخ متعدد الوكلاء للقرارات المعقدة وإنشاء سير عمل الأتمتة بالذكاء الاصطناعي وتخصيص سلوك AI.' },
+    desc_ar: 'إتقان تداول مجلس الشيوخ متعدد الوكلاء للقرارات المعقدة وإنشاء سير عمل الأتمتة بالذكاء الاصطناعي وتخصيص سلوك AI.'
+  },
   // ── SECURITY ──
-  { id: 'c9', track: 'security', level: 'intermediate', duration_min: 25, lessons: 8, students: 720, rating: 4.8, icon: ShieldCheck,
+  {
+    id: 'c9', track: 'security', level: 'intermediate', duration_min: 25, lessons: 8, students: 720, rating: 4.8, icon: ShieldCheck,
     title_en: 'Security & Compliance', title_ar: 'الأمان والامتثال',
     desc_en: 'RLS policies, MFA setup, session management, audit logging, data encryption, and GDPR/SOC2 compliance practices.',
-    desc_ar: 'سياسات أمان مستوى الصف وإعداد MFA وإدارة الجلسات وسجلات التدقيق وتشفير البيانات وممارسات الامتثال.' },
-  { id: 'c10', track: 'security', level: 'advanced', duration_min: 30, lessons: 7, students: 460, rating: 4.6, icon: ShieldCheck,
+    desc_ar: 'سياسات أمان مستوى الصف وإعداد MFA وإدارة الجلسات وسجلات التدقيق وتشفير البيانات وممارسات الامتثال.'
+  },
+  {
+    id: 'c10', track: 'security', level: 'advanced', duration_min: 30, lessons: 7, students: 460, rating: 4.6, icon: ShieldCheck,
     title_en: 'Admin Security & Access Control', title_ar: 'أمان المدير والتحكم بالوصول',
     desc_en: 'Configure RBAC matrix, IP restrictions, API key management, webhook security, and incident response procedures.',
-    desc_ar: 'إعداد مصفوفة RBAC وقيود IP وإدارة مفاتيح API وأمان Webhook وإجراءات الاستجابة للحوادث.' },
+    desc_ar: 'إعداد مصفوفة RBAC وقيود IP وإدارة مفاتيح API وأمان Webhook وإجراءات الاستجابة للحوادث.'
+  },
   // ── CRM ──
-  { id: 'c11', track: 'crm', level: 'beginner', duration_min: 30, lessons: 9, students: 1350, rating: 4.7, icon: Target,
+  {
+    id: 'c11', track: 'crm', level: 'beginner', duration_min: 30, lessons: 9, students: 1350, rating: 4.7, icon: Target,
     title_en: 'CRM & Sales Pipeline Mastery', title_ar: 'إتقان إدارة العملاء وخط المبيعات',
     desc_en: 'Lead capture, scoring, and routing. Kanban pipeline, deal forecasting, client portal setup, and automated follow-ups.',
-    desc_ar: 'التقاط العملاء المحتملين وتقييمهم وتوجيههم. خط أنابيب كانبان والتنبؤ بالصفقات وإعداد بوابة العميل والمتابعة التلقائية.' },
-  { id: 'c12', track: 'crm', level: 'intermediate', duration_min: 25, lessons: 7, students: 890, rating: 4.5, icon: Target,
+    desc_ar: 'التقاط العملاء المحتملين وتقييمهم وتوجيههم. خط أنابيب كانبان والتنبؤ بالصفقات وإعداد بوابة العميل والمتابعة التلقائية.'
+  },
+  {
+    id: 'c12', track: 'crm', level: 'intermediate', duration_min: 25, lessons: 7, students: 890, rating: 4.5, icon: Target,
     title_en: 'Client Portal & Communication', title_ar: 'بوابة العميل والتواصل',
     desc_en: 'Set up branded self-service client portal, automated email communications, proposal templates, and satisfaction surveys.',
-    desc_ar: 'إعداد بوابة خدمة ذاتية ذات علامة تجارية واتصالات بريد إلكتروني آلية وقوالب العروض واستطلاعات الرضا.' },
+    desc_ar: 'إعداد بوابة خدمة ذاتية ذات علامة تجارية واتصالات بريد إلكتروني آلية وقوالب العروض واستطلاعات الرضا.'
+  },
   // ── LOGISTICS ──
-  { id: 'c13', track: 'logistics', level: 'beginner', duration_min: 30, lessons: 8, students: 670, rating: 4.6, icon: Layers,
+  {
+    id: 'c13', track: 'logistics', level: 'beginner', duration_min: 30, lessons: 8, students: 670, rating: 4.6, icon: Layers,
     title_en: 'Logistics & Fleet Management', title_ar: 'إدارة اللوجستيات والأسطول',
     desc_en: 'Real-time vehicle tracking, task dispatch, route optimization, driver management, and delivery confirmation workflows.',
-    desc_ar: 'تتبع المركبات في الوقت الفعلي وإرسال المهام وتحسين المسار وإدارة السائقين وسير عمل تأكيد التسليم.' },
-  { id: 'c14', track: 'logistics', level: 'intermediate', duration_min: 25, lessons: 6, students: 430, rating: 4.5, icon: Layers,
+    desc_ar: 'تتبع المركبات في الوقت الفعلي وإرسال المهام وتحسين المسار وإدارة السائقين وسير عمل تأكيد التسليم.'
+  },
+  {
+    id: 'c14', track: 'logistics', level: 'intermediate', duration_min: 25, lessons: 6, students: 430, rating: 4.5, icon: Layers,
     title_en: 'Inventory & Warehouse Operations', title_ar: 'المخزون وعمليات المستودعات',
     desc_en: 'Manage warehouse zones, stock levels, purchase orders, supplier management, and automated reorder points.',
-    desc_ar: 'إدارة مناطق المستودعات ومستويات المخزون وأوامر الشراء وإدارة الموردين ونقاط إعادة الطلب التلقائية.' },
+    desc_ar: 'إدارة مناطق المستودعات ومستويات المخزون وأوامر الشراء وإدارة الموردين ونقاط إعادة الطلب التلقائية.'
+  },
 ];
 
 const TRACKS: { key: TrackKey; en: string; ar: string }[] = [
@@ -321,8 +349,8 @@ export default function AcademyPage() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${activeTab === tab.key
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-                  : 'glass-card hover:bg-blue-600/10'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                : 'glass-card hover:bg-blue-600/10'
                 }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -341,8 +369,8 @@ export default function AcademyPage() {
                   key={t.key}
                   onClick={() => setActiveTrack(t.key)}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activeTrack === t.key
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-[var(--bg-secondary)] hover:bg-blue-600/10'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-[var(--bg-secondary)] hover:bg-blue-600/10'
                     }`}
                 >
                   {isAr ? t.ar : t.en}
@@ -376,8 +404,8 @@ export default function AcademyPage() {
                           {trackLabel ? (isAr ? trackLabel.ar : trackLabel.en) : course.track}
                         </span>
                         <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded ${course.level === 'beginner' ? 'bg-emerald-100 text-emerald-700' :
-                            course.level === 'intermediate' ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'
+                          course.level === 'intermediate' ? 'bg-amber-100 text-amber-700' :
+                            'bg-red-100 text-red-700'
                           }`}>
                           {isAr ? levelLabel.ar : levelLabel.en}
                         </span>
@@ -466,8 +494,8 @@ export default function AcademyPage() {
                   <h3 className="font-bold text-lg mb-2">{isAr ? cert.title_ar : cert.title_en}</h3>
                   <p className="text-sm text-[var(--text-secondary)] mb-4">{isAr ? cert.desc_ar : cert.desc_en}</p>
                   <span className={`inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${cert.level === 'bronze' ? 'bg-amber-100 text-amber-800' :
-                      cert.level === 'silver' ? 'bg-gray-100 text-gray-700' :
-                        'bg-yellow-100 text-yellow-800'
+                    cert.level === 'silver' ? 'bg-gray-100 text-gray-700' :
+                      'bg-yellow-100 text-yellow-800'
                     }`}>
                     {cert.level === 'bronze' ? (isAr ? 'برونزي' : 'Bronze') :
                       cert.level === 'silver' ? (isAr ? 'فضي' : 'Silver') :

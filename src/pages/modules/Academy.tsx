@@ -154,9 +154,9 @@ function VideoHeroCard({ className = '' }: { className?: string }) {
     const c = containerRef.current;
     if (!c) return;
     if (!document.fullscreenElement) {
-      c.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      c.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => { });
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => { });
     }
   }, []);
 

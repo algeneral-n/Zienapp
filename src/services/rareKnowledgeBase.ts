@@ -241,14 +241,14 @@ Data Tables: ${moduleInfo.tables.join(', ')}` : ''}
 import { supabase } from './supabase';
 
 interface KnowledgeArticle {
-  id: string;
-  category: string;
-  title_en: string;
-  title_ar?: string;
-  body_en: string;
-  body_ar?: string;
-  module?: string;
-  tags: string[];
+    id: string;
+    category: string;
+    title_en: string;
+    title_ar?: string;
+    body_en: string;
+    body_ar?: string;
+    module?: string;
+    tags: string[];
 }
 
 /** Cache to avoid repeated DB calls within a session */
@@ -261,30 +261,30 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  * Falls back to empty array on error so static knowledge still works.
  */
 export async function fetchDynamicKnowledge(companyId?: string): Promise<KnowledgeArticle[]> {
-  if (_cache && Date.now() - _cacheTime < CACHE_TTL) return _cache;
+    if (_cache && Date.now() - _cacheTime < CACHE_TTL) return _cache;
 
-  try {
-    let query = supabase
-      .from('knowledge_articles')
-      .select('id, category, title_en, title_ar, body_en, body_ar, module, tags')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true });
+    try {
+        let query = supabase
+            .from('knowledge_articles')
+            .select('id, category, title_en, title_ar, body_en, body_ar, module, tags')
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true });
 
-    if (companyId) {
-      query = query.or(`company_id.is.null,company_id.eq.${companyId}`);
-    } else {
-      query = query.is('company_id', null);
+        if (companyId) {
+            query = query.or(`company_id.is.null,company_id.eq.${companyId}`);
+        } else {
+            query = query.is('company_id', null);
+        }
+
+        const { data, error } = await query;
+        if (error || !data) return [];
+
+        _cache = data as KnowledgeArticle[];
+        _cacheTime = Date.now();
+        return _cache;
+    } catch {
+        return [];
     }
-
-    const { data, error } = await query;
-    if (error || !data) return [];
-
-    _cache = data as KnowledgeArticle[];
-    _cacheTime = Date.now();
-    return _cache;
-  } catch {
-    return [];
-  }
 }
 
 /**
@@ -292,34 +292,34 @@ export async function fetchDynamicKnowledge(companyId?: string): Promise<Knowled
  * on top of the static knowledge already embedded.
  */
 export async function buildEnrichedSystemPrompt(params: {
-  role: string;
-  companyName: string;
-  currentPage: string;
-  currentModule?: string;
-  permissions: string[];
-  language: string;
-  companyId?: string;
+    role: string;
+    companyName: string;
+    currentPage: string;
+    currentModule?: string;
+    permissions: string[];
+    language: string;
+    companyId?: string;
 }): Promise<string> {
-  const base = buildSystemPrompt(params);
-  const articles = await fetchDynamicKnowledge(params.companyId);
+    const base = buildSystemPrompt(params);
+    const articles = await fetchDynamicKnowledge(params.companyId);
 
-  if (articles.length === 0) return base;
+    if (articles.length === 0) return base;
 
-  const isAr = params.language === 'ar';
-  const relevant = params.currentModule
-    ? articles.filter(a => !a.module || a.module === params.currentModule)
-    : articles;
+    const isAr = params.language === 'ar';
+    const relevant = params.currentModule
+        ? articles.filter(a => !a.module || a.module === params.currentModule)
+        : articles;
 
-  const faqSection = relevant
-    .slice(0, 20) // limit to 20 most relevant
-    .map(a => `Q: ${isAr && a.title_ar ? a.title_ar : a.title_en}\nA: ${isAr && a.body_ar ? a.body_ar : a.body_en}`)
-    .join('\n\n');
+    const faqSection = relevant
+        .slice(0, 20) // limit to 20 most relevant
+        .map(a => `Q: ${isAr && a.title_ar ? a.title_ar : a.title_en}\nA: ${isAr && a.body_ar ? a.body_ar : a.body_en}`)
+        .join('\n\n');
 
-  return `${base}\n\n## Knowledge Base (Dynamic)\n${faqSection}`;
+    return `${base}\n\n## Knowledge Base (Dynamic)\n${faqSection}`;
 }
 
 /** Clear the knowledge cache (e.g. after admin edits) */
 export function clearKnowledgeCache() {
-  _cache = null;
-  _cacheTime = 0;
+    _cache = null;
+    _cacheTime = 0;
 }

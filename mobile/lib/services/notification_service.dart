@@ -41,8 +41,9 @@ class NotificationService {
   Future<void> init() async {
     if (_initialized) return;
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -61,8 +62,10 @@ class NotificationService {
     // Create Android channels
     if (Platform.isAndroid) {
       final androidImpl =
-          _localPlugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+          _localPlugin
+              .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin
+              >();
       await androidImpl?.createNotificationChannel(_channelGeneral);
       await androidImpl?.createNotificationChannel(_channelHR);
       await androidImpl?.createNotificationChannel(_channelChat);
@@ -87,8 +90,8 @@ class NotificationService {
         channel == 'zien_chat'
             ? 'Chat Messages'
             : channel == 'zien_hr'
-                ? 'HR & Attendance'
-                : 'General',
+            ? 'HR & Attendance'
+            : 'General',
         importance: Importance.high,
         priority: Priority.high,
       ),
@@ -111,28 +114,29 @@ class NotificationService {
   void subscribeToUserNotifications(String userId) {
     _channel?.unsubscribe();
 
-    _channel = Supabase.instance.client
-        .channel('user_notifications')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'notifications',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user_id',
-            value: userId,
-          ),
-          callback: (payload) {
-            final record = payload.newRecord;
-            show(
-              title: record['title']?.toString() ?? 'ZIEN',
-              body: record['body']?.toString() ?? '',
-              channel: _channelForType(record['type']?.toString()),
-              payload: jsonEncode(record),
-            );
-          },
-        )
-        .subscribe();
+    _channel =
+        Supabase.instance.client
+            .channel('user_notifications')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.insert,
+              schema: 'public',
+              table: 'notifications',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'user_id',
+                value: userId,
+              ),
+              callback: (payload) {
+                final record = payload.newRecord;
+                show(
+                  title: record['title']?.toString() ?? 'ZIEN',
+                  body: record['body']?.toString() ?? '',
+                  channel: _channelForType(record['type']?.toString()),
+                  payload: jsonEncode(record),
+                );
+              },
+            )
+            .subscribe();
 
     debugPrint('[NotificationService] subscribed for user: $userId');
   }

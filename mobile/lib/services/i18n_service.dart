@@ -58,7 +58,23 @@ class I18nNotifier extends StateNotifier<I18nState> {
   I18nNotifier() : super(const I18nState());
 
   /// Supported languages for which we have JSON files.
-  static const supportedLanguages = ['en', 'ar', 'fr', 'es', 'de', 'tr', 'ru', 'zh', 'ja', 'ko', 'hi', 'ur', 'it', 'pt', 'nl'];
+  static const supportedLanguages = [
+    'en',
+    'ar',
+    'fr',
+    'es',
+    'de',
+    'tr',
+    'ru',
+    'zh',
+    'ja',
+    'ko',
+    'hi',
+    'ur',
+    'it',
+    'pt',
+    'nl',
+  ];
 
   /// Initialize: load saved language preference, then load translation file.
   Future<void> init() async {

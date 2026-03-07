@@ -284,11 +284,10 @@ export default function FAQPage() {
             <button
               key={cat.key}
               onClick={() => { setActiveCategory(cat.key); setOpenIndex(null); }}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                activeCategory === cat.key
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeCategory === cat.key
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
                   : 'glass-card hover:bg-blue-600/10'
-              }`}
+                }`}
             >
               {isAr ? cat.ar : cat.en}
             </button>

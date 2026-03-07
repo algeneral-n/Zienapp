@@ -281,8 +281,8 @@ export default function ChatModule() {
                                     key={t}
                                     onClick={() => setNewChannelType(t)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${newChannelType === t
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                                         }`}
                                 >
                                     {t}
@@ -342,8 +342,8 @@ export default function ChatModule() {
                                         setShowMobileList(false);
                                     }}
                                     className={`w-full px-4 py-3 flex items-start gap-3 text-left transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800 ${selectedChannel?.id === ch.id
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-r-2 border-blue-600'
-                                            : ''
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-r-2 border-blue-600'
+                                        : ''
                                         }`}
                                 >
                                     <div className="mt-0.5">{getChannelIcon(ch.channel_type)}</div>
@@ -435,8 +435,8 @@ export default function ChatModule() {
                                             >
                                                 {showAvatar ? (
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isMe
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
                                                         }`}>
                                                         {senderName.charAt(0).toUpperCase()}
                                                     </div>
@@ -451,8 +451,8 @@ export default function ChatModule() {
                                                     )}
                                                     <div
                                                         className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed ${isMe
-                                                                ? 'bg-blue-600 text-white rounded-tr-md'
-                                                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-md'
+                                                            ? 'bg-blue-600 text-white rounded-tr-md'
+                                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-md'
                                                             }`}
                                                     >
                                                         {msg.body}
