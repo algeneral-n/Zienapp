@@ -1,6 +1,6 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
-import { requireAuth } from '../supabase';
+import { requireAuth, checkMembership } from '../supabase';
 import { getRoleLevel, AGENT_MIN_LEVEL } from '../permissions';
 
 // ─── Action Classification ──────────────────────────────────────────────
@@ -95,7 +95,7 @@ export async function handleAI(
   }
 
   if (path === '/api/ai/agents' && request.method === 'GET') {
-    return handleListAgents(request, userId, supabase);
+    return handleListAgents(request, env, userId, supabase);
   }
 
   return errorResponse('Not found', 404);
@@ -120,14 +120,8 @@ async function handleRARE(
     return errorResponse('Missing prompt or companyId');
   }
 
-  // Verify user is a member of the company
-  const { data: membership } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', body.companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  // Verify user is a member of the company (admin bypass RLS)
+  const membership = await checkMembership(env, userId, body.companyId);
 
   if (!membership) {
     return errorResponse('Not a member of this company', 403);
@@ -278,14 +272,8 @@ async function handleSenate(
     return errorResponse('Missing prompt or companyId');
   }
 
-  // Senate is founder/platform_admin only
-  const { data: membership } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', body.companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  // Senate is founder/platform_admin only (admin bypass RLS)
+  const membership = await checkMembership(env, userId, body.companyId);
 
   if (!membership) return errorResponse('Not a member', 403);
 
@@ -410,14 +398,8 @@ async function handleMaestro(
     return errorResponse('Missing prompt or companyId');
   }
 
-  // Verify membership
-  const { data: membership } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', body.companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  // Verify membership (admin bypass RLS)
+  const membership = await checkMembership(env, userId, body.companyId);
 
   if (!membership) return errorResponse('Not a member', 403);
 
@@ -536,7 +518,7 @@ Respond ONLY with valid JSON (no markdown):
 
 async function handleUsageAnalytics(
   request: Request,
-  _env: Env,
+  env: Env,
   userId: string,
   supabase: import('@supabase/supabase-js').SupabaseClient,
 ): Promise<Response> {
@@ -546,14 +528,8 @@ async function handleUsageAnalytics(
 
   if (!companyId) return errorResponse('company_id is required');
 
-  // Verify membership
-  const { data: membership } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  // Verify membership (admin bypass RLS)
+  const membership = await checkMembership(env, userId, companyId);
 
   if (!membership) return errorResponse('Not a member', 403);
 
@@ -595,6 +571,7 @@ async function handleUsageAnalytics(
 
 async function handleListAgents(
   request: Request,
+  env: Env,
   userId: string,
   supabase: import('@supabase/supabase-js').SupabaseClient,
 ): Promise<Response> {
@@ -603,13 +580,7 @@ async function handleListAgents(
 
   if (!companyId) return errorResponse('company_id is required');
 
-  const { data: membership } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const membership = await checkMembership(env, userId, companyId);
 
   if (!membership) return errorResponse('Not a member', 403);
 

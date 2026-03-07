@@ -71,7 +71,7 @@ function mapMember(row: Record<string, unknown>): CompanyMember {
         id: row.id as string,
         companyId: row.company_id as string,
         userId: row.user_id as string,
-        role: row.role as CompanyRole,
+        role: (row.role_code ?? row.role) as CompanyRole,
         departmentId: row.department_id as string | undefined,
         branchId: row.branch_id as string | undefined,
         status: row.status as CompanyMember['status'],
@@ -109,12 +109,34 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
         (async () => {
             setIsLoading(true);
 
-            // Get all memberships for this user
-            const { data: memberRows } = await supabase
-                .from('company_members')
-                .select('*, companies(*)')
-                .eq('user_id', user.id)
-                .eq('status', 'active');
+            // Fetch memberships via worker API (bypasses RLS recursion)
+            const API_URL = import.meta.env.VITE_API_URL || '';
+            const session = (await supabase.auth.getSession()).data.session;
+            let memberRows: Record<string, unknown>[] | null = null;
+
+            if (API_URL && session?.access_token) {
+                try {
+                    const res = await fetch(`${API_URL}/api/auth/me`, {
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        memberRows = (json as { memberships?: Record<string, unknown>[] }).memberships ?? null;
+                    }
+                } catch {
+                    // Fall through to direct query
+                }
+            }
+
+            // Fallback: direct Supabase query (works when RLS is fixed)
+            if (!memberRows) {
+                const { data } = await supabase
+                    .from('company_members')
+                    .select('*, companies(*)')
+                    .eq('user_id', user.id)
+                    .eq('status', 'active');
+                memberRows = data as Record<string, unknown>[] | null;
+            }
 
             if (!memberRows?.length) {
                 // Also check if user owns any company directly
@@ -147,27 +169,29 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
 
             const companyList = Array.from(companiesMap.values());
             setCompanies(companyList);
+            setAllMemberships(memberships);
 
             // Restore last active company or pick first / primary
             const savedId = localStorage.getItem(COMPANY_KEY);
             const primaryMembership = memberRows.find((m: Record<string, unknown>) => m.is_primary);
             const activeId =
                 (savedId && companiesMap.has(savedId) ? savedId : null) ??
-                primaryMembership?.company_id ??
+                (primaryMembership?.company_id as string | undefined) ??
                 companyList[0]?.id;
 
             if (activeId) {
-                const activeCompany = companiesMap.get(activeId)!;
-                const activeMembership = memberships.get(activeId) ?? null;
+                const id = activeId as string;
+                const activeCompany = companiesMap.get(id)!;
+                const activeMembership = memberships.get(id) ?? null;
                 setCompany(activeCompany);
                 setMembership(activeMembership);
-                localStorage.setItem(COMPANY_KEY, activeId);
+                localStorage.setItem(COMPANY_KEY, id);
 
                 // Load modules
                 const { data: modRows } = await supabase
                     .from('company_modules')
                     .select('*, modules_catalog(code)')
-                    .eq('company_id', activeId)
+                    .eq('company_id', id)
                     .eq('is_active', true);
 
                 setModules(
@@ -186,7 +210,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
                 const { data: deptRows } = await supabase
                     .from('departments')
                     .select('*')
-                    .eq('company_id', activeId)
+                    .eq('company_id', id)
                     .eq('is_active', true);
 
                 setDepartments(
@@ -205,11 +229,40 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
         })();
     }, [user]);
 
-    async function selectCompany(comp: Company, userId?: string) {
+    // Keep a ref of all memberships keyed by company_id for selectCompany
+    const [allMemberships, setAllMemberships] = useState<Map<string, CompanyMember>>(new Map());
+
+    async function selectCompany(comp: Company, userId?: string, membershipsCache?: Map<string, CompanyMember>) {
         setCompany(comp);
         localStorage.setItem(COMPANY_KEY, comp.id);
 
+        const cache = membershipsCache ?? allMemberships;
+        const cached = cache.get(comp.id);
+        if (cached) {
+            setMembership(cached);
+            return;
+        }
+
+        // Fallback: query via API
         if (userId) {
+            const API_URL = import.meta.env.VITE_API_URL || '';
+            const session = (await supabase.auth.getSession()).data.session;
+            if (API_URL && session?.access_token) {
+                try {
+                    const res = await fetch(`${API_URL}/api/auth/me`, {
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        const rows = (json as { memberships?: Record<string, unknown>[] }).memberships ?? [];
+                        const match = rows.find((r: Record<string, unknown>) => r.company_id === comp.id);
+                        setMembership(match ? mapMember(match) : null);
+                        return;
+                    }
+                } catch { /* fall through */ }
+            }
+
+            // Direct fallback
             const { data: memberRow } = await supabase
                 .from('company_members')
                 .select('*')
@@ -218,7 +271,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
                 .eq('status', 'active')
                 .maybeSingle();
 
-            setMembership(memberRow ? mapMember(memberRow) : null);
+            setMembership(memberRow ? mapMember(memberRow as Record<string, unknown>) : null);
         }
     }
 

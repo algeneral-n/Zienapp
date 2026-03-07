@@ -1,6 +1,6 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
-import { requireAuth, createAdminClient } from '../supabase';
+import { requireAuth, createAdminClient, checkMembership } from '../supabase';
 
 /**
  * Integration routes:
@@ -31,7 +31,7 @@ export async function handleIntegrations(
 
   const companyMatch = path.match(/^\/api\/integrations\/company\/([0-9a-f-]+)$/);
   if (companyMatch && request.method === 'GET') {
-    return getCompanyIntegrations(companyMatch[1], userId, supabase);
+    return getCompanyIntegrations(companyMatch[1], userId, env, supabase);
   }
 
   if (path === '/api/integrations/connect' && request.method === 'POST') {
@@ -44,7 +44,7 @@ export async function handleIntegrations(
 
   const healthMatch = path.match(/^\/api\/integrations\/health\/([0-9a-f-]+)$/);
   if (healthMatch && request.method === 'GET') {
-    return getHealthStatus(healthMatch[1], userId, supabase);
+    return getHealthStatus(healthMatch[1], userId, env, supabase);
   }
 
   return errorResponse('Not found', 404);
@@ -80,16 +80,11 @@ async function getCatalog(request: Request, env: Env): Promise<Response> {
 async function getCompanyIntegrations(
   companyId: string,
   userId: string,
+  env: Env,
   supabase: import('@supabase/supabase-js').SupabaseClient,
 ): Promise<Response> {
   // Verify membership
-  const { data: member } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const member = await checkMembership(env, userId, companyId);
 
   if (!member) return errorResponse('Not a member of this company', 403);
 
@@ -125,13 +120,7 @@ async function connectIntegration(
   }
 
   // Verify user has permission to activate (GM, asst GM, or accountant for payment integrations)
-  const { data: member } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', body.companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const member = await checkMembership(env, userId, body.companyId);
 
   if (!member) return errorResponse('Not a member of this company', 403);
 
@@ -206,13 +195,7 @@ async function disconnectIntegration(
   }
 
   // Verify GM role
-  const { data: member } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', body.companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const member = await checkMembership(env, userId, body.companyId);
 
   if (!member) return errorResponse('Not a member of this company', 403);
   if (member.role !== 'company_gm' && member.role !== 'executive_secretary') {
@@ -294,16 +277,11 @@ async function handleWebhook(
 async function getHealthStatus(
   companyId: string,
   userId: string,
+  env: Env,
   supabase: import('@supabase/supabase-js').SupabaseClient,
 ): Promise<Response> {
   // Verify membership
-  const { data: member } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const member = await checkMembership(env, userId, companyId);
 
   if (!member) return errorResponse('Not a member of this company', 403);
 

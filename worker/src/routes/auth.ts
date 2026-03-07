@@ -1,6 +1,6 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
-import { requireAuth, createAdminClient } from '../supabase';
+import { requireAuth, createAdminClient, checkMembership } from '../supabase';
 
 /**
  * ZIEN Auth Routes — Invite-Only System
@@ -77,6 +77,7 @@ async function verifyTurnstile(request: Request, env: Env): Promise<Response> {
 
 async function getMe(request: Request, env: Env): Promise<Response> {
   const { userId, email, supabase } = await requireAuth(request, env);
+  const admin = createAdminClient(env);
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -84,7 +85,8 @@ async function getMe(request: Request, env: Env): Promise<Response> {
     .eq('id', userId)
     .single();
 
-  const { data: memberships } = await supabase
+  // Use admin client to bypass RLS on company_members
+  const { data: memberships } = await admin
     .from('company_members')
     .select('*, companies(id, name, slug, status)')
     .eq('user_id', userId)
@@ -405,15 +407,9 @@ async function inviteUser(request: Request, env: Env): Promise<Response> {
   }
 
   // 1. Verify caller is GM of the company
-  const { data: membership } = await admin
-    .from('company_members')
-    .select('role_code')
-    .eq('user_id', userId)
-    .eq('company_id', body.company_id)
-    .eq('status', 'active')
-    .single();
+  const membership = await checkMembership(env, userId, body.company_id);
 
-  if (!membership || membership.role_code !== 'company_gm') {
+  if (!membership || membership.role !== 'company_gm') {
     return errorResponse('Only the company GM can invite users', 403);
   }
 

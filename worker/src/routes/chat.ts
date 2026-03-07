@@ -27,7 +27,7 @@
 
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
-import { requireAuth, createAdminClient } from '../supabase';
+import { requireAuth, createAdminClient, discoverMembership } from '../supabase';
 
 export async function handleChat(
     request: Request,
@@ -36,14 +36,8 @@ export async function handleChat(
 ): Promise<Response> {
     const { userId, supabase } = await requireAuth(request, env);
 
-    // Resolve company
-    const { data: membership } = await supabase
-        .from('company_members')
-        .select('id, company_id, role')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .limit(1)
-        .maybeSingle();
+    // Resolve company (admin bypass RLS)
+    const membership = await discoverMembership(env, userId);
 
     if (!membership) return errorResponse('No active company membership', 403);
 

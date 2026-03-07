@@ -1,6 +1,6 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
-import { requireAuth, createAdminClient } from '../supabase';
+import { requireAuth, createAdminClient, checkMembership } from '../supabase';
 import { StripeEngine } from './StripeEngine';
 import type StripeType from 'stripe';
 import type { Request, Response } from '@cloudflare/workers-types';
@@ -76,12 +76,12 @@ export async function handleBilling(
 
     if (path.startsWith('/api/billing/subscription/') && request.method === 'GET') {
         const companyId = path.replace('/api/billing/subscription/', '');
-        return getSubscription(companyId, userId, supabase);
+        return getSubscription(companyId, userId, env, supabase);
     }
 
     if (path.startsWith('/api/billing/usage/') && request.method === 'GET') {
         const companyId = path.replace('/api/billing/usage/', '');
-        return getUsage(companyId, userId, supabase);
+        return getUsage(companyId, userId, env, supabase);
     }
 
     if (path === '/api/billing/usage/report' && request.method === 'POST') {
@@ -548,16 +548,11 @@ async function orchestratePayment(
 async function getSubscription(
     companyId: string,
     userId: string,
+    env: Env,
     supabase: import('@supabase/supabase-js').SupabaseClient,
 ): Promise<Response> {
     // Verify membership
-    const { data: membership } = await supabase
-        .from('company_members')
-        .select('role')
-        .eq('company_id', companyId)
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .maybeSingle();
+    const membership = await checkMembership(env, userId, companyId);
 
     if (!membership) return errorResponse('Not a member', 403);
 
@@ -589,15 +584,10 @@ async function getSubscription(
 async function getUsage(
     companyId: string,
     userId: string,
+    env: Env,
     supabase: import('@supabase/supabase-js').SupabaseClient,
 ): Promise<Response> {
-    const { data: membership } = await supabase
-        .from('company_members')
-        .select('role')
-        .eq('company_id', companyId)
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .maybeSingle();
+    const membership = await checkMembership(env, userId, companyId);
 
     if (!membership) return errorResponse('Not a member', 403);
 
@@ -617,8 +607,9 @@ async function getUsage(
         .eq('company_id', companyId)
         .gte('created_at', periodStart);
 
-    // User count
-    const { count: userCount } = await supabase
+    // User count (admin bypasses RLS)
+    const adminClient = createAdminClient(env);
+    const { count: userCount } = await adminClient
         .from('company_members')
         .select('id', { count: 'exact', head: true })
         .eq('company_id', companyId)

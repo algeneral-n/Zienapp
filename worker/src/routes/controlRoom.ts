@@ -5,14 +5,14 @@
 
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
-import { requireAuth } from '../supabase';
+import { requireAuth, checkMembership, createAdminClient } from '../supabase';
 
 export async function handleControlRoom(
     request: Request,
     env: Env,
     path: string,
 ): Promise<Response> {
-    const { userId, supabase } = await requireAuth(request, env);
+    const { userId } = await requireAuth(request, env);
     const companyId = request.headers.get('X-Company-Id') ?? '';
 
     if (!companyId) {
@@ -20,17 +20,13 @@ export async function handleControlRoom(
     }
 
     // Verify membership
-    const { data: membership } = await supabase
-        .from('company_members')
-        .select('role')
-        .eq('company_id', companyId)
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .maybeSingle();
+    const membership = await checkMembership(env, userId, companyId);
 
     if (!membership) {
         return errorResponse('Not a member of this company', 403);
     }
+
+    const supabase = createAdminClient(env);
 
     // ─── Overview endpoint ─────────────────────────────────────────────
     if (path === '/api/control-room/overview' && request.method === 'GET') {
@@ -45,7 +41,7 @@ export async function handleControlRoom(
         ] = await Promise.all([
             supabase
                 .from('company_members')
-                .select('id, role, status')
+                .select('id, role:role_code, status')
                 .eq('company_id', companyId)
                 .eq('status', 'active'),
             supabase

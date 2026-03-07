@@ -233,7 +233,7 @@ async function getTenant(
     // Parallel data fetch
     const [subRes, membersRes, modulesRes, aiRes, invoicesRes] = await Promise.all([
         adminSupabase.from('company_subscriptions').select('*').eq('company_id', tenantId).maybeSingle(),
-        adminSupabase.from('company_members').select('id, user_id, role, status').eq('company_id', tenantId),
+        adminSupabase.from('company_members').select('id, user_id, role_code, status').eq('company_id', tenantId),
         adminSupabase.from('company_modules').select('module_id, is_active').eq('company_id', tenantId),
         adminSupabase
             .from('ai_usage_logs')

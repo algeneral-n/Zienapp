@@ -30,7 +30,7 @@
 
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
-import { requireAuth, createAdminClient } from '../supabase';
+import { requireAuth, createAdminClient, discoverMembership } from '../supabase';
 
 export async function handleCRM(
     request: Request,
@@ -39,13 +39,7 @@ export async function handleCRM(
 ): Promise<Response> {
     const { userId, supabase } = await requireAuth(request, env);
 
-    const { data: membership } = await supabase
-        .from('company_members')
-        .select('company_id, role')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .limit(1)
-        .maybeSingle();
+    const membership = await discoverMembership(env, userId);
 
     if (!membership) return errorResponse('No active company membership', 403);
 

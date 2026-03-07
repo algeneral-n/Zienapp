@@ -21,6 +21,45 @@ export function createAdminClient(env: Env): SupabaseClient {
 }
 
 /**
+ * Check if a user is a member of a company (bypasses RLS via admin client).
+ * Returns role_code if member, null otherwise.
+ */
+export async function checkMembership(
+  env: Env,
+  userId: string,
+  companyId: string,
+): Promise<{ role: string } | null> {
+  const admin = createAdminClient(env);
+  const { data } = await admin
+    .from('company_members')
+    .select('role:role_code')
+    .eq('company_id', companyId)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle();
+  return data;
+}
+
+/**
+ * Discover a user's active company membership (bypasses RLS via admin client).
+ * Returns the first active membership with company_id, role, and member id.
+ */
+export async function discoverMembership(
+  env: Env,
+  userId: string,
+): Promise<{ id: string; company_id: string; role: string } | null> {
+  const admin = createAdminClient(env);
+  const { data } = await admin
+    .from('company_members')
+    .select('id, company_id, role:role_code')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+/**
  * Extract and validate the user from the Authorization header.
  * Returns user ID or throws.
  */

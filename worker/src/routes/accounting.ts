@@ -7,12 +7,12 @@
 
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
-import { requireAuth, createUserClient } from '../supabase';
+import { requireAuth, createUserClient, checkMembership } from '../supabase';
 import { getRoleLevel } from '../permissions';
 
 /** Verify company membership and return role. Read endpoints need level 40+, write need 65+. */
 async function verifyAccountingAccess(
-  supabase: import('@supabase/supabase-js').SupabaseClient,
+  env: Env,
   userId: string,
   companyId: string,
   requireWriteLevel = false,
@@ -20,13 +20,7 @@ async function verifyAccountingAccess(
   if (!companyId) {
     return { error: errorResponse('X-Company-Id header is required') };
   }
-  const { data: membership } = await supabase
-    .from('company_members')
-    .select('role')
-    .eq('company_id', companyId)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const membership = await checkMembership(env, userId, companyId);
 
   if (!membership) {
     return { error: errorResponse('Not a member of this company', 403) };
@@ -55,7 +49,7 @@ export async function handleAccounting(
 
   // Determine if this is a write operation
   const isWrite = request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH' || request.method === 'DELETE';
-  const access = await verifyAccountingAccess(supabase, userId, companyId, isWrite);
+  const access = await verifyAccountingAccess(env, userId, companyId, isWrite);
   if (access.error) return access.error;
 
   // ─── Chart of Accounts ───────────────────────────────────────────────

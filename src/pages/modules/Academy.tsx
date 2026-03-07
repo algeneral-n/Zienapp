@@ -204,7 +204,7 @@ export default function Academy() {
               ZIEN Platform Complete Guide
             </h2>
             <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-              From zero to hero — master every module of the ZIEN Platform with hands-on tutorials, 
+              From zero to hero — master every module of the ZIEN Platform with hands-on tutorials,
               real-world scenarios, and RARE AI integration tips.
             </p>
             <div className="flex items-center gap-6 text-xs text-zinc-500 mb-6">
