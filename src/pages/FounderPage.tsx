@@ -738,8 +738,8 @@ const SystemLogs = () => {
               <div key={log.id} className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                 <div className="flex items-center gap-4">
                   <div className={`w-2.5 h-2.5 rounded-full ${log.action?.includes('delete') || log.action?.includes('suspend') ? 'bg-red-500' :
-                      log.action?.includes('create') || log.action?.includes('provision') ? 'bg-emerald-500' :
-                        log.action?.includes('update') ? 'bg-amber-500' : 'bg-blue-500'
+                    log.action?.includes('create') || log.action?.includes('provision') ? 'bg-emerald-500' :
+                      log.action?.includes('update') ? 'bg-amber-500' : 'bg-blue-500'
                     }`} />
                   <div>
                     <p className="text-sm font-bold capitalize">{log.action}</p>
@@ -864,8 +864,8 @@ const SubscriptionManager = () => {
                     <td className="px-6 py-4 text-xs font-medium text-zinc-500 capitalize">{tenant.subscription?.gateway || '—'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${tenant.subscription?.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' :
-                          tenant.subscription?.status === 'past_due' ? 'bg-red-500/10 text-red-500' :
-                            'bg-zinc-200/50 text-zinc-500'
+                        tenant.subscription?.status === 'past_due' ? 'bg-red-500/10 text-red-500' :
+                          'bg-zinc-200/50 text-zinc-500'
                         }`}>{tenant.subscription?.status || '—'}</span>
                     </td>
                     <td className="px-6 py-4 text-xs text-zinc-500">{tenant.subscription?.current_period_end ? new Date(tenant.subscription.current_period_end).toLocaleDateString() : '—'}</td>
@@ -961,8 +961,8 @@ const UserManagement = () => {
                     <td className="px-6 py-4 text-xs font-medium text-zinc-500">{user.companyName || user.company_name || '—'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${user.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' :
-                          user.status === 'invited' ? 'bg-blue-500/10 text-blue-500' :
-                            'bg-zinc-200/50 text-zinc-500'
+                        user.status === 'invited' ? 'bg-blue-500/10 text-blue-500' :
+                          'bg-zinc-200/50 text-zinc-500'
                         }`}>{user.status || 'unknown'}</span>
                     </td>
                   </tr>

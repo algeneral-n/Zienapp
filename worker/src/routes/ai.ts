@@ -134,23 +134,37 @@ async function handleRARE(
     language?: string;
   };
 
-  if (!body.prompt || !body.companyId) {
-    return errorResponse('Missing prompt or companyId');
+  if (!body.prompt) {
+    return errorResponse('Missing prompt');
   }
 
-  // Verify user is a member of the company (admin bypass RLS)
-  const membership = await checkMembership(env, userId, body.companyId);
+  // Resolve user role — either from company membership or profile
+  let membershipRole = 'employee';
 
-  if (!membership) {
-    return errorResponse('Not a member of this company', 403);
+  if (body.companyId) {
+    // Verify user is a member of the company (admin bypass RLS)
+    const membership = await checkMembership(env, userId, body.companyId);
+    if (!membership) {
+      return errorResponse('Not a member of this company', 403);
+    }
+    membershipRole = membership.role;
+  } else {
+    // No company context — resolve from user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('platform_role')
+      .eq('id', userId)
+      .single();
+    if (profile?.platform_role === 'founder') membershipRole = 'founder';
+    else if (profile?.platform_role === 'admin') membershipRole = 'company_gm';
   }
 
   // ─── Permission Gate ────────────────────────────────────────────────
-  const permCheck = checkPermission(membership.role, body.agentType, body.mode);
+  const permCheck = checkPermission(membershipRole, body.agentType, body.mode);
   if (!permCheck.allowed) {
     // Log denied attempt
     await supabase.from('ai_usage_logs').insert({
-      company_id: body.companyId,
+      company_id: body.companyId || null,
       user_id: userId,
       agent_type: body.agentType,
       mode: body.mode,
@@ -166,7 +180,7 @@ async function handleRARE(
   }
 
   // Build system prompt based on agent type and mode
-  const systemPrompt = buildSystemPrompt(body.agentType, body.mode, membership.role, body.language);
+  const systemPrompt = buildSystemPrompt(body.agentType, body.mode, membershipRole, body.language);
 
   // Determine if web search should be enabled
   const isSearchMode = body.mode === 'search' || body.prompt.match(/\b(search|find|look up|بحث|ابحث|دور|جوجل|google)\b/i);
@@ -296,7 +310,7 @@ async function handleRARE(
 
   // Log usage (with action classification)
   await supabase.from('ai_usage_logs').insert({
-    company_id: body.companyId,
+    company_id: body.companyId || null,
     user_id: userId,
     agent_type: body.agentType,
     mode: body.mode,
