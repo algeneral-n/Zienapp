@@ -37,6 +37,8 @@ const ClientPortal = React.lazy(() => import('./pages/ClientPortal'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const NoAccessPage = React.lazy(() => import('./pages/NoAccessPage'));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
+const GuestVerifyPage = React.lazy(() => import('./pages/GuestVerifyPage'));
+const GuestDashboard = React.lazy(() => import('./pages/GuestDashboard'));
 
 // ─── Loading fallback ───────────────────────────────────────────────────
 
@@ -69,6 +71,10 @@ function AppRoutes() {
           <Route path="/register" element={<OnboardingWizard />} />
           <Route path="/invite/:token" element={<AcceptInvitePage />} />
         </Route>
+
+        {/* ─── Guest Preview routes ────────────────────────────── */}
+        <Route path="/guest" element={<GuestVerifyPage />} />
+        <Route path="/guest/preview/*" element={<GuestDashboard />} />
 
         {/* ─── Auth routes (callback only — no layout chrome) ──── */}
         <Route path="/auth/callback" element={<AuthCallback />} />

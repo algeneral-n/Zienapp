@@ -39,7 +39,6 @@ class _AccountingScreenState extends ConsumerState<AccountingScreen>
   Widget build(BuildContext context) {
     final t = ref.watch(translatorProvider);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -504,7 +503,6 @@ class _FinancialReportsTabState extends ConsumerState<_FinancialReportsTab> {
   Widget build(BuildContext context) {
     final state = ref.watch(accountingProvider);
     final t = ref.watch(translatorProvider);
-    final theme = Theme.of(context);
 
     return Column(
       children: [

@@ -48,8 +48,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen>
   Widget build(BuildContext context) {
     final billing = ref.watch(billingProvider);
     final t = ref.watch(tProvider);
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
 
     return RouteRoleGuard(
       minLevel: 60, // accountant+, GM+ for billing access

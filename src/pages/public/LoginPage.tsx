@@ -612,6 +612,11 @@ export default function LoginPage() {
                     {language === 'ar' ? 'تسجيل شركة' : 'Register Company'}
                   </button>
                 </span>
+                <span>
+                  <button onClick={() => navigate('/guest')} className="text-cyan-600 font-bold hover:underline">
+                    {language === 'ar' ? 'تصفح كزائر' : 'Browse as Guest'}
+                  </button>
+                </span>
               </span>
             ) : (
               <button onClick={() => { setView('login'); setError(''); setSuccess(''); }} className="text-brand font-bold hover:underline">{language === 'ar' ? 'العودة لتسجيل الدخول' : 'Back to Login'}</button>

@@ -311,8 +311,6 @@ class _EmployeePortalScreenState extends ConsumerState<EmployeePortalScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final companyState = ref.watch(companyNotifierProvider);
-    final companyName = companyState.active?.name ?? 'Company';
 
     return Scaffold(
       appBar: AppBar(

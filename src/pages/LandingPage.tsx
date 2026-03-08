@@ -11,7 +11,7 @@ import {
   ArrowRight, Menu, X, CheckCircle2, Star,
   ChevronLeft, ChevronRight, Play, Users,
   BarChart3, Shield, Globe2, Upload, Loader2,
-  Building2, Users2, Briefcase, AlertCircle
+  Building2, Users2, Briefcase, AlertCircle, Eye
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -199,6 +199,13 @@ export default function LandingPage() {
                   className="glass-card px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black/5 transition-all"
                 >
                   {t.createDemo}
+                </button>
+                <button
+                  onClick={() => navigate('/guest')}
+                  className="border border-blue-600/30 text-blue-600 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center gap-2"
+                >
+                  <Eye className="w-5 h-5" />
+                  {translate('browse_as_guest')}
                 </button>
               </div>
             </motion.div>

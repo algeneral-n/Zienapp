@@ -6,7 +6,9 @@ import {
   Settings, Zap, Megaphone, Wrench,
   CheckCircle2, XCircle, Clock, Search,
   DollarSign, TrendingUp, Activity, Server,
-  AlertTriangle, Lock, Eye, Globe, Loader2, Info
+  AlertTriangle, Lock, Eye, Globe, Loader2, Info,
+  FileText, RefreshCw, UserCheck, ClipboardList,
+  CreditCard, ScrollText, Bell, Database
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { HeaderControls } from '../components/HeaderControls';
@@ -689,6 +691,527 @@ const SecurityDashboard = () => {
   );
 };
 
+// ─── System Logs Viewer (REAL DATA) ─────────────────────────────────────────
+
+const SystemLogs = () => {
+  const { t } = useTranslation();
+  const [logs, setLogs] = useState<AuditEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [filter, setFilter] = useState('');
+
+  const loadLogs = useCallback(async (p: number, action?: string) => {
+    setLoading(true);
+    try {
+      const { entries } = await getPlatformAuditLog(p, 50, action || undefined);
+      setLogs(entries || []);
+    } catch (e: any) {
+      setError(e.message || 'Failed to load logs');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadLogs(page, filter); }, [page, filter, loadLogs]);
+
+  const actionTypes = ['', 'create', 'update', 'delete', 'login', 'suspend', 'provision'];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black uppercase tracking-tighter">{t('system_logs')}</h2>
+        <div className="flex items-center gap-3">
+          <select value={filter} onChange={e => { setFilter(e.target.value); setPage(1); }}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl py-2 px-3 text-xs font-bold">
+            {actionTypes.map(a => <option key={a} value={a}>{a || t('all_actions')}</option>)}
+          </select>
+          <button onClick={() => loadLogs(page, filter)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl"><RefreshCw size={16} /></button>
+        </div>
+      </div>
+      {loading ? <LoadingState /> : error ? <ErrorState message={error} /> : (
+        <div className="bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+          <div className="max-h-[600px] overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
+            {logs.length === 0 ? (
+              <div className="p-8 text-center text-sm text-zinc-400">{t('no_logs_found')}</div>
+            ) : logs.map(log => (
+              <div key={log.id} className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
+                <div className="flex items-center gap-4">
+                  <div className={`w-2.5 h-2.5 rounded-full ${
+                    log.action?.includes('delete') || log.action?.includes('suspend') ? 'bg-red-500' :
+                    log.action?.includes('create') || log.action?.includes('provision') ? 'bg-emerald-500' :
+                    log.action?.includes('update') ? 'bg-amber-500' : 'bg-blue-500'
+                  }`} />
+                  <div>
+                    <p className="text-sm font-bold capitalize">{log.action}</p>
+                    <p className="text-[10px] text-zinc-500">{log.target_type}: {(log.target_id || '').substring(0, 12)}... | Actor: {(log.actor_id || '').substring(0, 8)}...</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-zinc-400 font-bold">{new Date(log.created_at).toLocaleString()}</p>
+                  {log.ip_address && <p className="text-[10px] text-zinc-500">{log.ip_address}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between px-6 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/30">
+            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="text-xs font-bold text-blue-600 disabled:opacity-30">{t('previous')}</button>
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('page')} {page}</span>
+            <button onClick={() => setPage(p => p + 1)} className="text-xs font-bold text-blue-600">{t('next')}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Subscription Manager (REAL DATA) ───────────────────────────────────────
+
+const SubscriptionManager = () => {
+  const { t } = useTranslation();
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { tenants: data } = await listTenants(1, 200);
+        setTenants(data || []);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load subscription data');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const activeCount = tenants.filter(t => t.subscription?.status === 'active').length;
+  const pastDueCount = tenants.filter(t => t.subscription?.status === 'past_due').length;
+  const trialCount = tenants.filter(t => t.plan_code === 'trial' || t.plan_code === 'demo').length;
+
+  // Find upcoming renewals (next 7 days)
+  const now = new Date();
+  const sevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const upcomingRenewals = tenants.filter(t => {
+    const end = t.subscription?.current_period_end;
+    if (!end) return false;
+    const d = new Date(end);
+    return d >= now && d <= sevenDays;
+  });
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tighter">{t('subscriptions')}</h2>
+      {loading ? <LoadingState /> : error ? <ErrorState message={error} /> : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600"><CreditCard size={18} /></div>
+              <div className="text-2xl font-black">{activeCount}</div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1">{t('active_subscriptions')}</div>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600"><AlertTriangle size={18} /></div>
+              <div className="text-2xl font-black">{pastDueCount}</div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1">{t('past_due')}</div>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600"><Clock size={18} /></div>
+              <div className="text-2xl font-black">{trialCount}</div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1">{t('trial_demo')}</div>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-violet-50 dark:bg-violet-500/10 text-violet-600"><RefreshCw size={18} /></div>
+              <div className="text-2xl font-black">{upcomingRenewals.length}</div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-1">{t('renewals_7d')}</div>
+            </div>
+          </div>
+
+          {/* Upcoming Renewals */}
+          {upcomingRenewals.length > 0 && (
+            <div className="bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-800 rounded-3xl p-6">
+              <h3 className="font-black uppercase tracking-tight text-sm mb-4 flex items-center gap-2">
+                <Bell size={16} className="text-amber-600" /> {t('upcoming_renewals')}
+              </h3>
+              <div className="space-y-2">
+                {upcomingRenewals.map(t => (
+                  <div key={t.id} className="flex items-center justify-between py-2 text-sm">
+                    <span className="font-bold">{t.name}</span>
+                    <span className="text-xs text-amber-600 font-bold">{new Date(t.subscription.current_period_end).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Full Subscription List */}
+          <div className="bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('company')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('plan')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('gateway')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('status')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('renewal_date')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {tenants.filter(t => t.subscription).map(tenant => (
+                  <tr key={tenant.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-6 py-4 text-sm font-bold">{tenant.name}</td>
+                    <td className="px-6 py-4 text-xs font-bold text-blue-600 uppercase tracking-widest">{tenant.subscription?.plan_code || '—'}</td>
+                    <td className="px-6 py-4 text-xs font-medium text-zinc-500 capitalize">{tenant.subscription?.gateway || '—'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                        tenant.subscription?.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' :
+                        tenant.subscription?.status === 'past_due' ? 'bg-red-500/10 text-red-500' :
+                        'bg-zinc-200/50 text-zinc-500'
+                      }`}>{tenant.subscription?.status || '—'}</span>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-zinc-500">{tenant.subscription?.current_period_end ? new Date(tenant.subscription.current_period_end).toLocaleDateString() : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ─── User Management (REAL DATA) ────────────────────────────────────────────
+
+const UserManagement = () => {
+  const { t } = useTranslation();
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await founderFetch('/api/founder/users');
+        setUsers(data.users || []);
+      } catch (e: any) {
+        // Fallback: try loading from tenants → members
+        try {
+          const { tenants } = await listTenants(1, 200);
+          const allMembers: any[] = [];
+          for (const tenant of tenants.slice(0, 20)) {
+            allMembers.push(...(tenant.members || []).map((m: any) => ({ ...m, companyName: tenant.name })));
+          }
+          setUsers(allMembers);
+        } catch {
+          setError(e.message || 'Failed to load users');
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const filtered = users.filter(u =>
+    (u.email || u.full_name || u.user_id || u.companyName || '').toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black uppercase tracking-tighter">{t('user_management')}</h2>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-zinc-500 font-bold">{users.length} {t('total_users')}</span>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+            <input type="text" placeholder={t('search_users')} value={search} onChange={e => setSearch(e.target.value)}
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl py-2 pl-10 pr-4 text-xs font-medium" />
+          </div>
+        </div>
+      </div>
+      {loading ? <LoadingState /> : error ? <ErrorState message={error} /> : (
+        <div className="bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+          <div className="max-h-[600px] overflow-y-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-800/50">
+                <tr className="border-b border-zinc-200 dark:border-zinc-800">
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('user')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('role')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('company')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('status')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-zinc-400">{t('no_users_found')}</td></tr>
+                ) : filtered.slice(0, 100).map((user, i) => (
+                  <tr key={user.id || i} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center font-bold text-xs text-blue-600">
+                          {(user.full_name || user.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">{user.full_name || user.email || user.user_id?.substring(0, 8)}</p>
+                          {user.email && <p className="text-[10px] text-zinc-500">{user.email}</p>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-blue-600 uppercase tracking-widest">{user.role || user.role_code || '—'}</td>
+                    <td className="px-6 py-4 text-xs font-medium text-zinc-500">{user.companyName || user.company_name || '—'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                        user.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' :
+                        user.status === 'invited' ? 'bg-blue-500/10 text-blue-500' :
+                        'bg-zinc-200/50 text-zinc-500'
+                      }`}>{user.status || 'unknown'}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Maintenance Panel ──────────────────────────────────────────────────────
+
+const MaintenancePanel = () => {
+  const { t } = useTranslation();
+  const [health, setHealth] = useState<any>(null);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [healthData, annData] = await Promise.all([
+          getSystemHealth().catch(() => null),
+          listAnnouncements().catch(() => ({ announcements: [] })),
+        ]);
+        setHealth(healthData);
+        setAnnouncements(annData.announcements || []);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load maintenance data');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const maintenanceAnnouncements = announcements.filter(a => a.severity === 'maintenance');
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tighter">{t('maintenance')}</h2>
+      {loading ? <LoadingState /> : error ? <ErrorState message={error} /> : (
+        <>
+          {/* System Status */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('database')}</span>
+                <span className={`w-3 h-3 rounded-full ${health?.components?.database?.status === 'healthy' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              </div>
+              <p className="text-sm font-bold">{health?.components?.database?.status || 'unknown'}</p>
+              <p className="text-[10px] text-zinc-500 mt-1">{health?.components?.database?.latency_ms || '?'}ms {t('latency')}</p>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('payments_24h')}</span>
+                <span className={`w-3 h-3 rounded-full ${(health?.components?.payments_24h?.health || 0) > 90 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              </div>
+              <p className="text-sm font-bold">{health?.components?.payments_24h?.total || 0} {t('total')}</p>
+              <p className="text-[10px] text-zinc-500 mt-1">{health?.components?.payments_24h?.failed || 0} {t('failed')}</p>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('overall_health')}</span>
+                <span className={`w-3 h-3 rounded-full ${(health?.overall_health || 0) > 90 ? 'bg-emerald-500' : (health?.overall_health || 0) > 70 ? 'bg-amber-500' : 'bg-red-500'}`} />
+              </div>
+              <p className="text-2xl font-black">{health?.overall_health || 0}%</p>
+              <p className="text-[10px] text-zinc-500 mt-1">{t('platform_score')}</p>
+            </div>
+          </div>
+
+          {/* Platform Totals */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-800 rounded-3xl p-6 text-center">
+              <Building2 className="mx-auto mb-2 text-blue-600" size={24} />
+              <p className="text-2xl font-black">{health?.totals?.companies || 0}</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('total_companies')}</p>
+            </div>
+            <div className="bg-violet-50 dark:bg-violet-500/5 border border-violet-200 dark:border-violet-800 rounded-3xl p-6 text-center">
+              <Users className="mx-auto mb-2 text-violet-600" size={24} />
+              <p className="text-2xl font-black">{health?.totals?.active_members || 0}</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('active_members')}</p>
+            </div>
+            <div className="bg-cyan-50 dark:bg-cyan-500/5 border border-cyan-200 dark:border-cyan-800 rounded-3xl p-6 text-center">
+              <Zap className="mx-auto mb-2 text-cyan-600" size={24} />
+              <p className="text-2xl font-black">{health?.totals?.ai_queries_24h || 0}</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('ai_queries_24h')}</p>
+            </div>
+          </div>
+
+          {/* Maintenance Announcements */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+            <h3 className="font-black uppercase tracking-tight text-sm mb-4 flex items-center gap-2">
+              <Wrench size={16} /> {t('maintenance_windows')}
+            </h3>
+            {maintenanceAnnouncements.length === 0 ? (
+              <p className="text-sm text-zinc-400 text-center py-4">{t('no_scheduled_maintenance')}</p>
+            ) : maintenanceAnnouncements.map(a => (
+              <div key={a.id} className="flex items-center justify-between py-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
+                <div>
+                  <p className="text-sm font-bold">{a.title_en}</p>
+                  <p className="text-xs text-zinc-500 mt-1">{a.body_en?.substring(0, 100)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-amber-600">{new Date(a.starts_at).toLocaleDateString()}</p>
+                  {a.ends_at && <p className="text-[10px] text-zinc-500">{t('until')} {new Date(a.ends_at).toLocaleDateString()}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ─── Reports Center ─────────────────────────────────────────────────────────
+
+const ReportsCenter = () => {
+  const { t } = useTranslation();
+  const [revenue, setRevenue] = useState<any>(null);
+  const [health, setHealth] = useState<any>(null);
+  const [usage, setUsage] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [rev, hp, ai] = await Promise.all([
+          getRevenueAnalytics(30).catch(() => null),
+          getSystemHealth().catch(() => null),
+          getAIUsagePlatform(30).catch(() => null),
+        ]);
+        setRevenue(rev);
+        setHealth(hp);
+        setUsage(ai);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load report data');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tighter">{t('reports')}</h2>
+      {loading ? <LoadingState /> : error ? <ErrorState message={error} /> : (
+        <>
+          {/* Revenue Summary */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+            <h3 className="font-black uppercase tracking-tight text-sm mb-4 flex items-center gap-2">
+              <DollarSign size={16} className="text-emerald-600" /> {t('revenue_report_30d')}
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                <p className="text-xl font-black">${((revenue?.mrr || 0) / 100).toFixed(0)}</p>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">MRR</p>
+              </div>
+              <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                <p className="text-xl font-black">${((revenue?.arr || 0) / 100).toFixed(0)}</p>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">ARR</p>
+              </div>
+              <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                <p className="text-xl font-black">{revenue?.total_subscriptions || 0}</p>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('total_subs')}</p>
+              </div>
+              <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                <p className="text-xl font-black">{revenue?.new_companies || 0}</p>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('new_companies')}</p>
+              </div>
+            </div>
+            {revenue?.plan_breakdown && Object.keys(revenue.plan_breakdown).length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-xs font-bold uppercase text-zinc-500 mb-2">{t('by_plan')}</h4>
+                <div className="space-y-2">
+                  {Object.entries(revenue.plan_breakdown).map(([plan, data]: [string, any]) => (
+                    <div key={plan} className="flex items-center justify-between text-sm">
+                      <span className="font-bold uppercase text-xs">{plan}</span>
+                      <span className="text-xs text-zinc-500">{data.count} {t('companies')} | ${(data.mrr / 100).toFixed(0)} MRR</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* AI Usage Report */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+            <h3 className="font-black uppercase tracking-tight text-sm mb-4 flex items-center gap-2">
+              <Zap size={16} className="text-blue-600" /> {t('ai_usage_report')}
+            </h3>
+            {usage ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                  <p className="text-xl font-black">{(usage.total_queries || 0).toLocaleString()}</p>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('queries')}</p>
+                </div>
+                <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                  <p className="text-xl font-black">{((usage.total_tokens || 0) / 1000).toFixed(0)}K</p>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('tokens')}</p>
+                </div>
+                <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                  <p className="text-xl font-black">{usage.unique_companies || 0}</p>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('active_companies')}</p>
+                </div>
+                <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                  <p className="text-xl font-black">{Object.keys(usage.by_agent_type || {}).length}</p>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('agent_types')}</p>
+                </div>
+              </div>
+            ) : <UnavailableState feature={t('ai_usage')} />}
+          </div>
+
+          {/* Platform Health Report */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+            <h3 className="font-black uppercase tracking-tight text-sm mb-4 flex items-center gap-2">
+              <Activity size={16} className="text-emerald-600" /> {t('platform_health_report')}
+            </h3>
+            {health ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                  <p className="text-3xl font-black">{health.overall_health || 0}%</p>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('health_score')}</p>
+                </div>
+                <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                  <p className="text-xl font-black">{health.components?.integrations?.connected || 0}/{health.components?.integrations?.total || 0}</p>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('integrations_connected')}</p>
+                </div>
+                <div className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl">
+                  <p className="text-xl font-black">{health.components?.subscriptions?.active || 0}</p>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('active_subs')}</p>
+                </div>
+              </div>
+            ) : <UnavailableState feature={t('health')} />}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 // ─── Main Layout ────────────────────────────────────────────────────────────
 
 export default function FounderPage() {
@@ -708,10 +1231,15 @@ export default function FounderPage() {
             {[
               { icon: Building2, label: t('tenants'), path: '' },
               { icon: BarChart3, label: t('revenue'), path: 'revenue' },
+              { icon: CreditCard, label: t('subscriptions'), path: 'subscriptions' },
+              { icon: Users, label: t('users'), path: 'users' },
+              { icon: ScrollText, label: t('logs'), path: 'logs' },
               { icon: Zap, label: t('ai_builder'), path: 'ai' },
               { icon: Megaphone, label: t('marketing'), path: 'marketing' },
               { icon: Wrench, label: t('integrations'), path: 'integrations' },
               { icon: Activity, label: t('health'), path: 'health' },
+              { icon: Server, label: t('maintenance'), path: 'maintenance' },
+              { icon: FileText, label: t('reports'), path: 'reports' },
               { icon: Shield, label: t('security'), path: 'security' },
             ].map((item) => (
               <NavLink
@@ -749,10 +1277,15 @@ export default function FounderPage() {
           <Routes>
             <Route path="/" element={<TenantManagement />} />
             <Route path="/revenue" element={<RevenueAnalytics />} />
+            <Route path="/subscriptions" element={<SubscriptionManager />} />
+            <Route path="/users" element={<UserManagement />} />
+            <Route path="/logs" element={<SystemLogs />} />
             <Route path="/ai" element={<AIBuilder />} />
             <Route path="/marketing" element={<MarketingSystem />} />
             <Route path="/integrations" element={<IntegrationControl />} />
             <Route path="/health" element={<PlatformHealth />} />
+            <Route path="/maintenance" element={<MaintenancePanel />} />
+            <Route path="/reports" element={<ReportsCenter />} />
             <Route path="/security" element={<SecurityDashboard />} />
           </Routes>
         </div>

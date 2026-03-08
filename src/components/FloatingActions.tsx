@@ -38,7 +38,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
   const { t: translate, i18n } = useTranslation();
   const { profile } = useAuth();
   const { company, membership } = useCompany();
-  const { permissions, isFounder, isPlatformAdmin } = usePermissions();
+  const { role: permRole, isPlatform: isFounder, isAdmin: isPlatformAdmin, canReadModule } = usePermissions();
   const language = i18n.language as Language;
   const mode = themeMode as ThemeMode;
 
@@ -112,7 +112,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
 
   // Listen for external requests to open the RARE chat panel
   useEffect(() => {
-    const handleOpenRare = () => setShowPanel(true);
+    const handleOpenRare = () => { setIsPanelOpen(true); setIsRAREVisible(true); };
     window.addEventListener('open-rare-chat', handleOpenRare);
     return () => window.removeEventListener('open-rare-chat', handleOpenRare);
   }, []);
@@ -120,7 +120,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([
-        { role: 'ai', text: language === 'ar' ? 'مرحبا! أنا RARE، مساعدك الذكي في ZIEN. كيف يمكنني مساعدتك اليوم؟' : 'Hello! I am RARE, your ZIEN intelligence assistant. How can I help you today?' }
+        { id: 'welcome', role: 'ai', text: language === 'ar' ? 'مرحبا! أنا RARE، مساعدك الذكي في ZIEN. كيف يمكنني مساعدتك اليوم؟' : 'Hello! I am RARE, your ZIEN intelligence assistant. How can I help you today?' }
       ]);
     }
   }, [language]);
@@ -229,7 +229,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
         `Company: ${company?.name || 'N/A'}`,
         `Current Page: ${context.pageCode}${context.moduleCode ? ' / ' + context.moduleCode : ''}`,
         `Agent Mode: ${activeMode}`,
-        `Permissions: ${permissions.length > 0 ? permissions.slice(0, 10).join(', ') : 'standard employee access'}`,
+        `Permissions: ${permRole || 'standard employee access'}`,
         isFounder ? 'Platform Access: FOUNDER (full platform control)' : '',
         isPlatformAdmin ? 'Platform Access: ADMIN (platform-level management)' : '',
       ].filter(Boolean).join('\n');

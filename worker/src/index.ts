@@ -21,6 +21,7 @@ import { handleProjects } from './routes/projects';
 import { handleLogistics as handleLogisticsV2 } from './routes/logistics';
 import { handleMeetings } from './routes/meetings';
 import { handleEmail } from './routes/email';
+import { handleGuest } from './routes/guest';
 import { corsHeaders, handleCors, getAllowedOrigin } from './cors';
 
 export interface Env {
@@ -130,6 +131,10 @@ export default {
 
       if (path.startsWith('/api/email/')) {
         return handleEmail(request, env, path);
+      }
+
+      if (path.startsWith('/api/guest/')) {
+        return handleGuest(request, env, path);
       }
 
       // 404
