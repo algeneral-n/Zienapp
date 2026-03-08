@@ -98,6 +98,23 @@ export async function handleAI(
     return handleListAgents(request, env, userId, supabase);
   }
 
+  // ─── New RARE AI capabilities ─────────────────────────────────────
+  if (path === '/api/ai/translate' && request.method === 'POST') {
+    return handleTranslate(request, env, userId, supabase);
+  }
+
+  if (path === '/api/ai/generate-image' && request.method === 'POST') {
+    return handleGenerateImage(request, env, userId, supabase);
+  }
+
+  if (path === '/api/ai/generate-file' && request.method === 'POST') {
+    return handleGenerateFile(request, env, userId, supabase);
+  }
+
+  if (path === '/api/ai/read-file' && request.method === 'POST') {
+    return handleReadFile(request, env, userId, supabase);
+  }
+
   return errorResponse('Not found', 404);
 }
 
@@ -709,5 +726,404 @@ async function handleListAgents(
     agents,
     accessible_count: agents.filter(a => a.accessible).length,
     total_count: agents.length,
+  });
+}
+
+// ─── Neural Translation ─────────────────────────────────────────────────────
+
+async function handleTranslate(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const body = (await request.json()) as {
+    text: string;
+    sourceLang?: string;
+    targetLang: string;
+    dialect?: string;
+    companyId: string;
+  };
+
+  if (!body.text || !body.targetLang || !body.companyId) {
+    return errorResponse('Missing text, targetLang, or companyId');
+  }
+
+  const membership = await checkMembership(env, userId, body.companyId);
+  if (!membership) return errorResponse('Not a member', 403);
+
+  const targetName = LANG_NAMES[body.targetLang] || body.targetLang;
+  const sourceName = body.sourceLang ? (LANG_NAMES[body.sourceLang] || body.sourceLang) : 'auto-detect';
+  const dialectNote = body.dialect ? `\nUse the "${body.dialect}" dialect/variant of the target language. Adapt tone, vocabulary, and expressions to match this specific regional dialect naturally.` : '';
+
+  const systemPrompt = `You are RARE Neural Translator — an advanced multilingual translation engine for the ZIEN platform.
+
+Rules:
+1. Translate the text from ${sourceName} to ${targetName}.${dialectNote}
+2. Preserve formatting, markdown, numbers, and special characters.
+3. Maintain the original tone (formal/informal/technical).
+4. For business/technical terms, use the standard accepted translation in the target language.
+5. If the source language cannot be detected, make your best guess.
+6. Return ONLY the translated text — no explanations, no notes.
+7. Support dialects: Egyptian Arabic, Gulf Arabic, Levantine Arabic, etc.`;
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: body.text },
+      ],
+      temperature: 0.3,
+      max_tokens: 4096,
+    }),
+  });
+
+  if (!res.ok) return errorResponse('Translation service unavailable', 502);
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+
+  const translated = data.choices?.[0]?.message?.content || '';
+
+  await supabase.from('ai_usage_logs').insert({
+    company_id: body.companyId,
+    user_id: userId,
+    agent_type: 'translator',
+    mode: 'translate',
+    model_name: 'gpt-4o-mini',
+    tokens_in: data.usage?.prompt_tokens ?? 0,
+    tokens_out: data.usage?.completion_tokens ?? 0,
+    query_text: body.text.substring(0, 500),
+    response_summary: translated.substring(0, 500),
+  });
+
+  return jsonResponse({
+    translated,
+    sourceLang: body.sourceLang || 'auto',
+    targetLang: body.targetLang,
+    dialect: body.dialect || null,
+    tokens: {
+      input: data.usage?.prompt_tokens ?? 0,
+      output: data.usage?.completion_tokens ?? 0,
+    },
+  });
+}
+
+// ─── Image Generation (DALL-E) ──────────────────────────────────────────────
+
+async function handleGenerateImage(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const body = (await request.json()) as {
+    prompt: string;
+    companyId: string;
+    size?: string;
+    style?: string;
+    quality?: string;
+  };
+
+  if (!body.prompt || !body.companyId) {
+    return errorResponse('Missing prompt or companyId');
+  }
+
+  const membership = await checkMembership(env, userId, body.companyId);
+  if (!membership) return errorResponse('Not a member', 403);
+
+  // Only supervisor+ can generate images (level 60+)
+  const userLevel = getRoleLevel(membership.role);
+  if (userLevel < 20) {
+    return errorResponse('Image generation requires at least employee access', 403);
+  }
+
+  const size = body.size || '1024x1024';
+  const style = body.style || 'natural';
+  const quality = body.quality || 'standard';
+
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'dall-e-3',
+      prompt: `${body.prompt}\n\nStyle: Professional, clean, suitable for business use on the ZIEN platform.`,
+      n: 1,
+      size,
+      style,
+      quality,
+      response_format: 'url',
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error('DALL-E error:', errText);
+    return errorResponse('Image generation failed', 502);
+  }
+
+  const data = (await res.json()) as {
+    data?: Array<{ url?: string; revised_prompt?: string }>;
+  };
+
+  const imageUrl = data.data?.[0]?.url || '';
+  const revisedPrompt = data.data?.[0]?.revised_prompt || '';
+
+  await supabase.from('ai_usage_logs').insert({
+    company_id: body.companyId,
+    user_id: userId,
+    agent_type: 'image_generator',
+    mode: 'generate',
+    model_name: 'dall-e-3',
+    tokens_in: 0,
+    tokens_out: 0,
+    query_text: body.prompt.substring(0, 500),
+    response_summary: `Image generated: ${size}, ${style}`,
+  });
+
+  return jsonResponse({
+    imageUrl,
+    revisedPrompt,
+    size,
+    style,
+    quality,
+  });
+}
+
+// ─── Document/File Generation ───────────────────────────────────────────────
+
+async function handleGenerateFile(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const body = (await request.json()) as {
+    type: 'report' | 'manual' | 'guide' | 'profile' | 'template' | 'custom';
+    title: string;
+    instructions: string;
+    companyId: string;
+    format?: 'markdown' | 'html' | 'json';
+    language?: string;
+  };
+
+  if (!body.title || !body.instructions || !body.companyId) {
+    return errorResponse('Missing title, instructions, or companyId');
+  }
+
+  const membership = await checkMembership(env, userId, body.companyId);
+  if (!membership) return errorResponse('Not a member', 403);
+
+  const format = body.format || 'markdown';
+  const langName = LANG_NAMES[body.language || 'en'] || 'English';
+
+  const fileTypePrompts: Record<string, string> = {
+    report: 'Generate a professional business report with executive summary, data sections, charts descriptions, and conclusions.',
+    manual: 'Generate a training manual with step-by-step instructions, screenshots placeholders, tips, and a table of contents.',
+    guide: 'Generate a user guide/how-to document with clear numbered steps, screenshots placeholders, and troubleshooting section.',
+    profile: 'Generate a company/service profile document with overview, services, team, contact info sections.',
+    template: 'Generate a reusable document template with placeholder sections that can be filled in.',
+    custom: 'Generate a custom document based on the user instructions.',
+  };
+
+  const formatInstructions: Record<string, string> = {
+    markdown: 'Output in clean Markdown format with proper headings (##), lists, tables, and bold/italic formatting.',
+    html: 'Output in clean HTML with proper tags, CSS classes, and semantic structure. Include inline styles for print-ready output.',
+    json: 'Output as a JSON structure with sections, content, and metadata fields.',
+  };
+
+  const systemPrompt = `You are RARE Document Generator — an advanced document creation engine for the ZIEN platform.
+
+Document Type: ${body.type}
+${fileTypePrompts[body.type] || fileTypePrompts.custom}
+
+${formatInstructions[format]}
+
+Rules:
+1. Create a complete, professional document.
+2. Write in ${langName}.
+3. Include a title, date placeholder, and author placeholder.
+4. For reports: include data tables with sample structure.
+5. For manuals/guides: include numbered steps and clear explanations.
+6. Make it visually structured and ready to use.
+7. Never include confidential placeholder data — use "[Company Name]", "[Date]", etc.`;
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Title: ${body.title}\n\nInstructions: ${body.instructions}` },
+      ],
+      temperature: 0.5,
+      max_tokens: 8192,
+    }),
+  });
+
+  if (!res.ok) return errorResponse('Document generation failed', 502);
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+
+  const content = data.choices?.[0]?.message?.content || '';
+
+  await supabase.from('ai_usage_logs').insert({
+    company_id: body.companyId,
+    user_id: userId,
+    agent_type: 'file_generator',
+    mode: 'generate_file',
+    model_name: 'gpt-4o',
+    tokens_in: data.usage?.prompt_tokens ?? 0,
+    tokens_out: data.usage?.completion_tokens ?? 0,
+    query_text: `${body.type}: ${body.title}`.substring(0, 500),
+    response_summary: content.substring(0, 500),
+  });
+
+  return jsonResponse({
+    content,
+    title: body.title,
+    type: body.type,
+    format,
+    tokens: {
+      input: data.usage?.prompt_tokens ?? 0,
+      output: data.usage?.completion_tokens ?? 0,
+    },
+  });
+}
+
+// ─── Multimodal File/Image Reading (GPT-4o Vision) ──────────────────────────
+
+async function handleReadFile(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const body = (await request.json()) as {
+    imageUrl?: string;
+    imageBase64?: string;
+    textContent?: string;
+    instruction: string;
+    companyId: string;
+    language?: string;
+  };
+
+  if (!body.instruction || !body.companyId) {
+    return errorResponse('Missing instruction or companyId');
+  }
+
+  if (!body.imageUrl && !body.imageBase64 && !body.textContent) {
+    return errorResponse('Provide imageUrl, imageBase64, or textContent to analyze');
+  }
+
+  const membership = await checkMembership(env, userId, body.companyId);
+  if (!membership) return errorResponse('Not a member', 403);
+
+  const langName = LANG_NAMES[body.language || 'en'] || 'English';
+
+  // Build message content (supports multimodal)
+  const userContent: Array<{ type: string; text?: string; image_url?: { url: string; detail?: string } }> = [];
+
+  userContent.push({ type: 'text', text: body.instruction });
+
+  if (body.imageUrl) {
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: body.imageUrl, detail: 'high' },
+    });
+  }
+
+  if (body.imageBase64) {
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${body.imageBase64}`, detail: 'high' },
+    });
+  }
+
+  if (body.textContent) {
+    userContent.push({ type: 'text', text: `\n\n--- Document Content ---\n${body.textContent}` });
+  }
+
+  const systemPrompt = `You are RARE File Analyzer — an advanced multimodal AI for the ZIEN platform.
+
+You can:
+1. Read and analyze images (screenshots, photos, documents, charts, receipts)
+2. Extract text from images (OCR)
+3. Analyze document content and provide summaries
+4. Read JSON data and provide insights
+5. Compare data between files
+
+Rules:
+1. Respond in ${langName}.
+2. Be thorough and accurate in your analysis.
+3. For images: describe what you see, extract any text, and provide relevant insights.
+4. For documents: summarize key points, extract important data.
+5. For data files: provide statistical summaries and patterns.
+6. Always maintain security — never expose sensitive data outside the user's role scope.`;
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent },
+      ],
+      temperature: 0.4,
+      max_tokens: 4096,
+    }),
+  });
+
+  if (!res.ok) return errorResponse('File analysis failed', 502);
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+
+  const analysis = data.choices?.[0]?.message?.content || '';
+
+  await supabase.from('ai_usage_logs').insert({
+    company_id: body.companyId,
+    user_id: userId,
+    agent_type: 'file_reader',
+    mode: 'read_file',
+    model_name: 'gpt-4o',
+    tokens_in: data.usage?.prompt_tokens ?? 0,
+    tokens_out: data.usage?.completion_tokens ?? 0,
+    query_text: body.instruction.substring(0, 500),
+    response_summary: analysis.substring(0, 500),
+  });
+
+  return jsonResponse({
+    analysis,
+    hasImage: !!(body.imageUrl || body.imageBase64),
+    hasText: !!body.textContent,
+    tokens: {
+      input: data.usage?.prompt_tokens ?? 0,
+      output: data.usage?.completion_tokens ?? 0,
+    },
   });
 }

@@ -174,6 +174,39 @@ export const ROLE_KNOWLEDGE: Record<string, {
         canAccess: ['Client Portal', 'Own projects', 'Own invoices', 'Document downloads', 'Support tickets'],
         cannotAccess: ['All internal modules', 'Employee data', 'Settings'],
     },
+    // Public and Guest roles
+    guest: {
+        title: 'Guest Visitor',
+        level: 5,
+        description: 'Unregistered visitor browsing the platform preview. Email-verified only.',
+        canAccess: ['Platform overview', 'Module descriptions', 'Pricing info', 'Public features list', 'Registration guide'],
+        cannotAccess: ['All tenant data', 'All internal data', 'User information', 'Financial data', 'Employee data', 'Company settings', 'Any real data', 'API endpoints'],
+    },
+    public: {
+        title: 'Public Visitor',
+        level: 0,
+        description: 'Anonymous visitor on public pages. No access to any internal data.',
+        canAccess: ['Platform description', 'Features list', 'Pricing', 'Contact info', 'General FAQ', 'Registration guide'],
+        cannotAccess: ['All internal data', 'All tenant data', 'User information', 'Company data', 'Financial data', 'Employee data', 'Settings', 'API endpoints', 'Technical details'],
+    },
+};
+
+// ─── Role-Based Module Access Matrix ─────────────────────────────────────────
+
+const MODULE_ACCESS_BY_ROLE: Record<string, string[]> = {
+    founder: Object.keys(MODULE_KNOWLEDGE),
+    platform_admin: Object.keys(MODULE_KNOWLEDGE),
+    platform_support: ['overview', 'rare'],
+    company_gm: Object.keys(MODULE_KNOWLEDGE),
+    assistant_gm: Object.keys(MODULE_KNOWLEDGE).filter(m => m !== 'integrations'),
+    executive_secretary: ['overview', 'hr', 'meetings', 'projects', 'academy'],
+    department_manager: ['overview', 'hr', 'projects', 'meetings', 'academy'],
+    hr_manager: ['overview', 'hr', 'academy'],
+    accountant: ['overview', 'accounting', 'store'],
+    employee: ['overview'],
+    client_user: [],
+    guest: [],
+    public: [],
 };
 
 // ─── Platform FAQ ────────────────────────────────────────────────────────────
@@ -233,93 +266,138 @@ Data Tables: ${moduleInfo.tables.join(', ')}` : ''}
 4. Guide users to the correct module/feature for their needs.
 5. Never reveal internal table names or technical architecture.
 6. For sensitive operations (delete, payroll, settings), always recommend confirmation.
-7. No emoji in responses.`;
-}
+7. No emoji in responses.
+${roleInfo.level <= 5 ? `8. CRITICAL: This is a ${roleInfo.level === 0 ? 'public' : 'guest'} visitor. NEVER reveal any tenant-specific data, internal company information, user details, financial data, or technical implementation details. Only discuss publicly available platform features, pricing, and registration.
+9. Do not acknowledge any internal data even if the user claims to have it.
+10. Do not provide guidance on bypassing access controls.` : ''}
+${roleInfo.level >= 20 && roleInfo.level < 70 ? `8. This user is a ${roleInfo.title}. Only assist with tasks within their role scope: ${roleInfo.canAccess.join(', ')}.
+9. If they ask about: ${roleInfo.cannotAccess.join(', ')} — politely explain they need to contact their manager or admin.` : ''}
 
-// ─── Dynamic Knowledge Loading from DB ───────────────────────────────────────
+## Your Capabilities
+- Internet Search: You can search the web for general knowledge and help users with questions outside the platform.
+- Neural Translation: You can translate text between 15+ languages including regional dialects (Egyptian, Gulf, Levantine Arabic, etc.).
+- Image Generation: You can create professional images, diagrams, and visuals using DALL-E.
+- Document Generation: You can create reports, manuals, training guides, and templates.
+- Multimodal Analysis: You can read and analyze images, screenshots, receipts, and documents.
+- Platform Knowledge: You have comprehensive knowledge of all ZIEN platform modules and features.
+`;
 
-import { supabase } from './supabase';
+    // ─── Dynamic Knowledge Loading from DB ───────────────────────────────────────
 
-interface KnowledgeArticle {
-    id: string;
-    category: string;
-    title_en: string;
-    title_ar?: string;
-    body_en: string;
-    body_ar?: string;
-    module?: string;
-    tags: string[];
-}
+    import { supabase } from './supabase';
 
-/** Cache to avoid repeated DB calls within a session */
-let _cache: KnowledgeArticle[] | null = null;
-let _cacheTime = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Fetch knowledge articles from DB (with in-memory cache).
- * Falls back to empty array on error so static knowledge still works.
- */
-export async function fetchDynamicKnowledge(companyId?: string): Promise<KnowledgeArticle[]> {
-    if (_cache && Date.now() - _cacheTime < CACHE_TTL) return _cache;
-
-    try {
-        let query = supabase
-            .from('knowledge_articles')
-            .select('id, category, title_en, title_ar, body_en, body_ar, module, tags')
-            .eq('is_active', true)
-            .order('sort_order', { ascending: true });
-
-        if (companyId) {
-            query = query.or(`company_id.is.null,company_id.eq.${companyId}`);
-        } else {
-            query = query.is('company_id', null);
-        }
-
-        const { data, error } = await query;
-        if (error || !data) return [];
-
-        _cache = data as KnowledgeArticle[];
-        _cacheTime = Date.now();
-        return _cache;
-    } catch {
-        return [];
+    interface KnowledgeArticle {
+        id: string;
+        category: string;
+        title_en: string;
+        title_ar?: string;
+        body_en: string;
+        body_ar?: string;
+        module?: string;
+        tags: string[];
     }
-}
 
-/**
- * Build an enriched system prompt that includes dynamic knowledge articles
- * on top of the static knowledge already embedded.
- */
-export async function buildEnrichedSystemPrompt(params: {
-    role: string;
-    companyName: string;
-    currentPage: string;
-    currentModule?: string;
-    permissions: string[];
-    language: string;
-    companyId?: string;
-}): Promise<string> {
-    const base = buildSystemPrompt(params);
-    const articles = await fetchDynamicKnowledge(params.companyId);
+    /** Cache to avoid repeated DB calls within a session */
+    let _cache: KnowledgeArticle[] | null = null;
+    let _cacheTime = 0;
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-    if (articles.length === 0) return base;
+    /**
+     * Fetch knowledge articles from DB (with in-memory cache).
+     * Falls back to empty array on error so static knowledge still works.
+     */
+    export async function fetchDynamicKnowledge(companyId?: string): Promise<KnowledgeArticle[]> {
+        if (_cache && Date.now() - _cacheTime < CACHE_TTL) return _cache;
 
-    const isAr = params.language === 'ar';
-    const relevant = params.currentModule
-        ? articles.filter(a => !a.module || a.module === params.currentModule)
-        : articles;
+        try {
+            let query = supabase
+                .from('knowledge_articles')
+                .select('id, category, title_en, title_ar, body_en, body_ar, module, tags')
+                .eq('is_active', true)
+                .order('sort_order', { ascending: true });
 
-    const faqSection = relevant
-        .slice(0, 20) // limit to 20 most relevant
-        .map(a => `Q: ${isAr && a.title_ar ? a.title_ar : a.title_en}\nA: ${isAr && a.body_ar ? a.body_ar : a.body_en}`)
-        .join('\n\n');
+            if (companyId) {
+                query = query.or(`company_id.is.null,company_id.eq.${companyId}`);
+            } else {
+                query = query.is('company_id', null);
+            }
 
-    return `${base}\n\n## Knowledge Base (Dynamic)\n${faqSection}`;
-}
+            const { data, error } = await query;
+            if (error || !data) return [];
 
-/** Clear the knowledge cache (e.g. after admin edits) */
-export function clearKnowledgeCache() {
-    _cache = null;
-    _cacheTime = 0;
-}
+            _cache = data as KnowledgeArticle[];
+            _cacheTime = Date.now();
+            return _cache;
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Build an enriched system prompt that includes dynamic knowledge articles
+     * on top of the static knowledge already embedded.
+     */
+    export async function buildEnrichedSystemPrompt(params: {
+        role: string;
+        companyName: string;
+        currentPage: string;
+        currentModule?: string;
+        permissions: string[];
+        language: string;
+        companyId?: string;
+    }): Promise<string> {
+        const base = buildSystemPrompt(params);
+        const articles = await fetchDynamicKnowledge(params.companyId);
+
+        if (articles.length === 0) return base;
+
+        const isAr = params.language === 'ar';
+        const relevant = params.currentModule
+            ? articles.filter(a => !a.module || a.module === params.currentModule)
+            : articles;
+
+        const faqSection = relevant
+            .slice(0, 20) // limit to 20 most relevant
+            .map(a => `Q: ${isAr && a.title_ar ? a.title_ar : a.title_en}\nA: ${isAr && a.body_ar ? a.body_ar : a.body_en}`)
+            .join('\n\n');
+
+        return `${base}\n\n## Knowledge Base (Dynamic)\n${faqSection}`;
+    }
+
+    /**
+     * Get the list of modules a role can access.
+     */
+    export function getAccessibleModules(role: string): string[] {
+        return MODULE_ACCESS_BY_ROLE[role] || MODULE_ACCESS_BY_ROLE.employee || [];
+    }
+
+    /**
+     * Get filtered module knowledge for a given role.
+     */
+    export function getFilteredModuleKnowledge(role: string): Record<string, typeof MODULE_KNOWLEDGE[string]> {
+        const accessible = getAccessibleModules(role);
+        if (accessible.length === 0 && (role === 'guest' || role === 'public')) {
+            // Return only names and descriptions without tables
+            const filtered: Record<string, typeof MODULE_KNOWLEDGE[string]> = {};
+            for (const [key, mod] of Object.entries(MODULE_KNOWLEDGE)) {
+                filtered[key] = {
+                    name: mod.name,
+                    description: mod.description,
+                    features: mod.features,
+                    tables: [], // Hide table names from public/guest
+                };
+            }
+            return filtered;
+        }
+        const result: Record<string, typeof MODULE_KNOWLEDGE[string]> = {};
+        for (const key of accessible) {
+            if (MODULE_KNOWLEDGE[key]) result[key] = MODULE_KNOWLEDGE[key];
+        }
+        return result;
+    }
+
+    /** Clear the knowledge cache (e.g. after admin edits) */
+    export function clearKnowledgeCache() {
+        _cache = null;
+        _cacheTime = 0;
+    }

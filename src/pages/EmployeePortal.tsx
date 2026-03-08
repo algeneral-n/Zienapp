@@ -18,6 +18,8 @@ import {
   Sparkles, Bot, BrainCircuit
 } from 'lucide-react';
 import PayrollPage from './employee/PayrollPage';
+import GuidedTour from '../components/GuidedTour';
+import { TOUR_STEPS } from '../constants/tourSteps';
 
 type Tab = 'dashboard' | 'accounting' | 'hr' | 'sales' | 'logistics' | 'chat' | 'payroll';
 
@@ -750,6 +752,7 @@ export default function EmployeePortal() {
           )}
         </AnimatePresence>
       </main>
+      <GuidedTour tourKey="employee_portal" steps={TOUR_STEPS.employee_portal || []} />
     </div>
   );
 }

@@ -33,14 +33,15 @@ export default function GuidedTour({ tourKey, steps, active = true, onComplete }
     const isAr = language === 'ar';
     const [currentStep, setCurrentStep] = useState(0);
     const [visible, setVisible] = useState(false);
+    const [showPrompt, setShowPrompt] = useState(false);
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
 
-    // Check if tour was already completed
+    // Check if tour was already completed — show prompt dialog first
     useEffect(() => {
         const completed = localStorage.getItem(`tour_${tourKey}`);
         if (!completed && active && steps.length > 0) {
-            const timer = setTimeout(() => setVisible(true), 1000);
+            const timer = setTimeout(() => setShowPrompt(true), 1000);
             return () => clearTimeout(timer);
         }
     }, [tourKey, active, steps.length]);
@@ -76,16 +77,30 @@ export default function GuidedTour({ tourKey, steps, active = true, onComplete }
     const handleComplete = useCallback(() => {
         localStorage.setItem(`tour_${tourKey}`, 'true');
         setVisible(false);
+        setShowPrompt(false);
         onComplete?.();
     }, [tourKey, onComplete]);
 
     const handleSkip = useCallback(() => {
         localStorage.setItem(`tour_${tourKey}`, 'true');
         setVisible(false);
+        setShowPrompt(false);
         onComplete?.();
     }, [tourKey, onComplete]);
 
-    if (!visible || steps.length === 0) return null;
+    const handleStartTour = useCallback(() => {
+        setShowPrompt(false);
+        setVisible(true);
+    }, []);
+
+    const handleDeclineTour = useCallback(() => {
+        localStorage.setItem(`tour_${tourKey}`, 'true');
+        setShowPrompt(false);
+        onComplete?.();
+    }, [tourKey, onComplete]);
+
+    if (!showPrompt && !visible) return null;
+    if (steps.length === 0) return null;
 
     const step = steps[currentStep];
     const placement = step.placement || 'bottom';
@@ -143,6 +158,63 @@ export default function GuidedTour({ tourKey, steps, active = true, onComplete }
 
     return (
         <AnimatePresence>
+            {/* ─── Initial Prompt Dialog ─── */}
+            {showPrompt && !visible && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-[2px]"
+                        onClick={handleDeclineTour}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.85, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.85, y: 20 }}
+                        className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] max-w-[calc(100vw-32px)]"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden text-center">
+                            {/* RARE Character Image */}
+                            <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 pt-6 pb-4 px-6">
+                                <img
+                                    src={ASSETS.RARE_CHARACTER_FULL}
+                                    alt="RARE AI Guide"
+                                    className="w-32 h-32 object-contain mx-auto drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+                                    {...IMAGE_PROPS}
+                                />
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <h3 className="text-lg font-black tracking-tight">
+                                        {isAr ? 'جولة تعريفية' : 'Guided Tour'}
+                                    </h3>
+                                    <p className="text-sm text-zinc-500 mt-1">
+                                        {isAr ? 'هل تريد البدء بجولة تعريفية في هذه الصفحة؟' : 'Would you like a guided tour of this page?'}
+                                    </p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleDeclineTour}
+                                        className="flex-1 py-3 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 text-sm font-bold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all"
+                                    >
+                                        {isAr ? 'لا، شكراً' : 'No, Thanks'}
+                                    </button>
+                                    <button
+                                        onClick={handleStartTour}
+                                        className="flex-1 py-3 px-4 rounded-2xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
+                                    >
+                                        {isAr ? 'نعم، ابدأ' : 'Yes, Start'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+
+            {/* ─── Tour Overlay + Tooltip ─── */}
             {visible && (
                 <>
                     {/* Overlay */}
@@ -194,7 +266,7 @@ export default function GuidedTour({ tourKey, steps, active = true, onComplete }
                             {/* Header with RARE image */}
                             <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-4 flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden shrink-0 border-2 border-white/30">
-                                    <img src={ASSETS.RARE_AGENT} alt="RARE" className="w-full h-full object-cover" {...IMAGE_PROPS} />
+                                    <img src={ASSETS.RARE_CHARACTER_FULL} alt="RARE" className="w-full h-full object-cover" {...IMAGE_PROPS} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5">

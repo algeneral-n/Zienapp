@@ -19,6 +19,7 @@ export const ASSETS = {
   // Characters
   RARE_AGENT: "https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w141-h235-n-k-no-nu",
   RARE_CHARACTER: "https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w141-h235-n-k-no-nu",
+  RARE_CHARACTER_FULL: "/rare-character.png",
 
   // Dashboard & Features
   DASHBOARD_INVOICES: "https://lh3.googleusercontent.com/p/AF1QipMTWzrywgzSxXWwjgPJ9k1OsOWNiBCKmd00adb4=w141-h118-n-k-no-nu",

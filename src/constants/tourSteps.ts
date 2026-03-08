@@ -205,4 +205,123 @@ export const TOUR_STEPS: Record<string, TourStep[]> = {
             desc_ar: 'إدارة خطتك وإضافة وحدات وعرض الفواتير وتحديث طرق الدفع.',
         },
     ],
+
+    // ─── New Page Tours ─────────────────────────────────────────────
+
+    landing_page: [
+        {
+            title_en: 'Welcome to ZIEN Platform',
+            title_ar: 'مرحباً بك في منصة ZIEN',
+            desc_en: 'ZIEN is an all-in-one enterprise platform powered by RARE AI. Browse our features, register your company, or preview as a guest.',
+            desc_ar: 'ZIEN منصة مؤسسية شاملة مدعومة بذكاء RARE AI. تصفح الميزات، سجل شركتك، أو عاين كزائر.',
+        },
+        {
+            target: '[data-tour="hero-cta"]',
+            title_en: 'Get Started',
+            title_ar: 'ابدأ الآن',
+            desc_en: 'Register your company or browse as a guest to preview all platform services.',
+            desc_ar: 'سجل شركتك أو تصفح كزائر لمعاينة جميع خدمات المنصة.',
+            placement: 'bottom',
+        },
+        {
+            target: '[data-tour="features-grid"]',
+            title_en: 'Platform Features',
+            title_ar: 'ميزات المنصة',
+            desc_en: 'Explore 16+ integrated modules from HR to Accounting, CRM, Projects, and more.',
+            desc_ar: 'اكتشف أكثر من 16 وحدة متكاملة من الموارد البشرية إلى المحاسبة وإدارة العلاقات والمشاريع.',
+            placement: 'top',
+        },
+    ],
+
+    employee_portal: [
+        {
+            title_en: 'Employee Portal',
+            title_ar: 'بوابة الموظف',
+            desc_en: 'Your personal workspace — access attendance, requests, tasks, payslips, and RARE AI assistant.',
+            desc_ar: 'مساحة العمل الشخصية — الحضور والطلبات والمهام وكشوف الرواتب ومساعد RARE AI.',
+        },
+        {
+            target: '[data-tour="attendance"]',
+            title_en: 'Attendance & Check-in',
+            title_ar: 'الحضور والانصراف',
+            desc_en: 'Clock in/out, view your attendance history, and track your working hours.',
+            desc_ar: 'سجل حضورك وانصرافك وتابع سجل الحضور وساعات العمل.',
+            placement: 'bottom',
+        },
+        {
+            target: '[data-tour="my-requests"]',
+            title_en: 'My Requests',
+            title_ar: 'طلباتي',
+            desc_en: 'Submit leave requests, expense claims, and other HR requests. Track their approval status.',
+            desc_ar: 'قدم طلبات إجازة ومصاريف وطلبات موارد بشرية أخرى. تابع حالة الموافقة.',
+            placement: 'right',
+        },
+    ],
+
+    client_portal: [
+        {
+            title_en: 'Client Portal',
+            title_ar: 'بوابة العميل',
+            desc_en: 'Your dedicated portal — track projects, view invoices, download documents, and communicate with the team.',
+            desc_ar: 'بوابتك المخصصة — تابع المشاريع واعرض الفواتير وحمّل المستندات وتواصل مع الفريق.',
+        },
+        {
+            target: '[data-tour="client-projects"]',
+            title_en: 'Your Projects',
+            title_ar: 'مشاريعك',
+            desc_en: 'View all your active projects, milestones, and deliverables in one place.',
+            desc_ar: 'اعرض جميع مشاريعك النشطة والمعالم والمخرجات في مكان واحد.',
+            placement: 'bottom',
+        },
+    ],
+
+    owner_dashboard: [
+        {
+            title_en: 'Owner Dashboard',
+            title_ar: 'لوحة المالك',
+            desc_en: 'Full company overview — employees, finances, departments, and AI insights powered by RARE.',
+            desc_ar: 'نظرة شاملة على الشركة — الموظفون والمالية والأقسام ورؤى RARE AI.',
+        },
+        {
+            target: '[data-tour="company-stats"]',
+            title_en: 'Company Statistics',
+            title_ar: 'إحصائيات الشركة',
+            desc_en: 'Key metrics: employees, revenue, expenses, and department performance at a glance.',
+            desc_ar: 'مقاييس رئيسية: الموظفون والإيرادات والمصروفات وأداء الأقسام بنظرة واحدة.',
+            placement: 'bottom',
+        },
+        {
+            target: '[data-tour="modules-nav"]',
+            title_en: 'Module Navigation',
+            title_ar: 'التنقل بين الوحدات',
+            desc_en: 'Access all platform modules from the sidebar — HR, Accounting, CRM, Projects, and more.',
+            desc_ar: 'الوصول لجميع وحدات المنصة من الشريط الجانبي — الموارد البشرية والمحاسبة وإدارة العلاقات والمشاريع.',
+            placement: 'right',
+        },
+    ],
+
+    founder_page: [
+        {
+            title_en: 'Founder Command Center',
+            title_ar: 'مركز قيادة المؤسس',
+            desc_en: 'Platform-wide management — all tenants, subscriptions, users, revenue, AI, and system health.',
+            desc_ar: 'إدارة المنصة بالكامل — جميع المستأجرين والاشتراكات والمستخدمين والإيرادات والذكاء الاصطناعي وصحة النظام.',
+        },
+        {
+            target: '[data-tour="founder-nav"]',
+            title_en: 'Management Sections',
+            title_ar: 'أقسام الإدارة',
+            desc_en: 'Navigate between Tenants, Revenue, Subscriptions, Users, Logs, Maintenance, Reports, and more.',
+            desc_ar: 'تنقل بين المستأجرين والإيرادات والاشتراكات والمستخدمين والسجلات والصيانة والتقارير.',
+            placement: 'right',
+        },
+        {
+            target: '[data-tour="founder-stats"]',
+            title_en: 'Platform Overview',
+            title_ar: 'نظرة عامة على المنصة',
+            desc_en: 'Real-time statistics: total companies, active users, revenue metrics, and system health score.',
+            desc_ar: 'إحصائيات فورية: إجمالي الشركات والمستخدمين النشطين ومقاييس الإيرادات ونقاط صحة النظام.',
+            placement: 'bottom',
+        },
+    ],
 };

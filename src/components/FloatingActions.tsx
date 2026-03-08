@@ -17,6 +17,7 @@ import { useTheme } from './ThemeProvider';
 import { usePermissions } from '../hooks/usePermissions';
 import { useCompany } from '../contexts/CompanyContext';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabase';
 
 interface PageContext {
   pageType: 'public' | 'protected';
@@ -220,6 +221,103 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
     setIsLoading(true);
 
     try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
+      const companyId = company?.id || '';
+      const token = (await supabase.auth.getSession())?.data?.session?.access_token || '';
+
+      // ─── Command prefix routing ───────────────────────────────────
+      const trimmed = textToSend.trim();
+
+      // /translate <lang> <text> — Neural Translation
+      if (trimmed.startsWith('/translate ') || trimmed.startsWith('/ترجم ')) {
+        const parts = trimmed.replace(/^\/(translate|ترجم)\s+/, '').split(/\s+/);
+        const targetLang = parts[0] || 'en';
+        const textToTranslate = parts.slice(1).join(' ');
+        if (!textToTranslate) {
+          setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', text: language === 'ar' ? 'استخدم: /ترجم en النص المراد ترجمته' : 'Usage: /translate ar text to translate' }]);
+          setIsLoading(false); return;
+        }
+        const res = await fetch(`${API_URL}/api/ai/translate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ text: textToTranslate, targetLang, companyId }),
+        });
+        const data = await res.json();
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', text: data.translated || data.error || 'Translation failed', mode: activeMode }]);
+        setIsLoading(false); return;
+      }
+
+      // /image <prompt> — Image Generation
+      if (trimmed.startsWith('/image ') || trimmed.startsWith('/صورة ')) {
+        const prompt = trimmed.replace(/^\/(image|صورة)\s+/, '');
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', text: language === 'ar' ? '⏳ جاري إنشاء الصورة...' : '⏳ Generating image...' }]);
+        const res = await fetch(`${API_URL}/api/ai/generate-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ prompt, companyId }),
+        });
+        const data = await res.json();
+        const imgMsg = data.imageUrl
+          ? `![Generated Image](${data.imageUrl})\n\n${data.revisedPrompt || ''}`
+          : (data.error || 'Image generation failed');
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { id: Date.now().toString(), role: 'ai', text: imgMsg, mode: activeMode };
+          return updated;
+        });
+        setIsLoading(false); return;
+      }
+
+      // /file <type> <title> | <instructions> — Document Generation
+      if (trimmed.startsWith('/file ') || trimmed.startsWith('/ملف ')) {
+        const content = trimmed.replace(/^\/(file|ملف)\s+/, '');
+        const pipeIdx = content.indexOf('|');
+        let fileType = 'custom', title = 'Document', instructions = content;
+        if (pipeIdx > -1) {
+          const header = content.substring(0, pipeIdx).trim().split(/\s+/);
+          fileType = header[0] || 'custom';
+          title = header.slice(1).join(' ') || 'Document';
+          instructions = content.substring(pipeIdx + 1).trim();
+        }
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', text: language === 'ar' ? '⏳ جاري إنشاء المستند...' : '⏳ Generating document...' }]);
+        const res = await fetch(`${API_URL}/api/ai/generate-file`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ type: fileType, title, instructions, companyId, language }),
+        });
+        const data = await res.json();
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { id: Date.now().toString(), role: 'ai', text: data.content || data.error || 'File generation failed', mode: activeMode };
+          return updated;
+        });
+        setIsLoading(false); return;
+      }
+
+      // /read <instruction> — Multimodal File/Image Reading (requires uploaded file)
+      if (trimmed.startsWith('/read ') || trimmed.startsWith('/اقرأ ')) {
+        const instruction = trimmed.replace(/^\/(read|اقرأ)\s+/, '');
+        const fileData = selectedFiles.length > 0 ? selectedFiles[0] : null;
+        const payload: any = { instruction, companyId, language };
+        if (fileData) {
+          if (fileData.mimeType?.startsWith('image/')) {
+            payload.imageBase64 = fileData.data;
+          } else {
+            payload.textContent = atob(fileData.data);
+          }
+        }
+        const res = await fetch(`${API_URL}/api/ai/read-file`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', text: data.analysis || data.error || 'File analysis failed', mode: activeMode }]);
+        setSelectedFiles([]);
+        setIsLoading(false); return;
+      }
+
+      // ─── Standard RARE chat (no command prefix) ──────────────────
       const context = getContext();
       const agentType = getAgentType(context);
 

@@ -11,34 +11,34 @@ import { jsonResponse, errorResponse } from '../index';
 const otpStore = new Map<string, { code: string; expiresAt: number; verified: boolean }>();
 
 function generateOTP(): string {
-  const digits = '0123456789';
-  let otp = '';
-  for (let i = 0; i < 6; i++) {
-    otp += digits[Math.floor(Math.random() * 10)];
-  }
-  return otp;
+    const digits = '0123456789';
+    let otp = '';
+    for (let i = 0; i < 6; i++) {
+        otp += digits[Math.floor(Math.random() * 10)];
+    }
+    return otp;
 }
 
 function generateGuestToken(email: string): string {
-  const payload = {
-    email,
-    type: 'guest_preview',
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour
-  };
-  return btoa(JSON.stringify(payload));
+    const payload = {
+        email,
+        type: 'guest_preview',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+    };
+    return btoa(JSON.stringify(payload));
 }
 
 async function sendOTPEmail(email: string, otp: string, env: Env): Promise<boolean> {
-  const apiKey = env.RESEND_API_KEY;
-  const fromEmail = env.RESEND_FROM_EMAIL || 'noreply@zien-ai.app';
+    const apiKey = env.RESEND_API_KEY;
+    const fromEmail = env.RESEND_FROM_EMAIL || 'noreply@zien-ai.app';
 
-  if (!apiKey) {
-    console.error('RESEND_API_KEY not configured');
-    return false;
-  }
+    if (!apiKey) {
+        console.error('RESEND_API_KEY not configured');
+        return false;
+    }
 
-  const html = `
+    const html = `
 <!DOCTYPE html>
 <html dir="ltr">
 <head><meta charset="utf-8" /></head>
@@ -62,152 +62,152 @@ async function sendOTPEmail(email: string, otp: string, env: Env): Promise<boole
 </body>
 </html>`;
 
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: `ZIEN Platform <${fromEmail}>`,
-        to: [email],
-        subject: 'ZIEN Guest Preview - Verification Code',
-        html,
-      }),
-    });
-    return res.ok;
-  } catch (e) {
-    console.error('Failed to send OTP email:', e);
-    return false;
-  }
+    try {
+        const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                from: `ZIEN Platform <${fromEmail}>`,
+                to: [email],
+                subject: 'ZIEN Guest Preview - Verification Code',
+                html,
+            }),
+        });
+        return res.ok;
+    } catch (e) {
+        console.error('Failed to send OTP email:', e);
+        return false;
+    }
 }
 
 export async function handleGuest(request: Request, env: Env, path: string): Promise<Response> {
-  const sub = path.replace('/api/guest/', '').replace(/\/$/, '');
+    const sub = path.replace('/api/guest/', '').replace(/\/$/, '');
 
-  // POST /api/guest/request-otp
-  if (sub === 'request-otp' && request.method === 'POST') {
-    try {
-      const body = await request.json() as { email?: string };
-      const email = body.email?.trim().toLowerCase();
+    // POST /api/guest/request-otp
+    if (sub === 'request-otp' && request.method === 'POST') {
+        try {
+            const body = await request.json() as { email?: string };
+            const email = body.email?.trim().toLowerCase();
 
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return errorResponse('Valid email is required', 400, request);
-      }
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                return errorResponse('Valid email is required', 400, request);
+            }
 
-      // Rate limit: max 3 OTPs per email per 10 min
-      const existing = otpStore.get(email);
-      if (existing && existing.expiresAt > Date.now() && !existing.verified) {
-        // Already has a pending OTP, still valid
-        return jsonResponse({ sent: true, message: 'OTP already sent. Check your email.' }, 200, request);
-      }
+            // Rate limit: max 3 OTPs per email per 10 min
+            const existing = otpStore.get(email);
+            if (existing && existing.expiresAt > Date.now() && !existing.verified) {
+                // Already has a pending OTP, still valid
+                return jsonResponse({ sent: true, message: 'OTP already sent. Check your email.' }, 200, request);
+            }
 
-      const otp = generateOTP();
-      otpStore.set(email, {
-        code: otp,
-        expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-        verified: false,
-      });
+            const otp = generateOTP();
+            otpStore.set(email, {
+                code: otp,
+                expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+                verified: false,
+            });
 
-      // Also log to Supabase for analytics
-      try {
-        const sbUrl = env.SUPABASE_URL;
-        const sbKey = env.SUPABASE_SERVICE_ROLE_KEY;
-        if (sbUrl && sbKey) {
-          await fetch(`${sbUrl}/rest/v1/guest_preview_sessions`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': sbKey,
-              'Authorization': `Bearer ${sbKey}`,
-              'Prefer': 'return=minimal',
-            },
-            body: JSON.stringify({
-              email,
-              status: 'otp_sent',
-              ip_address: request.headers.get('cf-connecting-ip') || 'unknown',
-              user_agent: request.headers.get('user-agent') || '',
-            }),
-          });
+            // Also log to Supabase for analytics
+            try {
+                const sbUrl = env.SUPABASE_URL;
+                const sbKey = env.SUPABASE_SERVICE_ROLE_KEY;
+                if (sbUrl && sbKey) {
+                    await fetch(`${sbUrl}/rest/v1/guest_preview_sessions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': sbKey,
+                            'Authorization': `Bearer ${sbKey}`,
+                            'Prefer': 'return=minimal',
+                        },
+                        body: JSON.stringify({
+                            email,
+                            status: 'otp_sent',
+                            ip_address: request.headers.get('cf-connecting-ip') || 'unknown',
+                            user_agent: request.headers.get('user-agent') || '',
+                        }),
+                    });
+                }
+            } catch (_e) {
+                // Non-critical — analytics insertion failure should not block OTP
+            }
+
+            const sent = await sendOTPEmail(email, otp, env);
+            if (!sent) {
+                return errorResponse('Failed to send verification email. Try again.', 500, request);
+            }
+
+            return jsonResponse({ sent: true, message: 'Verification code sent to your email.' }, 200, request);
+        } catch (e: any) {
+            return errorResponse(e.message || 'Invalid request', 400, request);
         }
-      } catch (_e) {
-        // Non-critical — analytics insertion failure should not block OTP
-      }
-
-      const sent = await sendOTPEmail(email, otp, env);
-      if (!sent) {
-        return errorResponse('Failed to send verification email. Try again.', 500, request);
-      }
-
-      return jsonResponse({ sent: true, message: 'Verification code sent to your email.' }, 200, request);
-    } catch (e: any) {
-      return errorResponse(e.message || 'Invalid request', 400, request);
     }
-  }
 
-  // POST /api/guest/verify-otp
-  if (sub === 'verify-otp' && request.method === 'POST') {
-    try {
-      const body = await request.json() as { email?: string; otp?: string };
-      const email = body.email?.trim().toLowerCase();
-      const otp = body.otp?.trim();
+    // POST /api/guest/verify-otp
+    if (sub === 'verify-otp' && request.method === 'POST') {
+        try {
+            const body = await request.json() as { email?: string; otp?: string };
+            const email = body.email?.trim().toLowerCase();
+            const otp = body.otp?.trim();
 
-      if (!email || !otp) {
-        return errorResponse('Email and OTP are required', 400, request);
-      }
+            if (!email || !otp) {
+                return errorResponse('Email and OTP are required', 400, request);
+            }
 
-      const stored = otpStore.get(email);
-      if (!stored) {
-        return errorResponse('No pending verification found. Request a new code.', 404, request);
-      }
+            const stored = otpStore.get(email);
+            if (!stored) {
+                return errorResponse('No pending verification found. Request a new code.', 404, request);
+            }
 
-      if (stored.expiresAt < Date.now()) {
-        otpStore.delete(email);
-        return errorResponse('Verification code has expired. Request a new one.', 410, request);
-      }
+            if (stored.expiresAt < Date.now()) {
+                otpStore.delete(email);
+                return errorResponse('Verification code has expired. Request a new one.', 410, request);
+            }
 
-      if (stored.code !== otp) {
-        return errorResponse('Invalid verification code.', 401, request);
-      }
+            if (stored.code !== otp) {
+                return errorResponse('Invalid verification code.', 401, request);
+            }
 
-      // Mark as verified
-      stored.verified = true;
-      const token = generateGuestToken(email);
+            // Mark as verified
+            stored.verified = true;
+            const token = generateGuestToken(email);
 
-      // Update analytics
-      try {
-        const sbUrl = env.SUPABASE_URL;
-        const sbKey = env.SUPABASE_SERVICE_ROLE_KEY;
-        if (sbUrl && sbKey) {
-          await fetch(`${sbUrl}/rest/v1/guest_preview_sessions?email=eq.${encodeURIComponent(email)}&status=eq.otp_sent`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': sbKey,
-              'Authorization': `Bearer ${sbKey}`,
-              'Prefer': 'return=minimal',
-            },
-            body: JSON.stringify({
-              status: 'verified',
-              verified_at: new Date().toISOString(),
-            }),
-          });
+            // Update analytics
+            try {
+                const sbUrl = env.SUPABASE_URL;
+                const sbKey = env.SUPABASE_SERVICE_ROLE_KEY;
+                if (sbUrl && sbKey) {
+                    await fetch(`${sbUrl}/rest/v1/guest_preview_sessions?email=eq.${encodeURIComponent(email)}&status=eq.otp_sent`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': sbKey,
+                            'Authorization': `Bearer ${sbKey}`,
+                            'Prefer': 'return=minimal',
+                        },
+                        body: JSON.stringify({
+                            status: 'verified',
+                            verified_at: new Date().toISOString(),
+                        }),
+                    });
+                }
+            } catch (_e) {
+                // Non-critical
+            }
+
+            return jsonResponse({
+                verified: true,
+                token,
+                expiresIn: 3600,
+                message: 'Email verified. Welcome to ZIEN Preview.',
+            }, 200, request);
+        } catch (e: any) {
+            return errorResponse(e.message || 'Invalid request', 400, request);
         }
-      } catch (_e) {
-        // Non-critical
-      }
-
-      return jsonResponse({
-        verified: true,
-        token,
-        expiresIn: 3600,
-        message: 'Email verified. Welcome to ZIEN Preview.',
-      }, 200, request);
-    } catch (e: any) {
-      return errorResponse(e.message || 'Invalid request', 400, request);
     }
-  }
 
-  return errorResponse('Guest endpoint not found', 404, request);
+    return errorResponse('Guest endpoint not found', 404, request);
 }
