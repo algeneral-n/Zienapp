@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
@@ -7,7 +7,7 @@ import { TOUR_STEPS } from '../../constants/tourSteps';
 import {
     Search, ChevronDown, ChevronUp, BookOpen, MessageCircle, Mail, Phone,
     HelpCircle, FileText, Rocket, Users, CreditCard, Package, Brain, ShieldCheck,
-    PlayCircle, Pause, Volume2, VolumeX, Video, ArrowRight,
+    PlayCircle, Video, ArrowRight,
 } from 'lucide-react';
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
@@ -147,63 +147,24 @@ const HELP_TOPICS: HelpTopic[] = [
     },
 ];
 
-/* ─── Video Player ───────────────────────────────────────────────────────── */
+/* ─── Video Embed ────────────────────────────────────────────────────────── */
 function VideoSection({ className = '' }: { className?: string }) {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [isMuted, setIsMuted] = useState(true);
-    const [progress, setProgress] = useState(0);
-    const [duration, setDuration] = useState(0);
-    const [currentTime, setCurrentTime] = useState(0);
-
-    const togglePlay = useCallback(() => {
-        const v = videoRef.current;
-        if (!v) return;
-        if (v.paused) { v.play(); setIsPlaying(true); } else { v.pause(); setIsPlaying(false); }
-    }, []);
-
-    const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
-
     return (
-        <div className={`relative rounded-3xl overflow-hidden bg-black group ${className}`}>
-            <video ref={videoRef} src={ASSETS.INTRO_VIDEO} className="w-full aspect-video object-cover" muted={isMuted} playsInline preload="metadata" poster={ASSETS.LOGO_SHIELD}
-                onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) { setProgress((v.currentTime / v.duration) * 100); setCurrentTime(v.currentTime); } }}
-                onLoadedMetadata={() => { if (videoRef.current) setDuration(videoRef.current.duration); }}
-                onEnded={() => setIsPlaying(false)} onClick={togglePlay} />
-            <AnimatePresence>
-                {!isPlaying && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={togglePlay}>
-                        <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }}
-                            className="w-20 h-20 bg-blue-600/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl">
-                            <PlayCircle size={40} className="text-white ml-1" />
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                <div className="flex items-center gap-3">
-                    <button onClick={togglePlay} className="text-white hover:text-blue-400 transition-colors">
-                        {isPlaying ? <Pause size={16} /> : <PlayCircle size={16} />}
-                    </button>
-                    <div className="flex-1 h-1 bg-white/20 rounded-full cursor-pointer" onClick={(e) => {
-                        const v = videoRef.current; if (!v?.duration) return;
-                        const r = e.currentTarget.getBoundingClientRect();
-                        v.currentTime = ((e.clientX - r.left) / r.width) * v.duration;
-                    }}>
-                        <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
-                    </div>
-                    <span className="text-[10px] text-zinc-400 font-mono">{fmt(currentTime)}/{fmt(duration)}</span>
-                    <button onClick={() => { const v = videoRef.current; if (v) { v.muted = !v.muted; setIsMuted(v.muted); } }}
-                        className="text-white/60 hover:text-white transition-colors">
-                        {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                    </button>
+        <div className={`relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-blue-600/20 via-cyan-500/10 to-violet-500/20 p-1.5 ${className}`}>
+            <div className="relative rounded-[1.6rem] overflow-hidden bg-black">
+                <div className="absolute top-4 left-4 z-10">
+                    <span className="px-4 py-1.5 bg-blue-600/90 backdrop-blur-sm text-white text-[11px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1.5 shadow-lg">
+                        <Video size={12} /> Platform Guide
+                    </span>
                 </div>
-            </div>
-            <div className="absolute top-3 left-3">
-                <span className="px-3 py-1 bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1">
-                    <Video size={10} /> Platform Guide
-                </span>
+                <video
+                    src={ASSETS.VIDEO_GPHOTO}
+                    className="w-full aspect-video object-cover"
+                    controls
+                    playsInline
+                    preload="metadata"
+                    poster={ASSETS.LOGO_SHIELD}
+                />
             </div>
         </div>
     );

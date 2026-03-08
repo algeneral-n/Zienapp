@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
@@ -9,7 +9,7 @@ import {
   BookOpen, Play, FileText, Award, ArrowRight, Clock, Users,
   CheckCircle, Star, Target, Layers, Brain, ShieldCheck, BarChart3,
   GraduationCap, Trophy, X, ChevronRight, Video, ClipboardCheck, Loader2,
-  PlayCircle, Pause, Volume2, VolumeX
+  PlayCircle
 } from 'lucide-react';
 
 type TrackKey = 'all' | 'core' | 'hr' | 'finance' | 'ai' | 'security' | 'crm' | 'logistics';
@@ -190,57 +190,32 @@ const LEVEL_LABELS = {
   advanced: { en: 'Advanced', ar: 'متقدم' },
 };
 
-/* ─── Academy Video Component ────────────────────────────────────────── */
+/* ─── Academy Video Embed ────────────────────────────────────────────── */
 function AcademyVideo({ isAr }: { isAr: boolean }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const toggle = useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.paused) { v.play(); setIsPlaying(true); } else { v.pause(); setIsPlaying(false); }
-  }, []);
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
-
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-      className="max-w-4xl mx-auto mb-12 relative rounded-3xl overflow-hidden bg-black group shadow-2xl shadow-blue-600/10 border border-[var(--border-soft)]" data-tour="academy-video">
-      <video ref={videoRef} src={ASSETS.INTRO_VIDEO} className="w-full aspect-video object-cover" muted={isMuted} playsInline preload="metadata" poster={ASSETS.LOGO_SHIELD}
-        onTimeUpdate={() => { const v = videoRef.current; if (v?.duration) { setProgress((v.currentTime / v.duration) * 100); setCurrentTime(v.currentTime); } }}
-        onLoadedMetadata={() => { if (videoRef.current) setDuration(videoRef.current.duration); }}
-        onEnded={() => setIsPlaying(false)} onClick={toggle} />
-      <AnimatePresence>
-        {!isPlaying && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/20" onClick={toggle}>
-            <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity }}
-              className="w-20 h-20 bg-blue-600/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl">
-              <PlayCircle size={40} className="text-white ml-1" />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="flex items-center gap-3">
-          <button onClick={toggle} className="text-white hover:text-blue-400"><PlayCircle size={16} /></button>
-          <div className="flex-1 h-1 bg-white/20 rounded-full cursor-pointer" onClick={(e) => {
-            const v = videoRef.current; if (!v?.duration) return;
-            v.currentTime = ((e.clientX - e.currentTarget.getBoundingClientRect().left) / e.currentTarget.clientWidth) * v.duration;
-          }}>
-            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${progress}%` }} />
+    <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
+      className="w-full mb-12" data-tour="academy-video">
+      <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-violet-600/20 via-blue-500/10 to-cyan-500/20 p-1.5 shadow-2xl shadow-blue-600/15">
+        <div className="relative rounded-[1.6rem] overflow-hidden bg-black">
+          <div className="absolute top-4 left-4 z-10">
+            <span className="px-4 py-1.5 bg-blue-600/90 backdrop-blur-sm text-white text-[11px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1.5 shadow-lg">
+              <Video size={12} /> {isAr ? 'مقدمة الأكاديمية' : 'Academy Intro'}
+            </span>
           </div>
-          <span className="text-[10px] text-zinc-400 font-mono">{fmt(currentTime)}/{fmt(duration)}</span>
-          <button onClick={() => { const v = videoRef.current; if (v) { v.muted = !v.muted; setIsMuted(v.muted); } }}
-            className="text-white/60 hover:text-white">{isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}</button>
+          <iframe
+            src={ASSETS.VIDEO_DRIVE}
+            className="w-full aspect-video"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            style={{ border: 'none' }}
+            title={isAr ? 'مقدمة أكاديمية ZIEN' : 'ZIEN Academy Intro'}
+          />
         </div>
       </div>
-      <div className="absolute top-3 left-3">
-        <span className="px-3 py-1 bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1">
-          <Video size={10} /> {isAr ? 'مقدمة الأكاديمية' : 'Academy Intro'}
-        </span>
+      <div className="flex items-center justify-center gap-6 mt-4 text-xs text-[var(--text-secondary)]">
+        <span className="flex items-center gap-1.5"><PlayCircle size={14} className="text-blue-600" /> {isAr ? 'تعرف على الأكاديمية' : 'Discover the Academy'}</span>
+        <span className="w-1 h-1 bg-zinc-400 rounded-full" />
+        <span>{isAr ? 'دورات وشهادات معتمدة' : 'Certified courses & credentials'}</span>
       </div>
     </motion.div>
   );

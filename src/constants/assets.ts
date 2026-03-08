@@ -13,7 +13,8 @@ export const ASSETS = {
 
   // Splash & Video
   SPLASH: "/splash.gif",
-  INTRO_VIDEO: "/videos/zien-platform-intro.mp4",
+  VIDEO_DRIVE: "https://drive.google.com/file/d/1JtmPoWZ1IAXEivsrBAloq_26yrM7aBFJ/preview",
+  VIDEO_GPHOTO: "https://lh3.googleusercontent.com/ggms/AF1QipPpNvwslevTyVeP6ONqwPD2GojEk3VLodzDCMdn=m18",
 
   // Characters
   RARE_AGENT: "https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w141-h235-n-k-no-nu",
