@@ -32,6 +32,7 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
 import { requireAuth, createAdminClient, discoverMembership } from '../supabase';
+import { hasWriteAccess } from '../permissions';
 
 export async function handleLogistics(
     request: Request,
@@ -46,7 +47,13 @@ export async function handleLogistics(
 
     const companyId = membership.company_id;
     const memberId = membership.id;
+    const role = membership.role;
     const adminClient = createAdminClient(env);
+
+    // Helper: enforce write access for mutating operations
+    const requireWrite = () => {
+        if (!hasWriteAccess(role)) throw new Error('__FORBIDDEN__');
+    };
 
     // ─── Stats ─────────────────────────────────────────────────────────
 
@@ -111,6 +118,7 @@ export async function handleLogistics(
     }
 
     if (path === '/api/logistics/vehicles' && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions — requires supervisor+', 403);
         const body = await request.json() as any;
         const { plate_number, model, type } = body;
 
@@ -134,6 +142,7 @@ export async function handleLogistics(
 
     const vehicleMatch = path.match(/^\/api\/logistics\/vehicles\/([0-9a-f-]+)$/);
     if (vehicleMatch && request.method === 'PATCH') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const vehicleId = vehicleMatch[1];
         const body = await request.json() as any;
         const allowed = ['plate_number', 'model', 'type', 'status'];
@@ -177,6 +186,7 @@ export async function handleLogistics(
     }
 
     if (path === '/api/logistics/drivers' && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const body = await request.json() as any;
         const { member_id: driverMemberId, license_number, license_expiry, license_type, vehicle_id } = body;
 
@@ -205,6 +215,7 @@ export async function handleLogistics(
 
     const driverMatch = path.match(/^\/api\/logistics\/drivers\/([0-9a-f-]+)$/);
     if (driverMatch && request.method === 'PATCH') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const driverId = driverMatch[1];
         const body = await request.json() as any;
         const allowed = ['license_number', 'license_expiry', 'license_type', 'vehicle_id', 'is_active'];
@@ -245,6 +256,7 @@ export async function handleLogistics(
     }
 
     if (path === '/api/logistics/routes' && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const body = await request.json() as any;
         const {
             name, description, origin_lat, origin_lng,
@@ -276,6 +288,7 @@ export async function handleLogistics(
 
     const routeMatch = path.match(/^\/api\/logistics\/routes\/([0-9a-f-]+)$/);
     if (routeMatch && request.method === 'PATCH') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const routeId = routeMatch[1];
         const body = await request.json() as any;
         const allowed = [
@@ -325,6 +338,7 @@ export async function handleLogistics(
     }
 
     if (path === '/api/logistics/tasks' && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const body = await request.json() as any;
         const { title, description, assigned_to, vehicle_id, pickup_location, delivery_location } = body;
 
@@ -351,6 +365,7 @@ export async function handleLogistics(
 
     const logTaskMatch = path.match(/^\/api\/logistics\/tasks\/([0-9a-f-]+)$/);
     if (logTaskMatch && request.method === 'PATCH') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const taskId = logTaskMatch[1];
         const body = await request.json() as any;
         const allowed = [
@@ -405,6 +420,7 @@ export async function handleLogistics(
     }
 
     if (path === '/api/logistics/shipments' && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const body = await request.json() as any;
         const {
             logistics_task_id, route_id, driver_id, vehicle_id,
@@ -474,6 +490,7 @@ export async function handleLogistics(
     }
 
     if (shipmentMatch && request.method === 'PATCH') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const shipmentId = shipmentMatch[1];
         const body = await request.json() as any;
         const allowed = [

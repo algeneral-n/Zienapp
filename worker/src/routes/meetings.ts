@@ -27,6 +27,7 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
 import { requireAuth, createAdminClient, discoverMembership } from '../supabase';
+import { hasWriteAccess } from '../permissions';
 
 export async function handleMeetings(
     request: Request,
@@ -41,6 +42,7 @@ export async function handleMeetings(
 
     const companyId = membership.company_id;
     const memberId = membership.id;
+    const role = membership.role;
     const adminClient = createAdminClient(env);
 
     // ─── Stats ─────────────────────────────────────────────────────────
@@ -83,6 +85,7 @@ export async function handleMeetings(
     }
 
     if (path === '/api/meetings/rooms' && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions — room creation requires supervisor+', 403);
         const body = await request.json() as any;
         const { name, room_type, capacity, location, equipment } = body;
 
@@ -157,6 +160,7 @@ export async function handleMeetings(
 
     // POST /api/meetings/create
     if (path === '/api/meetings/create' && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const body = await request.json() as any;
         const {
             title, description, start_time, end_time,
@@ -266,6 +270,7 @@ export async function handleMeetings(
 
     // PATCH /api/meetings/:id
     if (meetingMatch && request.method === 'PATCH') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const meetingId = meetingMatch[1];
         const body = await request.json() as any;
         const allowed = ['title', 'description', 'start_time', 'end_time', 'status'];
@@ -288,6 +293,7 @@ export async function handleMeetings(
 
     // DELETE /api/meetings/:id (cancel)
     if (meetingMatch && request.method === 'DELETE') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const meetingId = meetingMatch[1];
 
         const { error } = await adminClient
@@ -324,6 +330,7 @@ export async function handleMeetings(
     }
 
     if (participantsMatch && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const meetingId = participantsMatch[1];
         const body = await request.json() as any;
         const { member_ids } = body;

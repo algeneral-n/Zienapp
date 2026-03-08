@@ -28,6 +28,7 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
 import { requireAuth, createAdminClient, discoverMembership } from '../supabase';
+import { hasWriteAccess } from '../permissions';
 
 export async function handleChat(
     request: Request,
@@ -43,6 +44,7 @@ export async function handleChat(
 
     const companyId = membership.company_id;
     const memberId = membership.id;
+    const role = membership.role;
     const adminClient = createAdminClient(env);
 
     // ─── Channels ──────────────────────────────────────────────────────
@@ -102,6 +104,7 @@ export async function handleChat(
 
     // POST /api/chat/channels
     if (path === '/api/chat/channels' && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions — channel creation requires supervisor+', 403);
         const body = await request.json() as any;
         const { name, description, channel_type, department_id, member_ids } = body;
 
@@ -181,6 +184,7 @@ export async function handleChat(
 
     // PATCH /api/chat/channels/:id
     if (channelMatch && request.method === 'PATCH') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const channelId = channelMatch[1];
         const body = await request.json() as any;
         const updates: Record<string, unknown> = {};
@@ -202,6 +206,7 @@ export async function handleChat(
 
     // DELETE /api/chat/channels/:id (archive)
     if (channelMatch && request.method === 'DELETE') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const channelId = channelMatch[1];
 
         const { error } = await adminClient
@@ -239,6 +244,7 @@ export async function handleChat(
 
     // POST /api/chat/channels/:id/members
     if (membersMatch && request.method === 'POST') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const channelId = membersMatch[1];
         const body = await request.json() as any;
         const { member_ids } = body;
@@ -262,6 +268,7 @@ export async function handleChat(
     // DELETE /api/chat/channels/:id/members/:memberId
     const removeMemberMatch = path.match(/^\/api\/chat\/channels\/([0-9a-f-]+)\/members\/([0-9a-f-]+)$/);
     if (removeMemberMatch && request.method === 'DELETE') {
+        if (!hasWriteAccess(role)) return errorResponse('Insufficient permissions', 403);
         const [, channelId, targetMemberId] = removeMemberMatch;
 
         const { error } = await adminClient

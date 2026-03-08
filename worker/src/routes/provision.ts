@@ -44,7 +44,7 @@ export async function handleProvision(
 
   const quoteMatch = path.match(/^\/api\/pricing\/quote\/([0-9a-f-]+)$/);
   if (quoteMatch && request.method === 'GET') {
-    return getQuote(quoteMatch[1], env, supabase);
+    return getQuote(quoteMatch[1], env, userId, supabase);
   }
 
   if (path === '/api/pricing/rules' && request.method === 'GET') {
@@ -71,7 +71,7 @@ export async function handleProvision(
   // GET /api/provision/status/<jobId>
   const statusMatch = path.match(/^\/api\/provision\/status\/([0-9a-f-]+)$/);
   if (statusMatch && request.method === 'GET') {
-    return getProvisioningStatus(statusMatch[1], supabase);
+    return getProvisioningStatus(statusMatch[1], userId, supabase);
   }
 
   return errorResponse('Not found', 404);
@@ -275,15 +275,27 @@ async function executeProvisioning(
 
 async function getProvisioningStatus(
   jobId: string,
+  userId: string,
   supabase: import('@supabase/supabase-js').SupabaseClient,
 ): Promise<Response> {
   const { data: job, error } = await supabase
     .from('provisioning_jobs')
-    .select('id, status, current_step, step_index, total_steps, error_message, started_at, completed_at')
+    .select('id, status, current_step, step_index, total_steps, error_message, started_at, completed_at, requested_by, company_id')
     .eq('id', jobId)
     .single();
 
   if (error || !job) return errorResponse('Job not found', 404);
+
+  // Ownership check: user must be the requester or a member of the company
+  if (job.requested_by !== userId) {
+    const { data: membership } = await supabase
+      .from('company_members')
+      .select('id')
+      .eq('company_id', job.company_id)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!membership) return errorResponse('Access denied — you do not own this provisioning job', 403);
+  }
 
   return jsonResponse(job);
 }
@@ -1011,6 +1023,7 @@ async function generateDynamicQuote(
 async function getQuote(
   quoteId: string,
   env: Env,
+  userId: string,
   _supabase: import('@supabase/supabase-js').SupabaseClient,
 ): Promise<Response> {
   const adminClient = createAdminClient(env);
@@ -1031,6 +1044,17 @@ async function getQuote(
     .single();
 
   if (quoteError || !quote) return errorResponse('Quote not found', 404);
+
+  // Ownership check: user must be the quote generator or a member of the company
+  if (quote.generated_by !== userId) {
+    const { data: membership } = await adminClient
+      .from('company_members')
+      .select('id')
+      .eq('company_id', quote.company_id)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!membership) return errorResponse('Access denied — you do not own this quote', 403);
+  }
 
   return jsonResponse({
     quote: {

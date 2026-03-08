@@ -30,6 +30,7 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
 import { requireAuth, createAdminClient, discoverMembership } from '../supabase';
+import { hasWriteAccess } from '../permissions';
 
 export async function handleProjects(
     request: Request,
@@ -143,6 +144,7 @@ export async function handleProjects(
 
     // POST /api/projects/create
     if (path === '/api/projects/create' && request.method === 'POST') {
+        if (!hasWriteAccess(userRole)) return errorResponse('Insufficient permissions — requires supervisor+', 403);
         const body = await request.json() as any;
         const { name, description, client_id, start_date, end_date, budget, status: projStatus } = body;
 
@@ -229,6 +231,7 @@ export async function handleProjects(
 
     // PATCH /api/projects/:id
     if (projectMatch && request.method === 'PATCH') {
+        if (!hasWriteAccess(userRole)) return errorResponse('Insufficient permissions', 403);
         const projectId = projectMatch[1];
         const body = await request.json() as any;
         const allowed = ['name', 'description', 'status', 'start_date', 'end_date', 'budget', 'client_id'];
@@ -251,6 +254,7 @@ export async function handleProjects(
 
     // DELETE /api/projects/:id
     if (projectMatch && request.method === 'DELETE') {
+        if (!hasWriteAccess(userRole)) return errorResponse('Insufficient permissions', 403);
         const projectId = projectMatch[1];
 
         const { error } = await adminClient
@@ -286,6 +290,7 @@ export async function handleProjects(
     }
 
     if (projMembersMatch && request.method === 'POST') {
+        if (!hasWriteAccess(userRole)) return errorResponse('Insufficient permissions', 403);
         const projectId = projMembersMatch[1];
         const body = await request.json() as any;
         const { member_ids, role } = body;
@@ -308,6 +313,7 @@ export async function handleProjects(
 
     const removeProjMemberMatch = path.match(/^\/api\/projects\/([0-9a-f-]+)\/members\/([0-9a-f-]+)$/);
     if (removeProjMemberMatch && request.method === 'DELETE') {
+        if (!hasWriteAccess(userRole)) return errorResponse('Insufficient permissions', 403);
         const [, projectId, targetMemberId] = removeProjMemberMatch;
 
         const { error } = await adminClient
@@ -447,6 +453,7 @@ export async function handleProjects(
 
     // DELETE /api/projects/tasks/:id
     if (taskMatch && request.method === 'DELETE') {
+        if (!hasWriteAccess(userRole)) return errorResponse('Insufficient permissions', 403);
         const taskId = taskMatch[1];
 
         const { error } = await adminClient

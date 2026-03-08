@@ -142,3 +142,30 @@ export function checkAIPermission(
   }
   return { allowed: true };
 }
+
+// ─── Convenience exports used by route handlers ────────────────────────────
+
+/** Role level >= 55 (supervisor+) can write in most operational modules */
+export function hasWriteAccess(role: string | null | undefined): boolean {
+  return getRoleLevel(role) >= 55;
+}
+
+/** CRM write: level >= 40 */
+export function hasCRMWriteAccess(role: string | null | undefined): boolean {
+  return getRoleLevel(role) >= 40;
+}
+
+/** HR write: level >= 55 */
+export function hasHRWriteAccess(role: string | null | undefined): boolean {
+  return getRoleLevel(role) >= 55;
+}
+
+/** Accounting read: level >= 40 */
+export function hasAccountingReadAccess(role: string | null | undefined): boolean {
+  return getRoleLevel(role) >= 40;
+}
+
+/** Accounting write: level >= 65 */
+export function hasAccountingWriteAccess(role: string | null | undefined): boolean {
+  return getRoleLevel(role) >= 65;
+}

@@ -9,6 +9,141 @@ import type { Request, Response } from '@cloudflare/workers-types';
 type GatewayType = 'stripe' | 'network_international' | 'tilr';
 type PaymentRegion = 'AE' | 'SA' | 'EG' | 'BH' | 'OM' | 'QA' | 'KW' | 'GLOBAL';
 
+// ─── Post-payment Module Activation ─────────────────────────────────────
+// After successful payment, activate the modules included in the company's plan
+async function activateCompanyModulesAfterPayment(
+    adminSupabase: import('@supabase/supabase-js').SupabaseClient,
+    companyId: string,
+): Promise<void> {
+    try {
+        // 1. Get the subscription to find the plan
+        const { data: sub } = await adminSupabase
+            .from('company_subscriptions')
+            .select('plan_code')
+            .eq('company_id', companyId)
+            .eq('status', 'active')
+            .maybeSingle();
+        if (!sub?.plan_code) return;
+
+        // 2. Get the plan's included modules
+        const { data: plan } = await adminSupabase
+            .from('subscription_plans')
+            .select('included_modules, max_users, features')
+            .eq('code', sub.plan_code)
+            .maybeSingle();
+        if (!plan) return;
+
+        // included_modules is JSONB array of module codes, e.g. ["hr", "crm", "accounting"]
+        const moduleCodes: string[] = (plan.included_modules as string[]) || [];
+        if (moduleCodes.length === 0) return;
+
+        // 3. Resolve module IDs from modules_catalog
+        const { data: modules } = await adminSupabase
+            .from('modules_catalog')
+            .select('id, code')
+            .in('code', moduleCodes);
+        if (!modules?.length) return;
+
+        // 4. Activate each module (upsert into company_modules)
+        const rows = modules.map(m => ({
+            company_id: companyId,
+            module_id: m.id,
+            module_code: m.code,
+            is_active: true,
+            activated_at: new Date().toISOString(),
+        }));
+
+        await adminSupabase
+            .from('company_modules')
+            .upsert(rows, { onConflict: 'company_id,module_id' });
+
+        // 5. Log the activation event
+        await adminSupabase.from('payment_events').insert({
+            company_id: companyId,
+            event_type: 'modules_activated',
+            gateway: 'system',
+            status: 'success',
+            raw_data: { plan_code: sub.plan_code, modules: moduleCodes },
+        });
+    } catch (err) {
+        console.error('Module activation after payment failed:', err);
+    }
+}
+
+// ─── Subscription Status Check ──────────────────────────────────────────
+// Middleware helper: verify company has active subscription before allowing access
+export async function checkSubscriptionActive(
+    adminSupabase: import('@supabase/supabase-js').SupabaseClient,
+    companyId: string,
+): Promise<{ active: boolean; status: string; daysRemaining: number }> {
+    const { data: sub } = await adminSupabase
+        .from('company_subscriptions')
+        .select('status, current_period_end, plan_code')
+        .eq('company_id', companyId)
+        .maybeSingle();
+
+    if (!sub) return { active: false, status: 'no_subscription', daysRemaining: 0 };
+
+    const isActive = sub.status === 'active' || sub.status === 'trialing';
+    const periodEnd = sub.current_period_end ? new Date(sub.current_period_end) : null;
+    const now = new Date();
+    const daysRemaining = periodEnd ? Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+    // Grace period: allow 7 days after expiry for past_due
+    if (sub.status === 'past_due' && daysRemaining >= -7) {
+        return { active: true, status: 'past_due', daysRemaining };
+    }
+
+    return { active: isActive, status: sub.status, daysRemaining };
+}
+
+// ─── Usage Tracking Helper ──────────────────────────────────────────────
+// Auto-increment usage counters for AI calls, storage, seats
+export async function trackUsage(
+    adminSupabase: import('@supabase/supabase-js').SupabaseClient,
+    companyId: string,
+    usageType: 'ai_query' | 'storage_mb' | 'api_call' | 'seat',
+    quantity: number = 1,
+    metadata?: Record<string, unknown>,
+): Promise<void> {
+    try {
+        // Upsert usage counter for current billing period
+        const now = new Date();
+        const periodKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+        await adminSupabase.from('subscription_usage_counters').upsert({
+            company_id: companyId,
+            usage_type: usageType,
+            period_key: periodKey,
+            count: quantity,
+            last_updated: now.toISOString(),
+        }, {
+            onConflict: 'company_id,usage_type,period_key',
+            // Increment existing count
+        });
+
+        // Also update: SELECT count + quantity and SET
+        const { data: existing } = await adminSupabase
+            .from('subscription_usage_counters')
+            .select('count')
+            .eq('company_id', companyId)
+            .eq('usage_type', usageType)
+            .eq('period_key', periodKey)
+            .maybeSingle();
+
+        if (existing) {
+            await adminSupabase
+                .from('subscription_usage_counters')
+                .update({ count: (existing.count || 0) + quantity, last_updated: now.toISOString() })
+                .eq('company_id', companyId)
+                .eq('usage_type', usageType)
+                .eq('period_key', periodKey);
+        }
+    } catch {
+        // Non-blocking — usage tracking failures shouldn't break the main flow
+    }
+}
+
 // ─── Payment Orchestrator ───────────────────────────────────────────────
 // Inspired by archive PaymentOrchestrator.ts — Smart routing across gateways
 function selectGateway(region: PaymentRegion, _amount: number): GatewayType {
@@ -218,6 +353,9 @@ async function handleWebhook(request: Request, env: Env): Promise<Response> {
                         status: 'active',
                     })
                     .eq('company_id', companyId);
+
+                // ── Post-payment: activate plan modules ─────────────────────
+                await activateCompanyModulesAfterPayment(adminSupabase, companyId);
             }
             break;
         }
@@ -365,8 +503,8 @@ async function orchestratePayment(
             };
 
             // Network International API call
-            const niApiUrl = (env as Record<string, string>).NI_API_URL || 'https://api-gateway.ngenius-payments.com';
-            const niApiKey = (env as Record<string, string>).NI_API_KEY || '';
+            const niApiUrl = (env as unknown as Record<string, string>).NI_API_URL || 'https://api-gateway.ngenius-payments.com';
+            const niApiKey = (env as unknown as Record<string, string>).NI_API_KEY || '';
 
             if (!niApiKey) {
                 // Fallback to Stripe if NI not configured
@@ -388,7 +526,7 @@ async function orchestratePayment(
                 const tokenData = (await tokenRes.json()) as { access_token: string };
 
                 // Create order
-                const niOutlet = (env as Record<string, string>).NI_OUTLET_REF || '';
+                const niOutlet = (env as unknown as Record<string, string>).NI_OUTLET_REF || '';
                 const orderRes = await fetch(`${niApiUrl}/transactions/outlets/${niOutlet}/orders`, {
                     method: 'POST',
                     headers: {
@@ -457,9 +595,9 @@ async function orchestratePayment(
                 : plan.price_monthly;
             const tilrCurrency = plan.currency || 'EGP';
 
-            const tilrApiUrl = (env as Record<string, string>).TILR_API_URL || 'https://api.tilr.io';
-            const tilrApiKey = (env as Record<string, string>).TILR_API_KEY || '';
-            const tilrMerchantId = (env as Record<string, string>).TILR_MERCHANT_ID || '';
+            const tilrApiUrl = (env as unknown as Record<string, string>).TILR_API_URL || 'https://api.tilr.io';
+            const tilrApiKey = (env as unknown as Record<string, string>).TILR_API_KEY || '';
+            const tilrMerchantId = (env as unknown as Record<string, string>).TILR_MERCHANT_ID || '';
 
             if (!tilrApiKey || !tilrMerchantId) {
                 return jsonResponse({
@@ -701,6 +839,20 @@ async function getPlans(env: Env): Promise<Response> {
 // Inspired by archive NetworkInternationalWebhookHandler.ts
 
 async function handleNetworkIntlWebhook(request: Request, env: Env): Promise<Response> {
+    // ── Signature verification ──────────────────────────────────────────
+    const niSecret = (env as unknown as Record<string, string>).NI_WEBHOOK_SECRET;
+    if (niSecret) {
+        const signature = request.headers.get('x-ni-signature') || request.headers.get('x-webhook-signature') || '';
+        const rawBody = await request.clone().text();
+        const encoder = new TextEncoder();
+        const key = await crypto.subtle.importKey('raw', encoder.encode(niSecret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+        const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(rawBody));
+        const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+        if (signature !== expected && signature !== `sha256=${expected}`) {
+            return errorResponse('Invalid webhook signature', 401);
+        }
+    }
+
     const body = (await request.json()) as {
         event_type: string;
         transaction_id: string;
@@ -735,6 +887,9 @@ async function handleNetworkIntlWebhook(request: Request, env: Env): Promise<Res
                     last_payment_at: new Date().toISOString(),
                 })
                 .eq('company_id', companyId);
+
+            // ── Post-payment: activate plan modules ─────────────────────
+            await activateCompanyModulesAfterPayment(adminSupabase, companyId);
         }
     }
 
@@ -756,6 +911,20 @@ async function handleNetworkIntlWebhook(request: Request, env: Env): Promise<Res
 // Inspired by archive TilrWebhookHandler.ts
 
 async function handleTilrWebhook(request: Request, env: Env): Promise<Response> {
+    // ── Signature verification ──────────────────────────────────────────
+    const tilrSecret = (env as unknown as Record<string, string>).TILR_WEBHOOK_SECRET;
+    if (tilrSecret) {
+        const signature = request.headers.get('x-tilr-signature') || request.headers.get('x-webhook-signature') || '';
+        const rawBody = await request.clone().text();
+        const encoder = new TextEncoder();
+        const key = await crypto.subtle.importKey('raw', encoder.encode(tilrSecret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+        const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(rawBody));
+        const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+        if (signature !== expected && signature !== `sha256=${expected}`) {
+            return errorResponse('Invalid webhook signature', 401);
+        }
+    }
+
     const body = (await request.json()) as {
         event: string;
         payment_id: string;
@@ -789,6 +958,9 @@ async function handleTilrWebhook(request: Request, env: Env): Promise<Response> 
                     last_payment_at: new Date().toISOString(),
                 })
                 .eq('company_id', companyId);
+
+            // ── Post-payment: activate plan modules ─────────────────────
+            await activateCompanyModulesAfterPayment(adminSupabase, companyId);
         }
     }
 
