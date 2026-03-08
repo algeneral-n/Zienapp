@@ -13,8 +13,6 @@ import {
   BarChart3, Shield, Globe2, Upload, Loader2,
   Building2, Users2, Briefcase, AlertCircle, Eye
 } from 'lucide-react';
-import GuidedTour from '../components/GuidedTour';
-import { TOUR_STEPS } from '../constants/tourSteps';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -506,7 +504,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      <GuidedTour tourKey="landing_page" steps={TOUR_STEPS.landing_page || []} />
     </div>
   );
 }

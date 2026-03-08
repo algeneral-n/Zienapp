@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import {
   GraduationCap, PlayCircle, BookOpen, Award, Search, Loader2,
   Video, Sparkles, Users, BarChart3, ShieldCheck, Truck, Brain, Clock,
-  Pause, Volume2, VolumeX, Maximize, Minimize,
 } from 'lucide-react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { supabase } from '../../services/supabase';
@@ -123,191 +122,25 @@ Style: Map-focused, animated route lines, bilingual subtitles.`,
   },
 ];
 
-// ─── Video Player Component ─────────────────────────────────────────────────
+// ─── Video Player Component (Google Drive Embed) ────────────────────────────
 function VideoHeroCard({ className = '' }: { className?: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [showControls, setShowControls] = useState(true);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const hideTimeout = useRef<ReturnType<typeof setTimeout>>();
-
-  const togglePlay = useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.paused) { v.play(); setIsPlaying(true); }
-    else { v.pause(); setIsPlaying(false); }
-  }, []);
-
-  const toggleMute = useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setIsMuted(v.muted);
-  }, []);
-
-  const toggleFullscreen = useCallback(() => {
-    const c = containerRef.current;
-    if (!c) return;
-    if (!document.fullscreenElement) {
-      c.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => { });
-    } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => { });
-    }
-  }, []);
-
-  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const v = videoRef.current;
-    if (!v || !v.duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    v.currentTime = pct * v.duration;
-  }, []);
-
-  const handleMouseMove = useCallback(() => {
-    setShowControls(true);
-    if (hideTimeout.current) clearTimeout(hideTimeout.current);
-    hideTimeout.current = setTimeout(() => { if (isPlaying) setShowControls(false); }, 3000);
-  }, [isPlaying]);
-
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, '0')}`;
-  };
-
-  useEffect(() => {
-    const handleFSChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handleFSChange);
-    return () => document.removeEventListener('fullscreenchange', handleFSChange);
-  }, []);
-
   return (
-    <div
-      ref={containerRef}
-      className={`relative rounded-2xl overflow-hidden bg-black group cursor-pointer ${className}`}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => { if (isPlaying) setShowControls(false); }}
-    >
-      {/* Video */}
-      <video
-        ref={videoRef}
-        src={ASSETS.INTRO_VIDEO}
-        className="w-full aspect-video object-cover"
-        muted={isMuted}
-        playsInline
-        preload="metadata"
-        poster={ASSETS.LOGO_SHIELD}
-        onTimeUpdate={() => {
-          const v = videoRef.current;
-          if (v && v.duration) {
-            setProgress((v.currentTime / v.duration) * 100);
-            setCurrentTime(v.currentTime);
-          }
-        }}
-        onLoadedMetadata={() => {
-          if (videoRef.current) setDuration(videoRef.current.duration);
-        }}
-        onEnded={() => setIsPlaying(false)}
-        onClick={togglePlay}
-      />
-
-      {/* Gradient Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
-
+    <div className={`relative rounded-2xl overflow-hidden bg-black ${className}`}>
       {/* Top Badge */}
       <div className="absolute top-4 left-4 z-20">
         <span className="px-3 py-1.5 bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1.5">
           <Video size={12} /> ZIEN Platform
         </span>
       </div>
-
-      {/* Center Play Button (when paused) */}
-      <AnimatePresence>
-        {!isPlaying && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute inset-0 flex items-center justify-center z-10"
-            onClick={togglePlay}
-          >
-            <motion.div
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-24 h-24 bg-blue-600/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl shadow-blue-600/50 hover:bg-blue-600 transition-colors"
-            >
-              <PlayCircle size={48} className="text-white ml-1" />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Bottom Controls */}
-      <AnimatePresence>
-        {(showControls || !isPlaying) && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-0 left-0 right-0 p-4 z-20"
-          >
-            {/* Bottom Info */}
-            <div className="flex items-end justify-between mb-3">
-              <div>
-                <h3 className="text-white font-black text-lg tracking-tight leading-tight">
-                  ZIEN Platform — Complete Guide
-                </h3>
-                <p className="text-zinc-400 text-xs mt-1">
-                  Powered by RARE AI
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                  className="w-9 h-9 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all"
-                >
-                  {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-                  className="w-9 h-9 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all"
-                >
-                  {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                className="text-white hover:text-blue-400 transition-colors shrink-0"
-              >
-                {isPlaying ? <Pause size={18} /> : <PlayCircle size={18} />}
-              </button>
-              <div
-                className="flex-1 h-1.5 bg-white/20 rounded-full cursor-pointer group/bar relative"
-                onClick={(e) => { e.stopPropagation(); handleSeek(e); }}
-              >
-                <div
-                  className="h-full bg-blue-500 rounded-full relative transition-all"
-                  style={{ width: `${progress}%` }}
-                >
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-blue-500 rounded-full scale-0 group-hover/bar:scale-100 transition-transform shadow-lg" />
-                </div>
-              </div>
-              <span className="text-[10px] text-zinc-400 font-mono tabular-nums shrink-0 min-w-[70px] text-right">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Google Drive Embedded Video */}
+      <iframe
+        src={ASSETS.VIDEO_DRIVE}
+        className="w-full aspect-video"
+        allow="autoplay; encrypted-media; fullscreen"
+        allowFullScreen
+        title="ZIEN Platform — Complete Guide"
+        style={{ border: 'none' }}
+      />
     </div>
   );
 }

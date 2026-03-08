@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
-import { Mail, Lock, ArrowRight, ShieldCheck, Globe, Phone, UserPlus, KeyRound, Smartphone, Building2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ShieldCheck, Globe, Phone, UserPlus, KeyRound, Building2 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
+import { Turnstile } from 'react-turnstile';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
-type AuthView = 'login' | 'forgot' | 'register' | 'set-password' | 'phone-login' | 'otp-verify';
+type AuthView = 'login' | 'forgot' | 'register' | 'set-password';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -18,7 +20,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [otp, setOtp] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,24 +69,6 @@ export default function LoginPage() {
     }
   };
 
-  const handlePhoneSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      const { error: authError } = await supabase.auth.signInWithOtp({
-        phone: identifier,
-        options: {}
-      });
-      if (authError) throw authError;
-      setView('otp-verify');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCheckRegistered = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -120,27 +104,6 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       setError(err.message || 'Verification failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      const { data, error: authError } = await supabase.auth.verifyOtp({
-        phone: identifier,
-        token: otp,
-        type: 'sms'
-      });
-      if (authError) throw authError;
-      if (data.user) {
-        navigate('/dashboard');
-      }
-    } catch (err: any) {
-      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -451,94 +414,6 @@ export default function LoginPage() {
           </motion.form>
         );
 
-      case 'phone-login':
-        return (
-          <motion.form
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            onSubmit={handlePhoneSignIn}
-            className="space-y-6"
-          >
-            <h2 className="text-xl font-bold mb-2">
-              {language === 'ar' ? 'تسجيل الدخول بالهاتف' : 'Phone Login'}
-            </h2>
-            <p className="text-sm text-[var(--text-secondary)] mb-6">
-              {language === 'ar' ? 'أدخل رقم هاتفك لتلقي رمز تسجيل دخول آمن.' : 'Enter your phone number to receive a secure login code.'}
-            </p>
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                {language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
-              </label>
-              <div className="relative">
-                <Smartphone className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-                <input
-                  type="tel"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 pl-12 rounded-xl outline-none focus:ring-2 focus:ring-brand/50"
-                  placeholder="+971 5x xxx xxxx"
-                  required
-                />
-              </div>
-            </div>
-
-            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-brand text-white py-4 rounded-xl font-bold hover:bg-brand-hover transition-all disabled:opacity-50"
-            >
-              {loading
-                ? (language === 'ar' ? 'جاري إرسال الرمز...' : 'Sending Code...')
-                : (language === 'ar' ? 'إرسال الرمز' : 'Send OTP')}
-            </button>
-
-            <button type="button" onClick={() => setView('login')} className="w-full text-sm font-bold text-[var(--text-muted)] hover:text-brand transition-colors">
-              {language === 'ar' ? 'العودة لتسجيل الدخول' : 'Return to Login'}
-            </button>
-          </motion.form>
-        );
-
-      case 'otp-verify':
-        return (
-          <motion.form
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            onSubmit={handleVerifyOtp}
-            className="space-y-6"
-          >
-            <h2 className="text-xl font-bold mb-2">
-              {language === 'ar' ? 'التحقق من الرمز' : 'Verify OTP'}
-            </h2>
-            <p className="text-sm text-[var(--text-secondary)] mb-6">
-              {language === 'ar' ? `أدخل الرمز المكون من 6 أرقام المرسل إلى ${identifier}` : `Enter the 6-digit code sent to ${identifier}`}
-            </p>
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                {language === 'ar' ? 'رمز التحقق' : 'OTP Code'}
-              </label>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="w-full bg-[var(--surface-2)] border border-[var(--border-soft)] p-4 rounded-xl outline-none focus:ring-2 focus:ring-brand/50 text-center text-2xl tracking-[1em]"
-                maxLength={6}
-                required
-              />
-            </div>
-            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-brand text-white py-4 rounded-xl font-bold hover:bg-brand-hover transition-all disabled:opacity-50"
-            >
-              {loading
-                ? (language === 'ar' ? 'جاري التحقق...' : 'Verifying...')
-                : (language === 'ar' ? 'التحقق وتسجيل الدخول' : 'Verify & Sign In')}
-            </button>
-          </motion.form>
-        );
     }
   };
 
@@ -584,14 +459,15 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              <button
-                onClick={() => setView('phone-login')}
-                disabled={loading}
-                className="w-full mt-4 glass-card p-4 flex items-center justify-center gap-3 hover:bg-[var(--surface-2)] transition-all font-bold text-sm disabled:opacity-50"
-              >
-                <Phone className="w-5 h-5 text-green-600" />
-                {t.phone}
-              </button>
+              {TURNSTILE_SITE_KEY && (
+                <div className="flex justify-center mt-4">
+                  <Turnstile
+                    sitekey={TURNSTILE_SITE_KEY}
+                    onVerify={(token) => setTurnstileToken(token)}
+                    theme="auto"
+                  />
+                </div>
+              )}
             </>
           )}
         </div>

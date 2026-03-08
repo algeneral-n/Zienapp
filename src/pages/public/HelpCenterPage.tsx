@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
-import GuidedTour from '../../components/GuidedTour';
-import { TOUR_STEPS } from '../../constants/tourSteps';
 import {
     Search, ChevronDown, ChevronUp, BookOpen, MessageCircle, Mail, Phone,
     HelpCircle, FileText, Rocket, Users, CreditCard, Package, Brain, ShieldCheck,
@@ -198,8 +196,6 @@ export default function HelpCenterPage() {
 
     return (
         <div className="min-h-screen bg-[var(--bg-primary)] pt-28 pb-20 px-4">
-            <GuidedTour tourKey="help_center_public" steps={TOUR_STEPS.help_center} />
-
             <div className="max-w-5xl mx-auto">
                 {/* ─ Header ─ */}
                 <div className="text-center mb-10">

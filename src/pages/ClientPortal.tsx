@@ -11,8 +11,6 @@ import { HeaderControls } from '../components/HeaderControls';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompany } from '../contexts/CompanyContext';
 import { supabase } from '../services/supabase';
-import GuidedTour from '../components/GuidedTour';
-import { TOUR_STEPS } from '../constants/tourSteps';
 
 const LoadingState = () => {
   const { t } = useTranslation();
@@ -517,7 +515,6 @@ export default function ClientPortal() {
           </Routes>
         </div>
       </main>
-      <GuidedTour tourKey="client_portal" steps={TOUR_STEPS.client_portal || []} />
     </div>
   );
 }

@@ -20,8 +20,6 @@ import {
   getAIUsagePlatform, getPlatformAuditLog, listAnnouncements,
   type AuditEntry,
 } from '../services/founderService';
-import GuidedTour from '../components/GuidedTour';
-import { TOUR_STEPS } from '../constants/tourSteps';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 
@@ -1289,7 +1287,6 @@ export default function FounderPage() {
           </Routes>
         </div>
       </main>
-      <GuidedTour tourKey="founder_page" steps={TOUR_STEPS.founder_page || []} />
     </div>
   );
 }

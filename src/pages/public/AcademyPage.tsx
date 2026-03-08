@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
 import { supabase } from '../../services/supabase';
-import GuidedTour from '../../components/GuidedTour';
-import { TOUR_STEPS } from '../../constants/tourSteps';
 import {
   BookOpen, Play, FileText, Award, ArrowRight, Clock, Users,
   CheckCircle, Star, Target, Layers, Brain, ShieldCheck, BarChart3,
@@ -412,7 +410,6 @@ export default function AcademyPage() {
 
   return (
     <div className="pt-32 pb-20 px-6 bg-[var(--bg-primary)] min-h-screen">
-      <GuidedTour tourKey="academy_public" steps={TOUR_STEPS.academy} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">

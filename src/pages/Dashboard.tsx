@@ -3,8 +3,6 @@ import { Routes, Route, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { HeaderControls } from '../components/HeaderControls';
-import GuidedTour from '../components/GuidedTour';
-import { TOUR_STEPS } from '../constants/tourSteps';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompany } from '../contexts/CompanyContext';
 import {
@@ -42,7 +40,6 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <GuidedTour tourKey="dashboard_overview" steps={TOUR_STEPS.dashboard_overview} />
       <div data-tour="sidebar">
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       </div>

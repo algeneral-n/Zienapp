@@ -3,8 +3,6 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
-import GuidedTour from '../../components/GuidedTour';
-import { TOUR_STEPS } from '../../constants/tourSteps';
 import { CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, Video, ArrowRight, PlayCircle } from 'lucide-react';
 
 /* ─── External Video Embed ────────────────────────────────────────────── */
