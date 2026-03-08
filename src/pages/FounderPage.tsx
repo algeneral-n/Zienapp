@@ -8,7 +8,8 @@ import {
   DollarSign, TrendingUp, Activity, Server,
   AlertTriangle, Lock, Eye, Globe, Loader2, Info,
   FileText, RefreshCw, UserCheck, ClipboardList,
-  CreditCard, ScrollText, Bell, Database
+  CreditCard, ScrollText, Bell, Database,
+  MessageSquare, Send, TicketCheck, Headphones
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { HeaderControls } from '../components/HeaderControls';
@@ -1209,6 +1210,177 @@ const ReportsCenter = () => {
   );
 };
 
+// ─── Chat Builder (Real RARE AI Ops Chat) ─────────────────────────────────
+const ChatBuilder = () => {
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string; ts: number }[]>([]);
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const sendMessage = async () => {
+    const prompt = input.trim();
+    if (!prompt || sending) return;
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: prompt, ts: Date.now() }]);
+    setSending(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
+      const res = await fetch(`${API_URL}/api/ai/rare`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ prompt, mode: 'build', agentType: 'gm', language: 'ar' }),
+      });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `HTTP ${res.status}`); }
+      const data = await res.json();
+      setMessages(prev => [...prev, { role: 'ai', text: data.response || 'No response', ts: Date.now() }]);
+    } catch (err: any) {
+      setMessages(prev => [...prev, { role: 'ai', text: `⚠ Error: ${err.message}`, ts: Date.now() }]);
+    } finally { setSending(false); }
+  };
+
+  const quickCommands = [
+    { label: 'Platform Health', cmd: 'أعطني تقرير كامل عن حالة المنصة والخدمات' },
+    { label: 'Debug Issues', cmd: 'ما هي المشاكل الحالية في المنصة وكيف أحلها؟' },
+    { label: 'Build Service', cmd: 'أريد بناء خدمة جديدة. ما الخطوات المطلوبة؟' },
+    { label: 'Security Audit', cmd: 'أجر فحص أمني شامل للمنصة وأبلغني بالنتائج' },
+    { label: 'Optimize', cmd: 'كيف يمكنني تحسين أداء المنصة؟' },
+    { label: 'Client Fix', cmd: 'عميل يواجه مشكلة في الوصول. ما الحل؟' },
+  ];
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+        <MessageSquare size={20} className="text-blue-600" /> RARE Ops Chat Builder
+      </h2>
+      <p className="text-xs text-zinc-500">Real-time AI-powered operations. Debug, build, fix, and manage your platform directly.</p>
+
+      {/* Quick Commands */}
+      <div className="flex flex-wrap gap-2">
+        {quickCommands.map((qc, i) => (
+          <button key={i} onClick={() => { setInput(qc.cmd); }} className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full hover:bg-blue-100 transition-all">
+            {qc.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Chat Window */}
+      <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl h-[500px] flex flex-col">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {messages.length === 0 && (
+            <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
+              <div className="text-center">
+                <MessageSquare size={32} className="mx-auto mb-2 opacity-30" />
+                <p className="font-bold">RARE Ops Chat</p>
+                <p className="text-xs mt-1">Ask me to build, debug, fix, or optimize anything in the platform.</p>
+              </div>
+            </div>
+          )}
+          {messages.map((msg, i) => (
+            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap ${
+                msg.role === 'user'
+                  ? 'bg-blue-600 text-white rounded-br-sm'
+                  : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-bl-sm'
+              }`}>
+                {msg.text}
+              </div>
+            </div>
+          ))}
+          {sending && (
+            <div className="flex justify-start">
+              <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-4 py-3 rounded-2xl rounded-bl-sm">
+                <Loader2 size={16} className="animate-spin text-blue-600" />
+              </div>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+        <div className="border-t border-zinc-200 dark:border-zinc-800 p-3 flex gap-2">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+            className="flex-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/30"
+            placeholder="Build, debug, fix... (connected to real RARE AI)"
+            disabled={sending}
+          />
+          <button onClick={sendMessage} disabled={sending || !input.trim()} className="px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            <Send size={14} /> Send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Support & Tickets ──────────────────────────────────────────────────────
+const SupportTickets = () => {
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('support_tickets')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (!error && data) setTickets(data);
+      } catch { /* table may not exist yet */ }
+      setLoading(false);
+    };
+    fetchTickets();
+    const channel = supabase.channel('tickets').on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => fetchTickets()).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const statusColor = (s: string) => {
+    if (s === 'open') return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+    if (s === 'in_progress') return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+    if (s === 'resolved') return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    return 'bg-zinc-100 text-zinc-600';
+  };
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+        <TicketCheck size={20} className="text-orange-600" /> Support & Tickets
+      </h2>
+      <p className="text-xs text-zinc-500">Customer requests, issues, and support tickets from all tenants.</p>
+
+      {loading ? (
+        <div className="text-center py-12"><Loader2 size={24} className="animate-spin mx-auto text-zinc-400" /></div>
+      ) : tickets.length > 0 ? (
+        <div className="space-y-2">
+          {tickets.map((t, i) => (
+            <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-start justify-between">
+              <div>
+                <p className="font-bold text-sm">{t.subject || `Ticket #${t.id?.slice(0, 8)}`}</p>
+                <p className="text-xs text-zinc-500 mt-1">{t.description?.slice(0, 120)}...</p>
+                <p className="text-[10px] text-zinc-400 mt-2">{t.email || t.user_id} — {new Date(t.created_at).toLocaleDateString('ar-SA')}</p>
+              </div>
+              <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full ${statusColor(t.status)}`}>
+                {t.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 text-center">
+          <Headphones size={32} className="mx-auto mb-3 text-zinc-300" />
+          <p className="font-bold text-sm text-zinc-400">No tickets yet</p>
+          <p className="text-xs text-zinc-400 mt-1">When clients submit support requests, they'll appear here in real-time.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Main Layout ────────────────────────────────────────────────────────────
 
 export default function FounderPage() {
@@ -1238,6 +1410,8 @@ export default function FounderPage() {
               { icon: Server, label: t('maintenance'), path: 'maintenance' },
               { icon: FileText, label: t('reports'), path: 'reports' },
               { icon: Shield, label: t('security'), path: 'security' },
+              { icon: MessageSquare, label: 'Chat Builder', path: 'chat' },
+              { icon: TicketCheck, label: 'Support', path: 'support' },
             ].map((item) => (
               <NavLink
                 key={item.label}
@@ -1284,6 +1458,8 @@ export default function FounderPage() {
             <Route path="/maintenance" element={<MaintenancePanel />} />
             <Route path="/reports" element={<ReportsCenter />} />
             <Route path="/security" element={<SecurityDashboard />} />
+            <Route path="/chat" element={<ChatBuilder />} />
+            <Route path="/support" element={<SupportTickets />} />
           </Routes>
         </div>
       </main>
