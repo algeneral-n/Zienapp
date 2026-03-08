@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
@@ -173,6 +174,7 @@ function VideoSection({ className = '' }: { className?: string }) {
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 export default function HelpCenterPage() {
     const { language } = useTheme();
+    const navigate = useNavigate();
     const isAr = language === 'ar';
     const [search, setSearch] = useState('');
     const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
@@ -187,10 +189,10 @@ export default function HelpCenterPage() {
 
     const handleContact = (type?: string) => {
         switch (type) {
-            case 'chat': window.open('mailto:support@zien-ai.app?subject=Support Request', '_blank'); break;
-            case 'email': window.open('mailto:billing@zien-ai.app?subject=Billing Inquiry', '_blank'); break;
-            case 'phone': window.open('tel:+97144420000', '_self'); break;
-            case 'docs': window.open('/academy', '_self'); break;
+            case 'chat': window.dispatchEvent(new CustomEvent('open-rare-chat')); break;
+            case 'email': window.open('mailto:support@zien-ai.app?subject=Technical Support Request', '_blank'); break;
+            case 'phone': navigate('/help'); break;
+            case 'docs': navigate('/academy'); break;
         }
     };
 
@@ -282,9 +284,9 @@ export default function HelpCenterPage() {
                 {/* ─ Direct Contact ─ */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12" data-tour="help-contact">
                     {([
-                        { icon: MessageCircle, title_en: 'Live Chat', title_ar: 'محادثة مباشرة', desc_en: 'Chat with our support team', desc_ar: 'تحدث مع فريق الدعم', action_en: 'Start Chat', action_ar: 'ابدأ محادثة', color: 'text-blue-600 bg-blue-50 dark:bg-blue-600/10', onClick: () => window.open('mailto:support@zien-ai.app?subject=Live Chat Request', '_blank') },
-                        { icon: Mail, title_en: 'Email Support', title_ar: 'بريد الدعم', desc_en: 'support@zien-ai.app', desc_ar: 'support@zien-ai.app', action_en: 'Send Email', action_ar: 'أرسل بريد', color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10', onClick: () => window.open('mailto:support@zien-ai.app', '_blank') },
-                        { icon: Phone, title_en: 'Call Us', title_ar: 'اتصل بنا', desc_en: '+971 4 442 0000', desc_ar: '+971 4 442 0000', action_en: 'Call Now', action_ar: 'اتصل الآن', color: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10', onClick: () => window.open('tel:+97144420000', '_self') },
+                        { icon: MessageCircle, title_en: 'Live Chat', title_ar: 'محادثة مباشرة', desc_en: 'Chat with RARE AI assistant', desc_ar: 'تحدث مع مساعد RARE الذكي', action_en: 'Start Chat', action_ar: 'ابدأ محادثة', color: 'text-blue-600 bg-blue-50 dark:bg-blue-600/10', onClick: () => window.dispatchEvent(new CustomEvent('open-rare-chat')) },
+                        { icon: Mail, title_en: 'Technical Support', title_ar: 'الدعم التقني', desc_en: 'support@zien-ai.app', desc_ar: 'support@zien-ai.app', action_en: 'Contact IT', action_ar: 'تواصل مع التقنية', color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10', onClick: () => window.open('mailto:support@zien-ai.app?subject=Technical Support', '_blank') },
+                        { icon: HelpCircle, title_en: 'FAQ & Help', title_ar: 'الأسئلة المتكررة', desc_en: 'Browse common questions', desc_ar: 'تصفح الأسئلة الشائعة', action_en: 'View FAQ', action_ar: 'عرض الأسئلة', color: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10', onClick: () => { const el = document.querySelector('[data-tour="help-topics"]'); el?.scrollIntoView({ behavior: 'smooth' }); } },
                     ] as const).map(card => (
                         <motion.div key={card.title_en} whileHover={{ y: -2 }} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-center">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 ${card.color}`}>

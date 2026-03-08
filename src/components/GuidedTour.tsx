@@ -90,26 +90,55 @@ export default function GuidedTour({ tourKey, steps, active = true, onComplete }
     const step = steps[currentStep];
     const placement = step.placement || 'bottom';
 
-    // Calculate tooltip position
+    // Calculate tooltip position — smart placement that avoids overflow
     let tooltipStyle: React.CSSProperties = {};
+    const isMobileView = window.innerWidth < 640;
+
     if (targetRect) {
-        switch (placement) {
-            case 'bottom':
-                tooltipStyle = { top: targetRect.bottom + 16, left: Math.max(16, targetRect.left + targetRect.width / 2 - 180) };
-                break;
-            case 'top':
-                tooltipStyle = { bottom: window.innerHeight - targetRect.top + 16, left: Math.max(16, targetRect.left + targetRect.width / 2 - 180) };
-                break;
-            case 'left':
-                tooltipStyle = { top: targetRect.top + targetRect.height / 2 - 80, right: window.innerWidth - targetRect.left + 16 };
-                break;
-            case 'right':
-                tooltipStyle = { top: targetRect.top + targetRect.height / 2 - 80, left: targetRect.right + 16 };
-                break;
+        const tooltipW = isMobileView ? window.innerWidth - 32 : 360;
+        const tooltipH = 220;
+        const pad = 16;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        // Decide best placement to avoid viewport overflow
+        let effectivePlacement = placement;
+        if (placement === 'bottom' && targetRect.bottom + tooltipH + pad > vh) effectivePlacement = 'top';
+        if (placement === 'top' && targetRect.top - tooltipH - pad < 0) effectivePlacement = 'bottom';
+        if (placement === 'right' && targetRect.right + tooltipW + pad > vw) effectivePlacement = 'left';
+        if (placement === 'left' && targetRect.left - tooltipW - pad < 0) effectivePlacement = 'right';
+
+        if (isMobileView) {
+            // On mobile, always center horizontally and place above/below the target
+            const topBelow = targetRect.bottom + pad;
+            const topAbove = targetRect.top - tooltipH - pad;
+            tooltipStyle = {
+                left: pad,
+                right: pad,
+                top: (effectivePlacement === 'top' && topAbove > 0) ? topAbove : Math.min(topBelow, vh - tooltipH - pad),
+                width: 'auto',
+            };
+        } else {
+            switch (effectivePlacement) {
+                case 'bottom':
+                    tooltipStyle = { top: targetRect.bottom + pad, left: Math.max(pad, Math.min(targetRect.left + targetRect.width / 2 - tooltipW / 2, vw - tooltipW - pad)) };
+                    break;
+                case 'top':
+                    tooltipStyle = { top: Math.max(pad, targetRect.top - tooltipH - pad), left: Math.max(pad, Math.min(targetRect.left + targetRect.width / 2 - tooltipW / 2, vw - tooltipW - pad)) };
+                    break;
+                case 'left':
+                    tooltipStyle = { top: Math.max(pad, targetRect.top + targetRect.height / 2 - tooltipH / 2), right: vw - targetRect.left + pad };
+                    break;
+                case 'right':
+                    tooltipStyle = { top: Math.max(pad, targetRect.top + targetRect.height / 2 - tooltipH / 2), left: Math.min(targetRect.right + pad, vw - tooltipW - pad) };
+                    break;
+            }
         }
     } else {
         // Center on screen if no target
-        tooltipStyle = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+        tooltipStyle = isMobileView
+            ? { top: '50%', left: 16, right: 16, transform: 'translateY(-50%)', width: 'auto' }
+            : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
     }
 
     return (
@@ -127,15 +156,28 @@ export default function GuidedTour({ tourKey, steps, active = true, onComplete }
                     >
                         {/* Spotlight hole for target element */}
                         {targetRect && (
-                            <div
-                                className="absolute border-2 border-blue-500 rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] pointer-events-none"
-                                style={{
-                                    top: targetRect.top - 8,
-                                    left: targetRect.left - 8,
-                                    width: targetRect.width + 16,
-                                    height: targetRect.height + 16,
-                                }}
-                            />
+                            <>
+                                <div
+                                    className="absolute border-2 border-blue-500 rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] pointer-events-none"
+                                    style={{
+                                        top: targetRect.top - 8,
+                                        left: targetRect.left - 8,
+                                        width: targetRect.width + 16,
+                                        height: targetRect.height + 16,
+                                    }}
+                                />
+                                {/* Pulsing ring */}
+                                <div
+                                    className="absolute rounded-xl pointer-events-none animate-ping border-2 border-blue-400/60"
+                                    style={{
+                                        top: targetRect.top - 12,
+                                        left: targetRect.left - 12,
+                                        width: targetRect.width + 24,
+                                        height: targetRect.height + 24,
+                                        animationDuration: '2s',
+                                    }}
+                                />
+                            </>
                         )}
                     </motion.div>
 
@@ -144,7 +186,7 @@ export default function GuidedTour({ tourKey, steps, active = true, onComplete }
                         initial={{ opacity: 0, scale: 0.9, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                        className="fixed z-[9999] w-[360px] max-w-[calc(100vw-32px)]"
+                        className="fixed z-[9999] w-[360px] max-w-[calc(100vw-32px)] sm:w-[360px]"
                         style={tooltipStyle}
                         onClick={e => e.stopPropagation()}
                     >

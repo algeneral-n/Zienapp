@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
@@ -9,7 +9,7 @@ import {
   BookOpen, Play, FileText, Award, ArrowRight, Clock, Users,
   CheckCircle, Star, Target, Layers, Brain, ShieldCheck, BarChart3,
   GraduationCap, Trophy, X, ChevronRight, Video, ClipboardCheck, Loader2,
-  PlayCircle
+  PlayCircle, AlertTriangle, RotateCcw, Download, Share2, ArrowLeft
 } from 'lucide-react';
 
 type TrackKey = 'all' | 'core' | 'hr' | 'finance' | 'ai' | 'security' | 'crm' | 'logistics';
@@ -190,6 +190,85 @@ const LEVEL_LABELS = {
   advanced: { en: 'Advanced', ar: 'متقدم' },
 };
 
+/* ─── Quiz Question Bank ─────────────────────────────────────────────── */
+interface QuizQuestion {
+  q_en: string; q_ar: string;
+  options_en: string[]; options_ar: string[];
+  correct: number; // 0-based index
+}
+
+const QUIZ_BANK: Record<string, QuizQuestion[]> = {
+  t1: [ // Platform Fundamentals
+    { q_en: 'What is the main purpose of company provisioning in ZIEN?', q_ar: 'ما الغرض الرئيسي من تزويد الشركة في ZIEN؟', options_en: ['Create social media accounts', 'Set up isolated tenant workspace', 'Install mobile apps', 'Generate PDF reports'], options_ar: ['إنشاء حسابات التواصل', 'إعداد مساحة عمل معزولة', 'تثبيت تطبيقات الهاتف', 'إنشاء تقارير PDF'], correct: 1 },
+    { q_en: 'Which role has the highest permission level in ZIEN?', q_ar: 'أي دور لديه أعلى مستوى صلاحيات في ZIEN؟', options_en: ['General Manager', 'Founder', 'Admin', 'Department Manager'], options_ar: ['المدير العام', 'المؤسس', 'المدير', 'مدير القسم'], correct: 1 },
+    { q_en: 'What does RLS stand for in ZIEN\'s security model?', q_ar: 'ما معنى RLS في نموذج أمان ZIEN؟', options_en: ['Role Level System', 'Row Level Security', 'Remote Login Service', 'Resource Limit Settings'], options_ar: ['نظام مستوى الدور', 'أمان مستوى الصف', 'خدمة تسجيل الدخول عن بعد', 'إعدادات حدود الموارد'], correct: 1 },
+    { q_en: 'How do you invite team members in ZIEN?', q_ar: 'كيف تدعو أعضاء الفريق في ZIEN؟', options_en: ['Share a public link', 'Send email invitation from dashboard', 'They register themselves', 'Call technical support'], options_ar: ['مشاركة رابط عام', 'إرسال دعوة بريد من لوحة التحكم', 'يسجلون أنفسهم', 'الاتصال بالدعم التقني'], correct: 1 },
+    { q_en: 'What is multi-tenant architecture?', q_ar: 'ما هي البنية متعددة المستأجرين؟', options_en: ['Multiple servers per user', 'One database per company in isolation', 'Shared login for all companies', 'Multiple admin accounts'], options_ar: ['خوادم متعددة لكل مستخدم', 'قاعدة بيانات واحدة لكل شركة بعزل', 'تسجيل دخول مشترك لجميع الشركات', 'حسابات مدير متعددة'], correct: 1 },
+  ],
+  t2: [ // HR Management
+    { q_en: 'What is the correct order of the employee lifecycle in ZIEN?', q_ar: 'ما الترتيب الصحيح لدورة حياة الموظف في ZIEN؟', options_en: ['Hire → Onboard → Manage → Offboard', 'Register → Login → Work → Logout', 'Interview → Hire → Train → Fire', 'Create → Assign → Track → Delete'], options_ar: ['توظيف → تأهيل → إدارة → مغادرة', 'تسجيل → دخول → عمل → خروج', 'مقابلة → توظيف → تدريب → فصل', 'إنشاء → تعيين → تتبع → حذف'], correct: 0 },
+    { q_en: 'Which ZIEN feature handles salary calculations including deductions?', q_ar: 'أي ميزة في ZIEN تتعامل مع حسابات الرواتب بما فيها الخصومات؟', options_en: ['CRM module', 'Payroll engine', 'Accounting journal', 'Invoice generator'], options_ar: ['وحدة CRM', 'محرك الرواتب', 'دفتر المحاسبة', 'مولد الفواتير'], correct: 1 },
+    { q_en: 'How does ZIEN verify employee attendance?', q_ar: 'كيف يتحقق ZIEN من حضور الموظفين؟', options_en: ['Manual entry only', 'GPS clock-in/out with photo', 'Email notification', 'Calendar sync'], options_ar: ['إدخال يدوي فقط', 'تسجيل بـ GPS مع صورة', 'إشعار بريد إلكتروني', 'مزامنة التقويم'], correct: 1 },
+    { q_en: 'What role level is needed to approve leave requests?', q_ar: 'ما مستوى الدور المطلوب للموافقة على طلبات الإجازة؟', options_en: ['Any employee', 'Supervisor or above (level 55+)', 'Only GM', 'Only Founder'], options_ar: ['أي موظف', 'مشرف أو أعلى (مستوى 55+)', 'المدير العام فقط', 'المؤسس فقط'], correct: 1 },
+    { q_en: 'What happens when an employee is offboarded?', q_ar: 'ماذا يحدث عند مغادرة الموظف؟', options_en: ['Account is deleted permanently', 'Access revoked, records archived', 'Nothing changes', 'Only password is changed'], options_ar: ['يُحذف الحساب نهائياً', 'يُسحب الوصول وتُؤرشف السجلات', 'لا شيء يتغير', 'تُغير كلمة المرور فقط'], correct: 1 },
+  ],
+  t3: [ // Financial Operations
+    { q_en: 'What is a Chart of Accounts in ZIEN Accounting?', q_ar: 'ما هي شجرة الحسابات في محاسبة ZIEN؟', options_en: ['A graphical chart of revenue', 'Hierarchical list of all financial accounts', 'A pie chart of expenses', 'Employee salary chart'], options_ar: ['رسم بياني للإيرادات', 'قائمة هرمية لجميع الحسابات المالية', 'مخطط دائري للمصروفات', 'جدول رواتب الموظفين'], correct: 1 },
+    { q_en: 'What does bank reconciliation do?', q_ar: 'ماذا تفعل تسوية البنك؟', options_en: ['Creates new bank accounts', 'Matches ZIEN records with bank statements', 'Transfers money between accounts', 'Generates tax returns'], options_ar: ['إنشاء حسابات بنكية جديدة', 'مطابقة سجلات ZIEN مع كشوف البنك', 'تحويل الأموال بين الحسابات', 'إنشاء إقرارات ضريبية'], correct: 1 },
+    { q_en: 'Which report shows company profitability?', q_ar: 'أي تقرير يُظهر ربحية الشركة؟', options_en: ['Balance Sheet', 'Profit & Loss (Income Statement)', 'Cash Flow Statement', 'Inventory Report'], options_ar: ['الميزانية العمومية', 'قائمة الربح والخسارة', 'قائمة التدفقات النقدية', 'تقرير المخزون'], correct: 1 },
+    { q_en: 'How does ZIEN handle multi-currency transactions?', q_ar: 'كيف يتعامل ZIEN مع المعاملات متعددة العملات؟', options_en: ['Only supports USD', 'Automatic conversion at real-time exchange rates', 'Manual rate entry only', 'Separate databases per currency'], options_ar: ['يدعم الدولار فقط', 'تحويل تلقائي بأسعار صرف فورية', 'إدخال سعر يدوي فقط', 'قواعد بيانات منفصلة لكل عملة'], correct: 1 },
+    { q_en: 'What is required for VAT compliance in ZIEN?', q_ar: 'ما المطلوب لامتثال ضريبة القيمة المضافة في ZIEN؟', options_en: ['Nothing, ZIEN ignores taxes', 'Configure tax rules and filing deadlines', 'External software only', 'Manual paper filing'], options_ar: ['لا شيء، ZIEN يتجاهل الضرائب', 'إعداد قواعد الضريبة والمواعيد', 'برنامج خارجي فقط', 'تقديم ورقي يدوي'], correct: 1 },
+  ],
+  t4: [ // RARE AI Specialist
+    { q_en: 'What are the main RARE AI interaction modes?', q_ar: 'ما هي أوضاع التفاعل الرئيسية لـ RARE AI؟', options_en: ['Read, Write, Delete', 'Chat, Analyze, Search, Senate', 'Input, Process, Output', 'Query, Response, Follow-up'], options_ar: ['قراءة، كتابة، حذف', 'محادثة، تحليل، بحث، مجلس الشيوخ', 'إدخال، معالجة، إخراج', 'استعلام، استجابة، متابعة'], correct: 1 },
+    { q_en: 'What is "Senate" mode in RARE AI?', q_ar: 'ما هو وضع "مجلس الشيوخ" في RARE AI؟', options_en: ['Government document generator', 'Multi-agent deliberation for group decisions', 'Simple chat conversation', 'Database administration mode'], options_ar: ['مولد وثائق حكومية', 'تداول متعدد الوكلاء للقرارات الجماعية', 'محادثة بسيطة', 'وضع إدارة قاعدة البيانات'], correct: 1 },
+    { q_en: 'Which RARE agent handles financial analysis?', q_ar: 'أي وكيل RARE يتعامل مع التحليل المالي؟', options_en: ['HR Agent', 'Accounting Agent', 'Fleet Agent', 'CRM Agent'], options_ar: ['وكيل الموارد البشرية', 'وكيل المحاسبة', 'وكيل الأسطول', 'وكيل المبيعات'], correct: 1 },
+    { q_en: 'Can RARE AI generate automated reports?', q_ar: 'هل يمكن لـ RARE AI إنشاء تقارير تلقائية؟', options_en: ['No, only chat is supported', 'Yes, for any module with real-time data', 'Only PDF downloads', 'Only for the founder'], options_ar: ['لا، فقط المحادثة مدعومة', 'نعم، لأي وحدة مع بيانات فورية', 'فقط تنزيلات PDF', 'فقط للمؤسس'], correct: 1 },
+    { q_en: 'How does RARE respect role-based access?', q_ar: 'كيف يحترم RARE الوصول القائم على الأدوار؟', options_en: ['It doesn\'t - everyone sees everything', 'Filters responses based on user role and permissions', 'Asks admin for permission each time', 'Uses a separate permission system'], options_ar: ['لا يفعل - الجميع يرى كل شيء', 'يفلتر الردود بناءً على دور المستخدم وصلاحياته', 'يسأل المدير عن الإذن كل مرة', 'يستخدم نظام صلاحيات منفصل'], correct: 1 },
+  ],
+  t5: [ // Admin Certification  
+    { q_en: 'What is the maximum number of roles in ZIEN\'s RBAC?', q_ar: 'ما أقصى عدد للأدوار في نظام RBAC في ZIEN؟', options_en: ['5', '10', '22', 'Unlimited'], options_ar: ['5', '10', '22', 'غير محدود'], correct: 2 },
+    { q_en: 'How do API keys work in ZIEN?', q_ar: 'كيف تعمل مفاتيح API في ZIEN؟', options_en: ['One shared key for all', 'Per-company keys with scope restrictions', 'No API access available', 'Keys are optional'], options_ar: ['مفتاح مشترك للجميع', 'مفاتيح لكل شركة مع قيود النطاق', 'لا يتوفر وصول API', 'المفاتيح اختيارية'], correct: 1 },
+    { q_en: 'What is the purpose of webhook signatures?', q_ar: 'ما الغرض من توقيعات Webhook؟', options_en: ['Make messages prettier', 'Verify the sender identity and prevent tampering', 'Encrypt the data', 'Speed up delivery'], options_ar: ['جعل الرسائل أجمل', 'التحقق من هوية المرسل ومنع التلاعب', 'تشفير البيانات', 'تسريع التسليم'], correct: 1 },
+    { q_en: 'Which action requires the minimum role level of 65 (dept. manager)?', q_ar: 'أي إجراء يتطلب الحد الأدنى لمستوى الدور 65 (مدير قسم)؟', options_en: ['Viewing dashboard', 'Creating new modules', 'Managing employee contracts', 'Platform configuration'], options_ar: ['عرض لوحة التحكم', 'إنشاء وحدات جديدة', 'إدارة عقود الموظفين', 'تكوين المنصة'], correct: 2 },
+    { q_en: 'What happens during a security incident in ZIEN?', q_ar: 'ماذا يحدث أثناء حادث أمني في ZIEN؟', options_en: ['System shuts down completely', 'Audit logs capture event, admin is notified, sessions reviewed', 'Nothing happens automatically', 'Only the founder is notified by email'], options_ar: ['يتوقف النظام تماماً', 'سجلات التدقيق تلتقط الحدث، يُخطر المدير، تُراجع الجلسات', 'لا شيء يحدث تلقائياً', 'فقط المؤسس يُخطر عبر البريد'], correct: 1 },
+  ],
+};
+
+/* ─── Course Lesson Content ──────────────────────────────────────────── */
+interface LessonContent {
+  title_en: string; title_ar: string;
+  content_en: string; content_ar: string;
+  duration_min: number;
+}
+
+function getCourseLessons(courseId: string): LessonContent[] {
+  const base: Record<string, LessonContent[]> = {
+    c1: [
+      { title_en: 'Creating Your Account', title_ar: 'إنشاء حسابك', content_en: 'Learn how to register on ZIEN Platform, verify your email, and set up Two-Factor Authentication for maximum security.', content_ar: 'تعلم كيفية التسجيل في منصة ZIEN والتحقق من بريدك الإلكتروني وإعداد المصادقة الثنائية لأقصى درجات الأمان.', duration_min: 3 },
+      { title_en: 'Company Registration', title_ar: 'تسجيل الشركة', content_en: 'Step-by-step guide to registering your company: name, trade license, industry selection, and choosing your subscription plan.', content_ar: 'دليل خطوة بخطوة لتسجيل شركتك: الاسم والرخصة التجارية واختيار القطاع وخطة الاشتراك.', duration_min: 4 },
+      { title_en: 'Inviting Team Members', title_ar: 'دعوة أعضاء الفريق', content_en: 'How to send invitations via email, assign roles (from Employee to GM), and manage pending invitations.', content_ar: 'كيفية إرسال الدعوات عبر البريد وتعيين الأدوار (من موظف إلى مدير عام) وإدارة الدعوات المعلقة.', duration_min: 3 },
+      { title_en: 'Dashboard Navigation', title_ar: 'التنقل في لوحة التحكم', content_en: 'Master the main dashboard: sidebar modules, quick stats, notification center, and personalization settings.', content_ar: 'إتقان لوحة التحكم الرئيسية: وحدات الشريط الجانبي والإحصائيات السريعة ومركز الإشعارات وإعدادات التخصيص.', duration_min: 3 },
+      { title_en: 'Using RARE AI Assistant', title_ar: 'استخدام مساعد RARE AI', content_en: 'Introduction to RARE AI: how to ask questions, switch modes (Chat, Analyze, Search), and get module-specific help.', content_ar: 'مقدمة عن RARE AI: كيفية طرح الأسئلة وتبديل الأوضاع (محادثة، تحليل، بحث) والحصول على مساعدة خاصة بالوحدات.', duration_min: 2 },
+    ],
+    c7: [
+      { title_en: 'What is RARE AI?', title_ar: 'ما هو RARE AI؟', content_en: 'RARE (Responsive Autonomous Reasoning Engine) is ZIEN\'s built-in AI system. It understands your business context and provides module-specific assistance.', content_ar: 'RARE (محرك التفكير الذاتي المستجيب) هو نظام الذكاء الاصطناعي المدمج في ZIEN. يفهم سياق عملك ويقدم مساعدة خاصة بكل وحدة.', duration_min: 3 },
+      { title_en: 'Chat Mode', title_ar: 'وضع المحادثة', content_en: 'Ask RARE anything in natural language. It can help with HR questions, accounting guidance, project updates, and more — all filtered by your role permissions.', content_ar: 'اسأل RARE أي شيء بلغة طبيعية. يمكنه المساعدة في أسئلة الموارد البشرية وإرشادات المحاسبة وتحديثات المشاريع والمزيد — مع تصفية حسب صلاحياتك.', duration_min: 3 },
+      { title_en: 'Analyze Mode', title_ar: 'وضع التحليل', content_en: 'Upload documents, financial statements, or contracts. RARE analyzes them and provides summaries, insights, and recommendations.', content_ar: 'ارفع المستندات أو البيانات المالية أو العقود. يحللها RARE ويقدم ملخصات ورؤى وتوصيات.', duration_min: 3 },
+      { title_en: 'Search Mode', title_ar: 'وضع البحث', content_en: 'Semantic search across your company data — employees, invoices, projects, documents. RARE finds what you need with context-aware ranking.', content_ar: 'البحث الدلالي عبر بيانات شركتك — الموظفين والفواتير والمشاريع والمستندات. يجد RARE ما تحتاجه مع ترتيب مدرك للسياق.', duration_min: 3 },
+      { title_en: 'Senate Mode', title_ar: 'وضع مجلس الشيوخ', content_en: 'For complex decisions: multiple AI agents (HR, Finance, Legal, Operations) deliberate together and provide a balanced recommendation.', content_ar: 'للقرارات المعقدة: عدة وكلاء ذكاء اصطناعي (موارد بشرية، مالية، قانونية، عمليات) يتداولون معاً ويقدمون توصية متوازنة.', duration_min: 3 },
+      { title_en: 'AI-Powered Reports', title_ar: 'التقارير المدعومة بالذكاء', content_en: 'Generate professional reports with AI insights: financial summaries, employee performance reviews, project status reports, and KPI dashboards.', content_ar: 'إنشاء تقارير احترافية مع رؤى الذكاء الاصطناعي: ملخصات مالية ومراجعات أداء الموظفين وتقارير حالة المشاريع ولوحات KPI.', duration_min: 3 },
+      { title_en: 'Customizing AI Behavior', title_ar: 'تخصيص سلوك AI', content_en: 'Configure AI preferences: language, response style, module focus, and automation triggers. Set up recurring AI tasks.', content_ar: 'تكوين تفضيلات AI: اللغة وأسلوب الرد وتركيز الوحدة ومحفزات الأتمتة. إعداد مهام AI المتكررة.', duration_min: 2 },
+    ],
+  };
+  return base[courseId] || Array.from({ length: 5 }, (_, i) => ({
+    title_en: `Lesson ${i + 1}`, title_ar: `الدرس ${i + 1}`,
+    content_en: 'This lesson covers essential concepts and practical exercises. Content is loaded from the academy database when available.',
+    content_ar: 'يغطي هذا الدرس المفاهيم الأساسية والتمارين العملية. يتم تحميل المحتوى من قاعدة بيانات الأكاديمية عند توفره.',
+    duration_min: Math.floor(Math.random() * 5) + 2,
+  }));
+}
+
 /* ─── Academy Video Embed ────────────────────────────────────────────── */
 function AcademyVideo({ isAr }: { isAr: boolean }) {
   return (
@@ -202,11 +281,14 @@ function AcademyVideo({ isAr }: { isAr: boolean }) {
               <Video size={12} /> {isAr ? 'مقدمة الأكاديمية' : 'Academy Intro'}
             </span>
           </div>
-          <iframe
-            src={ASSETS.VIDEO_DRIVE}
+          <video
+            src={ASSETS.VIDEO_GPHOTO}
             className="w-full aspect-video"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
+            controls
+            autoPlay
+            muted
+            playsInline
+            poster="/splash.gif"
             style={{ border: 'none' }}
             title={isAr ? 'مقدمة أكاديمية ZIEN' : 'ZIEN Academy Intro'}
           />
@@ -229,6 +311,56 @@ export default function AcademyPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Quiz state
+  const [activeQuiz, setActiveQuiz] = useState<TestItem | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<(number | null)[]>([]);
+  const [quizCurrentQ, setQuizCurrentQ] = useState(0);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizTimeLeft, setQuizTimeLeft] = useState(0);
+
+  // Lesson viewer state
+  const [viewingLessons, setViewingLessons] = useState(false);
+  const [lessonIndex, setLessonIndex] = useState(0);
+  const [lessonContent, setLessonContent] = useState<LessonContent[]>([]);
+  const [completedLessons, setCompletedLessons] = useState<Set<number>>(new Set());
+
+  // Quiz timer
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (activeQuiz && !quizSubmitted && quizTimeLeft > 0) {
+      timerRef.current = setInterval(() => setQuizTimeLeft(t => { if (t <= 1) { setQuizSubmitted(true); return 0; } return t - 1; }), 1000);
+      return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }
+  }, [activeQuiz, quizSubmitted, quizTimeLeft]);
+
+  const startQuiz = useCallback((test: TestItem) => {
+    const questions = QUIZ_BANK[test.id] || [];
+    setQuizQuestions(questions);
+    setQuizAnswers(new Array(questions.length).fill(null));
+    setQuizCurrentQ(0);
+    setQuizSubmitted(false);
+    setQuizTimeLeft(test.time_min * 60);
+    setActiveQuiz(test);
+  }, []);
+
+  const submitQuiz = useCallback(() => {
+    setQuizSubmitted(true);
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
+
+  const quizScore = quizSubmitted ? quizAnswers.reduce((acc, ans, i) => acc + (ans === quizQuestions[i]?.correct ? 1 : 0), 0) : 0;
+  const quizPercent = quizQuestions.length > 0 ? Math.round((quizScore / quizQuestions.length) * 100) : 0;
+  const quizPassed = activeQuiz ? quizPercent >= activeQuiz.passing : false;
+
+  const startLessons = useCallback((course: Course) => {
+    setLessonContent(getCourseLessons(course.id));
+    setLessonIndex(0);
+    setCompletedLessons(new Set());
+    setViewingLessons(true);
+    setSelectedCourse(course);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -441,7 +573,7 @@ export default function AcademyPage() {
                     {isAr ? test.prereq_ar : test.prereq_en}
                   </p>
                 </div>
-                <button className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all whitespace-nowrap">
+                <button onClick={() => startQuiz(test)} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all whitespace-nowrap">
                   {isAr ? 'ابدأ الاختبار' : 'Start Exam'}
                 </button>
               </motion.div>
@@ -616,26 +748,267 @@ export default function AcademyPage() {
                   </div>
                 </div>
 
-                {/* Mock lesson list */}
+                {/* Real lesson list */}
                 <div className="space-y-2 mb-6 max-h-40 overflow-y-auto">
-                  {Array.from({ length: Math.min(selectedCourse.lessons, 6) }, (_, i) => (
+                  {getCourseLessons(selectedCourse.id).slice(0, 6).map((lesson, i) => (
                     <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--bg-secondary)]">
                       <div className="w-6 h-6 bg-blue-600/10 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">{i + 1}</div>
-                      <span className="text-sm flex-1">{isAr ? `الدرس ${i + 1}` : `Lesson ${i + 1}`}</span>
+                      <span className="text-sm flex-1">{isAr ? lesson.title_ar : lesson.title_en}</span>
+                      <span className="text-[10px] text-[var(--text-secondary)]">{lesson.duration_min}{isAr ? 'د' : 'm'}</span>
                       <Play className="w-4 h-4 text-[var(--text-secondary)]" />
                     </div>
                   ))}
-                  {selectedCourse.lessons > 6 && (
+                  {getCourseLessons(selectedCourse.id).length > 6 && (
                     <div className="text-xs text-center text-[var(--text-secondary)] pt-1">
-                      +{selectedCourse.lessons - 6} {isAr ? 'دروس أخرى' : 'more lessons'}
+                      +{getCourseLessons(selectedCourse.id).length - 6} {isAr ? 'دروس أخرى' : 'more lessons'}
                     </div>
                   )}
                 </div>
 
-                <button className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                <button onClick={() => { startLessons(selectedCourse); }} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
                   <Play className="w-5 h-5" />
                   {isAr ? 'ابدأ الدورة' : 'Start Course'}
                 </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ===== QUIZ MODAL ===== */}
+        <AnimatePresence>
+          {activeQuiz && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => { setActiveQuiz(null); if (timerRef.current) clearInterval(timerRef.current); }}>
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-[var(--bg-primary)] rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+
+                {!quizSubmitted ? (
+                  <>
+                    {/* Quiz header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h2 className="text-xl font-bold">{isAr ? activeQuiz.title_ar : activeQuiz.title_en}</h2>
+                        <p className="text-sm text-[var(--text-secondary)]">
+                          {isAr ? `سؤال ${quizCurrentQ + 1} من ${quizQuestions.length}` : `Question ${quizCurrentQ + 1} of ${quizQuestions.length}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className={`px-3 py-1.5 rounded-lg text-sm font-bold ${quizTimeLeft < 60 ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-blue-100 text-blue-700'}`}>
+                          <Clock className="w-4 h-4 inline-block mr-1" />
+                          {Math.floor(quizTimeLeft / 60)}:{String(quizTimeLeft % 60).padStart(2, '0')}
+                        </div>
+                        <button onClick={() => { setActiveQuiz(null); if (timerRef.current) clearInterval(timerRef.current); }} className="p-2 hover:bg-black/5 rounded-lg">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="w-full bg-[var(--bg-secondary)] rounded-full h-2 mb-6">
+                      <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${((quizCurrentQ + 1) / quizQuestions.length) * 100}%` }} />
+                    </div>
+
+                    {/* Question */}
+                    {quizQuestions[quizCurrentQ] && (
+                      <div className="mb-8">
+                        <h3 className="text-lg font-bold mb-4">
+                          {isAr ? quizQuestions[quizCurrentQ].q_ar : quizQuestions[quizCurrentQ].q_en}
+                        </h3>
+                        <div className="space-y-3">
+                          {(isAr ? quizQuestions[quizCurrentQ].options_ar : quizQuestions[quizCurrentQ].options_en).map((opt, oi) => (
+                            <button key={oi} onClick={() => { const newAnswers = [...quizAnswers]; newAnswers[quizCurrentQ] = oi; setQuizAnswers(newAnswers); }}
+                              className={`w-full text-start p-4 rounded-xl border-2 transition-all ${quizAnswers[quizCurrentQ] === oi
+                                ? 'border-blue-600 bg-blue-50 dark:bg-blue-600/10'
+                                : 'border-[var(--border-soft)] hover:border-blue-300'}`}>
+                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--bg-secondary)] text-xs font-bold mr-3">
+                                {String.fromCharCode(65 + oi)}
+                              </span>
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Navigation */}
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => setQuizCurrentQ(q => Math.max(0, q - 1))} disabled={quizCurrentQ === 0}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-30 hover:bg-[var(--bg-secondary)] transition-all">
+                        <ArrowLeft className="w-4 h-4" /> {isAr ? 'السابق' : 'Previous'}
+                      </button>
+                      <div className="flex gap-1.5">
+                        {quizQuestions.map((_, qi) => (
+                          <button key={qi} onClick={() => setQuizCurrentQ(qi)}
+                            className={`w-3 h-3 rounded-full transition-all ${qi === quizCurrentQ ? 'bg-blue-600 scale-125' : quizAnswers[qi] !== null ? 'bg-blue-300' : 'bg-[var(--bg-secondary)]'}`} />
+                        ))}
+                      </div>
+                      {quizCurrentQ < quizQuestions.length - 1 ? (
+                        <button onClick={() => setQuizCurrentQ(q => q + 1)}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all">
+                          {isAr ? 'التالي' : 'Next'} <ArrowRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button onClick={submitQuiz} disabled={quizAnswers.some(a => a === null)}
+                          className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all disabled:opacity-50">
+                          <CheckCircle className="w-4 h-4" /> {isAr ? 'تسليم' : 'Submit'}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  /* Quiz Results */
+                  <div className="text-center py-4">
+                    <div className={`w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center ${quizPassed ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                      {quizPassed ? <Trophy className="w-12 h-12" /> : <AlertTriangle className="w-12 h-12" />}
+                    </div>
+                    <h2 className="text-3xl font-black mb-2">{quizPercent}%</h2>
+                    <p className="text-xl font-bold mb-1">
+                      {quizPassed ? (isAr ? 'مبروك! نجحت! 🎉' : 'Congratulations! You Passed! 🎉') : (isAr ? 'لم تنجح هذه المرة' : 'Not Passed This Time')}
+                    </p>
+                    <p className="text-[var(--text-secondary)] mb-6">
+                      {isAr ? `${quizScore} من ${quizQuestions.length} إجابات صحيحة • الحد الأدنى: ${activeQuiz.passing}%` : `${quizScore} of ${quizQuestions.length} correct • Minimum: ${activeQuiz.passing}%`}
+                    </p>
+
+                    {quizPassed && (
+                      <div className="glass-card p-6 mb-6 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 border-yellow-300/30">
+                        <Award className="w-10 h-10 text-yellow-600 mx-auto mb-3" />
+                        <h3 className="font-bold">{isAr ? 'شهادتك جاهزة!' : 'Your Certificate is Ready!'}</h3>
+                        <p className="text-sm text-[var(--text-secondary)] mb-4">{isAr ? activeQuiz.title_ar : activeQuiz.title_en}</p>
+                        <div className="flex justify-center gap-3">
+                          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold">
+                            <Download className="w-4 h-4" /> {isAr ? 'تحميل PDF' : 'Download PDF'}
+                          </button>
+                          <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] rounded-lg text-sm font-bold">
+                            <Share2 className="w-4 h-4" /> {isAr ? 'مشاركة' : 'Share'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show correct answers */}
+                    <div className="text-start space-y-3 mt-6 max-h-60 overflow-y-auto">
+                      {quizQuestions.map((q, qi) => (
+                        <div key={qi} className={`p-3 rounded-xl border-2 ${quizAnswers[qi] === q.correct ? 'border-emerald-300 bg-emerald-50 dark:bg-emerald-900/10' : 'border-red-300 bg-red-50 dark:bg-red-900/10'}`}>
+                          <p className="text-sm font-bold mb-1">{qi + 1}. {isAr ? q.q_ar : q.q_en}</p>
+                          <p className="text-xs">
+                            <span className="text-emerald-700 dark:text-emerald-400">✓ {isAr ? q.options_ar[q.correct] : q.options_en[q.correct]}</span>
+                            {quizAnswers[qi] !== q.correct && quizAnswers[qi] !== null && (
+                              <span className="text-red-600 dark:text-red-400 block">✗ {isAr ? q.options_ar[quizAnswers[qi]!] : q.options_en[quizAnswers[qi]!]}</span>
+                            )}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-center gap-3 mt-6">
+                      {!quizPassed && (
+                        <button onClick={() => startQuiz(activeQuiz)} className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold">
+                          <RotateCcw className="w-4 h-4" /> {isAr ? 'أعد الاختبار' : 'Retry'}
+                        </button>
+                      )}
+                      <button onClick={() => setActiveQuiz(null)} className="px-5 py-2 bg-[var(--bg-secondary)] rounded-xl text-sm font-bold">
+                        {isAr ? 'إغلاق' : 'Close'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ===== LESSON VIEWER MODAL ===== */}
+        <AnimatePresence>
+          {viewingLessons && selectedCourse && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+              onClick={() => { setViewingLessons(false); setSelectedCourse(null); }}>
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-[var(--bg-primary)] rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col sm:flex-row" onClick={e => e.stopPropagation()}>
+
+                {/* Sidebar - lesson list */}
+                <div className="w-full sm:w-72 bg-[var(--bg-secondary)] p-4 overflow-y-auto border-b sm:border-b-0 sm:border-r border-[var(--border-soft)] max-h-48 sm:max-h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-sm">{isAr ? selectedCourse.title_ar : selectedCourse.title_en}</h3>
+                    <button onClick={() => { setViewingLessons(false); setSelectedCourse(null); }} className="sm:hidden p-1 hover:bg-black/5 rounded">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-xs text-[var(--text-secondary)] mb-3">
+                    {completedLessons.size}/{lessonContent.length} {isAr ? 'مكتمل' : 'completed'}
+                    <div className="w-full bg-[var(--bg-primary)] rounded-full h-1.5 mt-1">
+                      <div className="bg-emerald-500 h-1.5 rounded-full transition-all" style={{ width: `${(completedLessons.size / Math.max(1, lessonContent.length)) * 100}%` }} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    {lessonContent.map((lesson, i) => (
+                      <button key={i} onClick={() => setLessonIndex(i)}
+                        className={`w-full text-start flex items-center gap-2 p-2 rounded-lg text-sm transition-all ${i === lessonIndex ? 'bg-blue-600 text-white' : 'hover:bg-[var(--bg-primary)]'}`}>
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${completedLessons.has(i) ? 'bg-emerald-500 text-white' : i === lessonIndex ? 'bg-white/20 text-white' : 'bg-[var(--bg-primary)]'}`}>
+                          {completedLessons.has(i) ? <CheckCircle className="w-3 h-3" /> : i + 1}
+                        </div>
+                        <span className="truncate">{isAr ? lesson.title_ar : lesson.title_en}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Main content */}
+                <div className="flex-1 p-6 sm:p-8 overflow-y-auto">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <p className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? `الدرس ${lessonIndex + 1}` : `Lesson ${lessonIndex + 1}`}</p>
+                      <h2 className="text-2xl font-bold">{isAr ? lessonContent[lessonIndex]?.title_ar : lessonContent[lessonIndex]?.title_en}</h2>
+                    </div>
+                    <button onClick={() => { setViewingLessons(false); setSelectedCourse(null); }} className="hidden sm:block p-2 hover:bg-black/5 rounded-lg">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)] mb-8">
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {lessonContent[lessonIndex]?.duration_min} {isAr ? 'دقيقة' : 'min'}</span>
+                    <span className={`px-2 py-0.5 rounded-full font-bold ${completedLessons.has(lessonIndex) ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {completedLessons.has(lessonIndex) ? (isAr ? 'مكتمل' : 'Completed') : (isAr ? 'جديد' : 'New')}
+                    </span>
+                  </div>
+
+                  <div className="prose dark:prose-invert max-w-none mb-8">
+                    <p className="text-[var(--text-secondary)] leading-relaxed text-base">
+                      {isAr ? lessonContent[lessonIndex]?.content_ar : lessonContent[lessonIndex]?.content_en}
+                    </p>
+                  </div>
+
+                  {/* Navigation */}
+                  <div className="flex items-center justify-between pt-6 border-t border-[var(--border-soft)]">
+                    <button onClick={() => setLessonIndex(i => Math.max(0, i - 1))} disabled={lessonIndex === 0}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-30 hover:bg-[var(--bg-secondary)]">
+                      <ArrowLeft className="w-4 h-4" /> {isAr ? 'السابق' : 'Previous'}
+                    </button>
+
+                    {!completedLessons.has(lessonIndex) ? (
+                      <button onClick={() => setCompletedLessons(s => new Set(s).add(lessonIndex))}
+                        className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">
+                        <CheckCircle className="w-4 h-4" /> {isAr ? 'إكمال الدرس' : 'Mark Complete'}
+                      </button>
+                    ) : (
+                      <span className="flex items-center gap-2 text-emerald-600 text-sm font-bold">
+                        <CheckCircle className="w-4 h-4" /> {isAr ? 'مكتمل' : 'Done'}
+                      </span>
+                    )}
+
+                    {lessonIndex < lessonContent.length - 1 ? (
+                      <button onClick={() => { setCompletedLessons(s => new Set(s).add(lessonIndex)); setLessonIndex(i => i + 1); }}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700">
+                        {isAr ? 'التالي' : 'Next'} <ArrowRight className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button onClick={() => { setCompletedLessons(s => new Set(s).add(lessonIndex)); setViewingLessons(false); setSelectedCourse(null); }}
+                        className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">
+                        <GraduationCap className="w-4 h-4" /> {isAr ? 'إنهاء الدورة' : 'Finish Course'}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </motion.div>
             </motion.div>
           )}

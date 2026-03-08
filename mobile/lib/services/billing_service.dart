@@ -180,7 +180,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
   /// Fetch all billing data: plans, subscription, usage.
   Future<void> loadAll() async {
     final companyState = ref.read(companyProvider);
-    final companyId = companyState.activeCompany?.id;
+    final companyId = companyState.active?.id;
     if (companyId == null) return;
 
     state = state.copyWith(isLoading: true, error: null);
@@ -241,7 +241,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
     required String planCode,
     String billingInterval = 'monthly',
   }) async {
-    final companyId = ref.read(companyProvider).activeCompany?.id;
+    final companyId = ref.read(companyProvider).active?.id;
     if (companyId == null) return null;
 
     final res = await _api.post(
@@ -261,7 +261,7 @@ class BillingNotifier extends StateNotifier<BillingState> {
 
   /// Create a Stripe customer portal session and return the URL.
   Future<String?> createPortalSession() async {
-    final companyId = ref.read(companyProvider).activeCompany?.id;
+    final companyId = ref.read(companyProvider).active?.id;
     if (companyId == null) return null;
 
     final res = await _api.post(

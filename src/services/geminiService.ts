@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 import type { RAREMode, RAREContext } from '../types';
 
 export type RAREAgentType =
-  | 'accounting' | 'hr' | 'sales' | 'fleet'
+  | 'accounting' | 'hr' | 'sales' | 'fleet' | 'pm'
   | 'meetings' | 'gm' | 'secretary' | 'founder';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
@@ -35,35 +35,43 @@ export async function generateRAREAnalysis(
     throw new Error('Not authenticated');
   }
 
-  const res = await fetch(`${API_URL}/api/ai/rare`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      prompt: query,
-      mode: context.mode,
-      agentType,
-      moduleCode: context.moduleCode,
-      companyId: context.companyId || undefined,
-      language: context.language || 'en',
-      files: context.files?.length ? context.files : undefined,
-      context: {
-        pageCode: context.pageCode,
-        userRole: context.userRole,
-        language: context.language,
-        theme: context.theme,
-        selectedEntityId: context.selectedEntityId,
-        additionalData: context.additionalData,
-      },
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'AI service error' }));
-    throw new Error((err as { error?: string }).error ?? 'AI service error');
+  try {
+    const res = await fetch(`${API_URL}/api/ai/rare`, {
+      method: 'POST',
+      headers,
+      signal: controller.signal,
+      body: JSON.stringify({
+        prompt: query,
+        mode: context.mode,
+        agentType,
+        moduleCode: context.moduleCode,
+        companyId: context.companyId || undefined,
+        language: context.language || 'en',
+        files: context.files?.length ? context.files : undefined,
+        context: {
+          pageCode: context.pageCode,
+          userRole: context.userRole,
+          language: context.language,
+          theme: context.theme,
+          selectedEntityId: context.selectedEntityId,
+          additionalData: context.additionalData,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'AI service error' }));
+      throw new Error((err as { error?: string }).error ?? 'AI service error');
+    }
+
+    const data = (await res.json()) as { response: string };
+    return data.response;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data = (await res.json()) as { response: string };
-  return data.response;
 }
 
 export async function generateBusinessReport(

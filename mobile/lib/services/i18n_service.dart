@@ -133,6 +133,19 @@ final tProvider = Provider<String Function(String)>((ref) {
   return i18n.t;
 });
 
+/// Convenience: translator with fallback support.
+/// Usage: final t = ref.watch(translatorProvider);
+///        t('key', fallback: 'Default text')
+final translatorProvider =
+    Provider<String Function(String key, {String? fallback})>((ref) {
+      final i18n = ref.watch(i18nProvider);
+      return (String key, {String? fallback}) {
+        final result = i18n.translations[key];
+        if (result != null && result.isNotEmpty) return result;
+        return fallback ?? key;
+      };
+    });
+
 /// Convenience: is current language RTL?
 final isRtlProvider = Provider<bool>((ref) {
   return ref.watch(i18nProvider).isRtl;

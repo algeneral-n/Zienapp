@@ -48,26 +48,26 @@ class ActionLevel {
 
 // ─── Module Access Matrix ────────────────────────────────────────────────────
 
-class _ModuleAccess {
+class ModuleAccess {
   final int read;
   final int write;
-  const _ModuleAccess(this.read, this.write);
+  const ModuleAccess(this.read, this.write);
 }
 
-const Map<String, _ModuleAccess> moduleAccess = {
-  'dashboard': _ModuleAccess(10, 85),
-  'hr': _ModuleAccess(45, 60),
-  'accounting': _ModuleAccess(45, 60),
-  'logistics': _ModuleAccess(35, 55),
-  'crm': _ModuleAccess(45, 55),
-  'projects': _ModuleAccess(35, 45),
-  'store': _ModuleAccess(35, 55),
-  'meetings': _ModuleAccess(15, 35),
-  'rare': _ModuleAccess(55, 85),
-  'integrations': _ModuleAccess(55, 75),
-  'portal_builder': _ModuleAccess(85, 85),
-  'academy': _ModuleAccess(10, 65),
-  'help': _ModuleAccess(10, 65),
+const Map<String, ModuleAccess> moduleAccess = {
+  'dashboard': ModuleAccess(10, 85),
+  'hr': ModuleAccess(45, 60),
+  'accounting': ModuleAccess(45, 60),
+  'logistics': ModuleAccess(35, 55),
+  'crm': ModuleAccess(45, 55),
+  'projects': ModuleAccess(35, 45),
+  'store': ModuleAccess(35, 55),
+  'meetings': ModuleAccess(15, 35),
+  'rare': ModuleAccess(55, 85),
+  'integrations': ModuleAccess(55, 75),
+  'portal_builder': ModuleAccess(85, 85),
+  'academy': ModuleAccess(10, 65),
+  'help': ModuleAccess(10, 65),
 };
 
 // ─── AI Agent Access Matrix ──────────────────────────────────────────────────
@@ -206,15 +206,15 @@ List<String> getWritableModules(String? role) {
 
 // ─── Riverpod Providers ──────────────────────────────────────────────────────
 
-/// Current user's role string from company state.
-final currentRoleProvider = Provider<String?>((ref) {
-  final companyState = ref.watch(companyProvider);
-  return companyState.role?.value;
+/// Current user's role as a String (derived from CompanyRole enum in company_providers).
+final currentRoleStringProvider = Provider<String?>((ref) {
+  final companyRole = ref.watch(currentRoleProvider);
+  return companyRole?.name;
 });
 
 /// Current user's numeric level.
 final currentLevelProvider = Provider<int>((ref) {
-  final role = ref.watch(currentRoleProvider);
+  final role = ref.watch(currentRoleStringProvider);
   return getRoleLevel(role);
 });
 
@@ -235,25 +235,25 @@ final isManagerProvider = Provider<bool>((ref) {
 
 /// Family provider: can read specific module?
 final canReadModuleProvider = Provider.family<bool, String>((ref, module) {
-  return canReadModule(ref.watch(currentRoleProvider), module);
+  return canReadModule(ref.watch(currentRoleStringProvider), module);
 });
 
 /// Family provider: can write to specific module?
 final canWriteModuleProvider = Provider.family<bool, String>((ref, module) {
-  return canWriteModule(ref.watch(currentRoleProvider), module);
+  return canWriteModule(ref.watch(currentRoleStringProvider), module);
 });
 
 /// Family provider: can access specific AI agent?
 final canAccessAgentProvider = Provider.family<bool, String>((ref, agent) {
-  return canAccessAgent(ref.watch(currentRoleProvider), agent);
+  return canAccessAgent(ref.watch(currentRoleStringProvider), agent);
 });
 
 /// Family provider: can perform specific AI action?
 final canPerformActionProvider = Provider.family<bool, String>((ref, action) {
-  return canPerformAction(ref.watch(currentRoleProvider), action);
+  return canPerformAction(ref.watch(currentRoleStringProvider), action);
 });
 
 /// All readable modules for current user.
 final accessibleModulesProvider = Provider<List<String>>((ref) {
-  return getAccessibleModules(ref.watch(currentRoleProvider));
+  return getAccessibleModules(ref.watch(currentRoleStringProvider));
 });

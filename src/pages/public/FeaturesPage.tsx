@@ -20,11 +20,14 @@ function FeaturesVideo({ language }: { language: string }) {
               <Video size={12} /> {isAr ? 'عرض المنصة' : 'Platform Demo'}
             </span>
           </div>
-          <iframe
-            src={ASSETS.VIDEO_DRIVE}
+          <video
+            src={ASSETS.VIDEO_GPHOTO}
             className="w-full aspect-video"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
+            controls
+            autoPlay
+            muted
+            playsInline
+            poster="/splash.gif"
             style={{ border: 'none' }}
             title={isAr ? 'عرض منصة ZIEN' : 'ZIEN Platform Demo'}
           />

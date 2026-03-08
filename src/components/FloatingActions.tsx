@@ -110,6 +110,13 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Listen for external requests to open the RARE chat panel
+  useEffect(() => {
+    const handleOpenRare = () => setShowPanel(true);
+    window.addEventListener('open-rare-chat', handleOpenRare);
+    return () => window.removeEventListener('open-rare-chat', handleOpenRare);
+  }, []);
+
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([
@@ -212,46 +219,55 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
     setInput('');
     setIsLoading(true);
 
-    const context = getContext();
-    const agentType = getAgentType(context);
-
-    // Build role-aware system context for the AI
-    const roleContext = [
-      `User Role: ${membership?.role || profile?.platformRole || 'unknown'}`,
-      `Company: ${company?.name || 'N/A'}`,
-      `Current Page: ${context.pageCode}${context.moduleCode ? ' / ' + context.moduleCode : ''}`,
-      `Agent Mode: ${activeMode}`,
-      `Permissions: ${permissions.length > 0 ? permissions.slice(0, 10).join(', ') : 'standard employee access'}`,
-      isFounder ? 'Platform Access: FOUNDER (full platform control)' : '',
-      isPlatformAdmin ? 'Platform Access: ADMIN (platform-level management)' : '',
-    ].filter(Boolean).join('\n');
-
-    const enhancedPrompt = `[CONTEXT]\n${roleContext}\n\n[USER QUERY]\n${textToSend}`;
-
-    // Attempt API call first, fall back to local knowledge base
-    let aiResponse: string | null = null;
-
     try {
-      const response = await generateRAREAnalysis(agentType, enhancedPrompt, {
-        ...context,
-        companyId: company?.id || '',
-        mode: activeMode,
-        language,
-        files: selectedFiles.map(f => ({ data: f.data, mimeType: f.mimeType }))
-      });
-      aiResponse = response;
+      const context = getContext();
+      const agentType = getAgentType(context);
+
+      // Build role-aware system context for the AI
+      const roleContext = [
+        `User Role: ${membership?.role || profile?.platformRole || 'unknown'}`,
+        `Company: ${company?.name || 'N/A'}`,
+        `Current Page: ${context.pageCode}${context.moduleCode ? ' / ' + context.moduleCode : ''}`,
+        `Agent Mode: ${activeMode}`,
+        `Permissions: ${permissions.length > 0 ? permissions.slice(0, 10).join(', ') : 'standard employee access'}`,
+        isFounder ? 'Platform Access: FOUNDER (full platform control)' : '',
+        isPlatformAdmin ? 'Platform Access: ADMIN (platform-level management)' : '',
+      ].filter(Boolean).join('\n');
+
+      const enhancedPrompt = `[CONTEXT]\n${roleContext}\n\n[USER QUERY]\n${textToSend}`;
+
+      // Attempt API call first, fall back to local knowledge base
+      let aiResponse: string | null = null;
+
+      try {
+        const response = await generateRAREAnalysis(agentType, enhancedPrompt, {
+          ...context,
+          companyId: company?.id || '',
+          mode: activeMode,
+          language,
+          files: selectedFiles.map(f => ({ data: f.data, mimeType: f.mimeType }))
+        });
+        aiResponse = response;
+      } catch (error) {
+        console.warn('[RARE] API unavailable, using local knowledge base:', error);
+      }
+
+      // If API failed, generate local response from knowledge base
+      if (!aiResponse) {
+        aiResponse = generateLocalRAREResponse(textToSend, agentType, activeMode, language);
+      }
+
+      setMessages(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), role: 'ai', text: aiResponse!, mode: activeMode }]);
+      setSelectedFiles([]);
     } catch (error) {
-      console.warn('[RARE] API unavailable, using local knowledge base:', error);
+      console.error('[RARE] Unexpected error in handleSend:', error);
+      const fallback = language === 'ar'
+        ? 'عذراً، حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.'
+        : 'Sorry, an unexpected error occurred. Please try again.';
+      setMessages(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), role: 'ai', text: fallback }]);
+    } finally {
+      setIsLoading(false);
     }
-
-    // If API failed, generate local response from knowledge base
-    if (!aiResponse) {
-      aiResponse = generateLocalRAREResponse(textToSend, agentType, activeMode, language);
-    }
-
-    setMessages(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), role: 'ai', text: aiResponse!, mode: activeMode }]);
-    setSelectedFiles([]);
-    setIsLoading(false);
   };
 
   // ─── Local RARE Response (offline fallback) ─────────────────────────────

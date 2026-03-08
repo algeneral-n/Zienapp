@@ -6,7 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'permission_utils.dart';
+import '../services/permission_utils.dart';
 
 /// Hides its child if the current user doesn't meet [minLevel],
 /// or can't read [moduleCode].
@@ -46,7 +46,7 @@ class RoleGuard extends ConsumerWidget {
 
     // Check module access
     if (moduleCode != null) {
-      final role = ref.watch(currentRoleProvider);
+      final role = ref.watch(currentRoleStringProvider);
       final hasAccess =
           writeAccess
               ? canWriteModule(role, moduleCode!)
@@ -89,7 +89,7 @@ class RouteRoleGuard extends ConsumerWidget {
     }
 
     if (!denied && moduleCode != null) {
-      final role = ref.watch(currentRoleProvider);
+      final role = ref.watch(currentRoleStringProvider);
       final hasAccess =
           writeAccess
               ? canWriteModule(role, moduleCode!)

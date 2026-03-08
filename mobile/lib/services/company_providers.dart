@@ -118,13 +118,13 @@ class CompanyNotifier extends StateNotifier<CompanyState> {
     // Restore last active company
     final prefs = await SharedPreferences.getInstance();
     final savedId = prefs.getString(_companyKey);
-    final primaryMember = membershipsMap.values
-        .where((m) => m.isPrimary)
-        .firstOrNull;
+    final primaryMember =
+        membershipsMap.values.where((m) => m.isPrimary).firstOrNull;
 
-    final activeId = (savedId != null && companiesMap.containsKey(savedId))
-        ? savedId
-        : primaryMember?.companyId ?? companyList.first.id;
+    final activeId =
+        (savedId != null && companiesMap.containsKey(savedId))
+            ? savedId
+            : primaryMember?.companyId ?? companyList.first.id;
 
     await _selectCompany(
       companiesMap[activeId]!,
@@ -145,13 +145,14 @@ class CompanyNotifier extends StateNotifier<CompanyState> {
     state = state.copyWith(isLoading: true);
 
     // Load membership for this company
-    final memberRow = await _db
-        .from('company_members')
-        .select()
-        .eq('company_id', companyId)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
+    final memberRow =
+        await _db
+            .from('company_members')
+            .select()
+            .eq('company_id', companyId)
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+            .maybeSingle();
 
     final member = memberRow != null ? CompanyMember.fromJson(memberRow) : null;
 
@@ -180,13 +181,15 @@ class CompanyNotifier extends StateNotifier<CompanyState> {
           .eq('is_active', true),
     ]);
 
-    final modules = (results[0] as List<dynamic>)
-        .map((r) => CompanyModule.fromJson(r as Map<String, dynamic>))
-        .toList();
+    final modules =
+        (results[0] as List<dynamic>)
+            .map((r) => CompanyModule.fromJson(r as Map<String, dynamic>))
+            .toList();
 
-    final departments = (results[1] as List<dynamic>)
-        .map((r) => Department.fromJson(r as Map<String, dynamic>))
-        .toList();
+    final departments =
+        (results[1] as List<dynamic>)
+            .map((r) => Department.fromJson(r as Map<String, dynamic>))
+            .toList();
 
     state = CompanyState(
       companies: companies,
@@ -208,8 +211,8 @@ class CompanyNotifier extends StateNotifier<CompanyState> {
 
 final companyNotifierProvider =
     StateNotifierProvider<CompanyNotifier, CompanyState>((ref) {
-  return CompanyNotifier(ref);
-});
+      return CompanyNotifier(ref);
+    });
 
 /// Convenience: current active company
 final activeCompanyProvider = Provider<Company?>((ref) {
@@ -220,3 +223,7 @@ final activeCompanyProvider = Provider<Company?>((ref) {
 final currentRoleProvider = Provider<CompanyRole?>((ref) {
   return ref.watch(companyNotifierProvider).role;
 });
+
+/// Legacy alias — used by billing_service.dart and other files.
+/// Prefer companyNotifierProvider for new code.
+final companyProvider = companyNotifierProvider;
