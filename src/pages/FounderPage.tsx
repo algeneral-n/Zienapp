@@ -1281,11 +1281,10 @@ const ChatBuilder = () => {
           )}
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-sm'
-                  : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-bl-sm'
-              }`}>
+              <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap ${msg.role === 'user'
+                ? 'bg-blue-600 text-white rounded-br-sm'
+                : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-bl-sm'
+                }`}>
                 {msg.text}
               </div>
             </div>
@@ -1391,15 +1390,17 @@ const VoiceControl = () => {
   useEffect(() => {
     const loadVoice = async () => {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const hdrs = { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json', 'x-company-id': 'platform' };
         const [configRes, callsRes, analyticsRes] = await Promise.all([
-          fetch(`${API}/api/voice/config`, { headers: { ...authHeaders(), 'x-company-id': 'platform' } }),
-          fetch(`${API}/api/voice/calls`, { headers: { ...authHeaders(), 'x-company-id': 'platform' } }),
-          fetch(`${API}/api/voice/analytics`, { headers: { ...authHeaders(), 'x-company-id': 'platform' } }),
+          fetch(`${API_URL}/api/voice/config`, { headers: hdrs }),
+          fetch(`${API_URL}/api/voice/calls`, { headers: hdrs }),
+          fetch(`${API_URL}/api/voice/analytics`, { headers: hdrs }),
         ]);
         if (configRes.ok) setVoiceConfig((await configRes.json()).config);
         if (callsRes.ok) setCallLogs((await callsRes.json()).calls || []);
         if (analyticsRes.ok) setAnalytics((await analyticsRes.json()).summary);
-      } catch {}
+      } catch { }
     };
     loadVoice();
   }, []);
@@ -1408,19 +1409,19 @@ const VoiceControl = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <Headphones className="w-6 h-6 text-blue-600" />
-        <h2 className="text-2xl font-black">Voice AI Control</h2>
+        <h2 className="text-2xl font-black">{t('voice_ai_control')}</h2>
       </div>
 
       {/* Voice Analytics */}
       {analytics && (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Total Calls', value: analytics.totalCalls, color: 'blue' },
-            { label: 'Completed', value: analytics.completed, color: 'green' },
-            { label: 'Missed', value: analytics.missed, color: 'red' },
-            { label: 'Avg Duration', value: `${analytics.avgDuration}s`, color: 'purple' },
+            { label: t('total_calls'), value: analytics.totalCalls, cls: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' },
+            { label: t('completed'), value: analytics.completed, cls: 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' },
+            { label: t('missed'), value: analytics.missed, cls: 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' },
+            { label: t('avg_duration'), value: `${analytics.avgDuration}s`, cls: 'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800' },
           ].map(s => (
-            <div key={s.label} className={`bg-${s.color}-50 dark:bg-${s.color}-950/20 rounded-2xl p-6 border border-${s.color}-200 dark:border-${s.color}-800`}>
+            <div key={s.label} className={`${s.cls} rounded-2xl p-6 border`}>
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-1">{s.label}</p>
               <p className="text-3xl font-black">{s.value}</p>
             </div>
@@ -1460,7 +1461,7 @@ const VoiceControl = () => {
               </div>
             </div>
           ))}
-          {callLogs.length === 0 && <p className="text-zinc-500 text-sm">No call logs yet</p>}
+          {callLogs.length === 0 && <p className="text-zinc-500 text-sm">{t('no_call_logs')}</p>}
         </div>
       </div>
     </div>
@@ -1479,7 +1480,7 @@ const IncidentsAlerts = () => {
         const admin = supabase;
         const { data } = await admin.from('platform_incidents').select('*').order('created_at', { ascending: false }).limit(50);
         setIncidents(data || []);
-      } catch {}
+      } catch { }
       setLoading(false);
     };
     loadIncidents();
@@ -1513,18 +1514,18 @@ const IncidentsAlerts = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <Bell className="w-6 h-6 text-orange-600" />
-        <h2 className="text-2xl font-black">Incidents & Alerts</h2>
+        <h2 className="text-2xl font-black">{t('incidents_alerts')}</h2>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Open', value: incidents.filter(i => i.status === 'open').length, color: 'red' },
-          { label: 'Investigating', value: incidents.filter(i => i.status === 'investigating').length, color: 'orange' },
-          { label: 'Mitigated', value: incidents.filter(i => i.status === 'mitigated').length, color: 'yellow' },
-          { label: 'Resolved', value: incidents.filter(i => ['resolved', 'auto_resolved'].includes(i.status)).length, color: 'green' },
+          { label: t('open'), value: incidents.filter(i => i.status === 'open').length, cls: 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' },
+          { label: t('investigating'), value: incidents.filter(i => i.status === 'investigating').length, cls: 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800' },
+          { label: t('mitigated'), value: incidents.filter(i => i.status === 'mitigated').length, cls: 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800' },
+          { label: t('resolved'), value: incidents.filter(i => ['resolved', 'auto_resolved'].includes(i.status)).length, cls: 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' },
         ].map(s => (
-          <div key={s.label} className={`bg-${s.color}-50 dark:bg-${s.color}-950/20 rounded-2xl p-6 border border-${s.color}-200 dark:border-${s.color}-800`}>
+          <div key={s.label} className={`${s.cls} rounded-2xl p-6 border`}>
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-1">{s.label}</p>
             <p className="text-3xl font-black">{s.value}</p>
           </div>
@@ -1533,7 +1534,7 @@ const IncidentsAlerts = () => {
 
       {/* Incidents list */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800">
-        <h3 className="text-lg font-bold mb-4">Recent Incidents</h3>
+        <h3 className="text-lg font-bold mb-4">{t('recent_incidents')}</h3>
         {loading ? <p className="text-zinc-500">Loading...</p> : (
           <div className="space-y-3">
             {incidents.map((incident) => (
@@ -1552,13 +1553,13 @@ const IncidentsAlerts = () => {
                     <button
                       onClick={() => resolveIncident(incident.id)}
                       className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700"
-                    >Auto-Fix</button>
+                    >{t('auto_fix')}</button>
                   )}
                   {incident.status === 'open' && (
                     <button
                       onClick={() => resolveIncident(incident.id)}
                       className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700"
-                    >Resolve</button>
+                    >{t('resolve')}</button>
                   )}
                   <span className="text-[10px] text-zinc-500">{new Date(incident.created_at).toLocaleString()}</span>
                 </div>
@@ -1587,7 +1588,7 @@ const ProvisioningOps = () => {
           .order('created_at', { ascending: false })
           .limit(50);
         setJobs(data || []);
-      } catch {}
+      } catch { }
       setLoading(false);
     };
     loadJobs();
@@ -1596,13 +1597,13 @@ const ProvisioningOps = () => {
   const retryJob = async (jobId: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      await fetch(`${API}/api/provision/retry`, {
+      await fetch(`${API_URL}/api/provision/retry`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobId }),
       });
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'queued', error_message: null } : j));
-    } catch {}
+    } catch { }
   };
 
   const statusColor = (s: string) => {
@@ -1665,13 +1666,13 @@ const ProvisioningOps = () => {
                     <button
                       onClick={() => retryJob(job.id)}
                       className="px-3 py-1.5 bg-orange-600 text-white text-xs font-bold rounded-lg hover:bg-orange-700"
-                    >Retry</button>
+                    >{t('retry')}</button>
                   )}
                   <span className="text-[10px] text-zinc-500">{new Date(job.created_at).toLocaleString()}</span>
                 </div>
               </div>
             ))}
-            {jobs.length === 0 && <p className="text-zinc-500 text-sm">No provisioning jobs</p>}
+            {jobs.length === 0 && <p className="text-zinc-500 text-sm">{t('no_provisioning_jobs')}</p>}
           </div>
         )}
       </div>
@@ -1684,11 +1685,21 @@ const ProvisioningOps = () => {
 export default function FounderPage() {
   const { user, profile } = useAuth();
   const { t } = useTranslation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
       {/* Sidebar */}
-      <aside className="w-72 h-screen bg-zinc-900 text-white flex flex-col sticky top-0">
+      <aside className={`
+        fixed lg:sticky top-0 z-50 lg:z-auto
+        w-72 h-screen bg-zinc-900 text-white flex flex-col
+        transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
         <div className="p-8">
           <Link to="/" className="flex items-center gap-2 mb-12">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl">Z</div>
@@ -1708,11 +1719,11 @@ export default function FounderPage() {
               { icon: Server, label: t('maintenance'), path: 'maintenance' },
               { icon: FileText, label: t('reports'), path: 'reports' },
               { icon: Shield, label: t('security'), path: 'security' },
-              { icon: MessageSquare, label: 'Chat Builder', path: 'chat' },
-              { icon: TicketCheck, label: 'Support', path: 'support' },
-              { icon: Headphones, label: 'Voice AI', path: 'voice' },
-              { icon: Bell, label: 'Incidents', path: 'incidents' },
-              { icon: Database, label: 'Provisioning', path: 'provisioning' },
+              { icon: MessageSquare, label: t('chat_builder'), path: 'chat' },
+              { icon: TicketCheck, label: t('support'), path: 'support' },
+              { icon: Headphones, label: t('voice_ai'), path: 'voice' },
+              { icon: Bell, label: t('incidents'), path: 'incidents' },
+              { icon: Database, label: t('provisioning'), path: 'provisioning' },
             ].map((item) => (
               <NavLink
                 key={item.label}
@@ -1728,6 +1739,8 @@ export default function FounderPage() {
               </NavLink>
             ))}
           </nav>
+          {/* Close button on mobile */}
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden mt-4 px-4 py-2 bg-white/10 rounded-xl text-xs font-bold text-white">{t('close')}</button>
         </div>
         <div className="mt-auto p-8">
           <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
@@ -1740,8 +1753,13 @@ export default function FounderPage() {
       </aside>
 
       <main className="flex-1 flex flex-col">
-        <header className="h-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-8 sticky top-0 z-30">
-          <h1 className="text-xl font-black uppercase tracking-tighter">{t('platform_control_center')}</h1>
+        <header className="h-16 md:h-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            </button>
+            <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter">{t('platform_control_center')}</h1>
+          </div>
           <HeaderControls />
         </header>
 

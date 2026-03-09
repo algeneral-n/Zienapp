@@ -192,6 +192,11 @@ export default function LandingPage() {
                   <p className="text-xl text-[var(--text-secondary)] mb-6 max-w-lg leading-relaxed">
                     {t.heroSub}
                   </p>
+                  <div className="mt-4 p-4 rounded-2xl bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-700/30">
+                    <p className="text-base font-medium text-blue-800 dark:text-blue-200 leading-relaxed">
+                      {translate(`landing_img_${currentSlide + 1}` as any)}
+                    </p>
+                  </div>
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -213,30 +218,7 @@ export default function LandingPage() {
                   />
                 </div>
 
-                {/* Image Description Card */}
-                <div className="absolute bottom-4 left-4 right-4 z-10">
-                  <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl px-5 py-3 shadow-lg border border-white/20">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                      {translate(`landing_img_${currentSlide + 1}` as any)}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Floating AI Agent Card */}
-                <div className="absolute -bottom-6 -left-6 glass-card p-6 max-w-xs animate-bounce-slow hidden lg:block">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center overflow-hidden">
-                      <img src={ASSETS.RARE_AGENT} alt="RARE AI" className="w-full h-full object-cover" {...IMAGE_PROPS} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-blue-600">{translate('rare_ai_active')}</div>
-                      <div className="text-xs text-[var(--text-secondary)]">{translate('intelligent_shield')}</div>
-                    </div>
-                  </div>
-                  <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
-                    <div className="h-full w-3/4 bg-blue-500" />
-                  </div>
-                </div>
               </motion.div>
             </AnimatePresence>
           </div>

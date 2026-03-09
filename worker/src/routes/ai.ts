@@ -1577,7 +1577,7 @@ async function handleAIContext(
     role_code: membership.role,
     context_data: context,
     forbidden_topics: forbiddenTopics,
-  }).then(() => {});
+  }).then(() => { });
 
   return jsonResponse({ context, forbidden_topics: forbiddenTopics });
 }
