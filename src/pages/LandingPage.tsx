@@ -32,25 +32,28 @@ export default function LandingPage() {
     image: null as File | null
   });
 
-  const slides = [
-    {
-      title: translate('hero_title_1'),
-      subtitle: translate('hero_sub_1'),
-      image: ASSETS.LANDING_1,
-      accent: "blue"
-    },
-    {
-      title: translate('hero_title_2'),
-      subtitle: translate('hero_sub_2'),
-      image: ASSETS.LANDING_2,
-      accent: "cyan"
-    },
-    {
-      title: translate('hero_title_3'),
-      subtitle: translate('hero_sub_3'),
-      image: ASSETS.MODULES_OVERVIEW,
-      accent: "indigo"
-    }
+  const textSlides = [
+    { title: translate('hero_title_1'), subtitle: translate('hero_sub_1') },
+    { title: translate('hero_title_2'), subtitle: translate('hero_sub_2') },
+    { title: translate('hero_title_3'), subtitle: translate('hero_sub_3') },
+  ];
+
+  const landingImages = [
+    '/landing images/ChatGPT Image Feb 21, 2026, 11_00_26 AM.png',
+    '/landing images/ChatGPT Image Feb 21, 2026, 11_00_28 AM - Copy.png',
+    '/landing images/ChatGPT Image Feb 21, 2026, 11_00_29 AM.png',
+    '/landing images/ChatGPT Image Feb 21, 2026, 11_00_32 AM.png',
+    '/landing images/ChatGPT Image Feb 21, 2026, 11_00_45 AM.png',
+    '/landing images/ChatGPT Image Feb 21, 2026, 11_00_48 AM.png',
+    '/landing images/Gemini_Generated_Image_507n4c507n4c507n.png',
+    '/landing images/Gemini_Generated_Image_7sz6lf7sz6lf7sz6 (1).png',
+    '/landing images/Gemini_Generated_Image_a3mulda3mulda3mu.png',
+    '/landing images/Gemini_Generated_Image_bfgslvbfgslvbfgs - Copy.png',
+    '/landing images/Gemini_Generated_Image_bfgslvbfgslvbfgs.png',
+    '/landing images/Gemini_Generated_Image_e3el6de3el6de3el.png',
+    '/landing images/Gemini_Generated_Image_nqkfntnqkfntnqkf - Copy.png',
+    '/landing images/Gemini_Generated_Image_qbonk7qbonk7qbon.png',
+    '/landing images/Gemini_Generated_Image_ytphr1ytphr1ytph.png',
   ];
 
   const languages: { code: Language; label: string }[] = [
@@ -73,8 +76,8 @@ export default function LandingPage() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
+      setCurrentSlide((prev) => (prev + 1) % landingImages.length);
+    }, 4000);
     return () => clearInterval(timer);
   }, []);
 
@@ -151,8 +154,8 @@ export default function LandingPage() {
   };
 
   const t = {
-    heroTitle: slides[currentSlide].title,
-    heroSub: slides[currentSlide].subtitle,
+    heroTitle: textSlides[currentSlide % textSlides.length].title,
+    heroSub: textSlides[currentSlide % textSlides.length].subtitle,
     register: translate('register'),
     login: translate('login'),
     features: translate('features'),
@@ -168,48 +171,50 @@ export default function LandingPage() {
       {/* Hero Section with Slider */}
       <section className="pt-32 pb-20 px-6 relative overflow-hidden min-h-[90vh] flex items-center">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-bold mb-6">
-                <Zap className="w-4 h-4 fill-current" />
-                {t.rareAi}
-              </div>
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
-                {t.heroTitle}
-              </h1>
-              <p className="text-xl text-[var(--text-secondary)] mb-10 max-w-lg leading-relaxed">
-                {t.heroSub}
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <button
-                  onClick={() => navigate('/register')}
-                  className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 flex items-center gap-2"
-                >
-                  {t.joinNow}
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setShowDemoModal(true)}
-                  className="glass-card px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black/5 transition-all"
-                >
-                  {t.createDemo}
-                </button>
-                <button
-                  onClick={() => navigate('/guest')}
-                  className="border border-blue-600/30 text-blue-600 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center gap-2"
-                >
-                  <Eye className="w-5 h-5" />
-                  {translate('browse_as_guest')}
-                </button>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+          <div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentSlide % textSlides.length}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.6 }}
+              >
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-bold mb-6">
+                  <Zap className="w-4 h-4 fill-current" />
+                  {t.rareAi}
+                </div>
+                <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
+                  {t.heroTitle}
+                </h1>
+                <p className="text-xl text-[var(--text-secondary)] mb-10 max-w-lg leading-relaxed">
+                  {t.heroSub}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={() => navigate('/register')}
+                className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 flex items-center gap-2"
+              >
+                {t.joinNow}
+                <ArrowRight className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setShowDemoModal(true)}
+                className="glass-card px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black/5 transition-all"
+              >
+                {t.createDemo}
+              </button>
+              <button
+                onClick={() => navigate('/guest')}
+                className="border border-blue-600/30 text-blue-600 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center gap-2"
+              >
+                <Eye className="w-5 h-5" />
+                {translate('browse_as_guest')}
+              </button>
+            </div>
+          </div>
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -222,10 +227,9 @@ export default function LandingPage() {
             >
               <div className="aspect-video rounded-[3rem] bg-gradient-to-br from-blue-600 to-cyan-400 p-1 shadow-2xl overflow-hidden">
                 <img
-                  src={slides[currentSlide].image}
+                  src={landingImages[currentSlide]}
                   alt="Platform"
                   className="w-full h-full object-cover rounded-[2.8rem] bg-white"
-                  {...IMAGE_PROPS}
                 />
               </div>
 
@@ -249,14 +253,17 @@ export default function LandingPage() {
         </div>
 
         {/* Slider Controls */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentSlide(i)}
-              className={`w-3 h-3 rounded-full transition-all ${currentSlide === i ? 'bg-blue-600 w-8' : 'bg-black/20'}`}
-            />
-          ))}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+          <button onClick={() => setCurrentSlide((prev) => (prev - 1 + landingImages.length) % landingImages.length)} className="w-8 h-8 rounded-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur flex items-center justify-center hover:bg-white transition shadow">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="w-32 h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+            <motion.div animate={{ width: `${((currentSlide + 1) / landingImages.length) * 100}%` }} className="h-full bg-blue-600 rounded-full" transition={{ duration: 0.3 }} />
+          </div>
+          <span className="text-xs font-bold text-[var(--text-secondary)] min-w-[2.5rem] text-center">{currentSlide + 1}/{landingImages.length}</span>
+          <button onClick={() => setCurrentSlide((prev) => (prev + 1) % landingImages.length)} className="w-8 h-8 rounded-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur flex items-center justify-center hover:bg-white transition shadow">
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </section>
 

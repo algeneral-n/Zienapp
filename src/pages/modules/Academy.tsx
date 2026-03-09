@@ -5,6 +5,7 @@ import {
   Video, Sparkles, Users, BarChart3, ShieldCheck, Truck, Brain, Clock,
 } from 'lucide-react';
 import { useCompany } from '../../contexts/CompanyContext';
+import { useTheme } from '../../components/ThemeProvider';
 import { supabase } from '../../services/supabase';
 import { ASSETS } from '../../constants/assets';
 
@@ -124,6 +125,8 @@ Style: Map-focused, animated route lines, bilingual subtitles.`,
 
 // ─── Video Player Component (Google Drive Embed) ────────────────────────────
 function VideoHeroCard({ className = '' }: { className?: string }) {
+  const { language } = useTheme();
+  const videoSrc = language === 'ar' ? ASSETS.VIDEO_AR : ASSETS.VIDEO_EN;
   return (
     <div className={`relative rounded-2xl overflow-hidden bg-black ${className}`}>
       {/* Top Badge */}
@@ -134,7 +137,7 @@ function VideoHeroCard({ className = '' }: { className?: string }) {
       </div>
       {/* Google Drive Embedded Video */}
       <iframe
-        src={ASSETS.VIDEO_DRIVE}
+        src={videoSrc}
         className="w-full aspect-video"
         allow="autoplay; encrypted-media; fullscreen"
         allowFullScreen

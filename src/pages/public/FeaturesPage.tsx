@@ -3,42 +3,7 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
-import { CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, Video, ArrowRight, PlayCircle } from 'lucide-react';
-
-/* ─── External Video Embed ────────────────────────────────────────────── */
-function FeaturesVideo({ language }: { language: string }) {
-  const isAr = language === 'ar';
-  return (
-    <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
-      className="w-full mb-24">
-      <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-blue-600/20 via-cyan-500/10 to-violet-500/20 p-1.5 shadow-2xl shadow-blue-600/15">
-        <div className="relative rounded-[1.6rem] overflow-hidden bg-black">
-          <div className="absolute top-4 left-4 z-10">
-            <span className="px-4 py-1.5 bg-blue-600/90 backdrop-blur-sm text-white text-[11px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1.5 shadow-lg">
-              <Video size={12} /> {isAr ? 'عرض المنصة' : 'Platform Demo'}
-            </span>
-          </div>
-          <video
-            src={ASSETS.VIDEO_GPHOTO}
-            className="w-full aspect-video"
-            controls
-            autoPlay
-            muted
-            playsInline
-            poster="/splash.gif"
-            style={{ border: 'none' }}
-            title={isAr ? 'عرض منصة ZIEN' : 'ZIEN Platform Demo'}
-          />
-        </div>
-      </div>
-      <div className="flex items-center justify-center gap-6 mt-4 text-xs text-[var(--text-secondary)]">
-        <span className="flex items-center gap-1.5"><PlayCircle size={14} className="text-blue-600" /> {isAr ? 'شاهد كيف تعمل ZIEN' : 'See how ZIEN works'}</span>
-        <span className="w-1 h-1 bg-zinc-400 rounded-full" />
-        <span>{isAr ? 'عرض تفاعلي كامل' : 'Full interactive walkthrough'}</span>
-      </div>
-    </motion.div>
-  );
-}
+import { CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, ArrowRight } from 'lucide-react';
 
 export default function FeaturesPage() {
   const { language, t: translate } = useTheme();
@@ -178,9 +143,6 @@ export default function FeaturesPage() {
             {translate('features_hero_desc')}
           </p>
         </div>
-
-        {/* Platform Video */}
-        <FeaturesVideo language={language} />
 
         {/* Main Feature Sections */}
         <div className="space-y-32">

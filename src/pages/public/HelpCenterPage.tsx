@@ -6,7 +6,7 @@ import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
 import {
     Search, ChevronDown, ChevronUp, BookOpen, MessageCircle, Mail, Phone,
     HelpCircle, FileText, Rocket, Users, CreditCard, Package, Brain, ShieldCheck,
-    PlayCircle, Video, ArrowRight,
+    PlayCircle, ArrowRight,
 } from 'lucide-react';
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
@@ -146,29 +146,6 @@ const HELP_TOPICS: HelpTopic[] = [
     },
 ];
 
-/* ─── Video Embed ────────────────────────────────────────────────────────── */
-function VideoSection({ className = '' }: { className?: string }) {
-    return (
-        <div className={`relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-blue-600/20 via-cyan-500/10 to-violet-500/20 p-1.5 ${className}`}>
-            <div className="relative rounded-[1.6rem] overflow-hidden bg-black">
-                <div className="absolute top-4 left-4 z-10">
-                    <span className="px-4 py-1.5 bg-blue-600/90 backdrop-blur-sm text-white text-[11px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1.5 shadow-lg">
-                        <Video size={12} /> Platform Guide
-                    </span>
-                </div>
-                <video
-                    src={ASSETS.VIDEO_GPHOTO}
-                    className="w-full aspect-video object-cover"
-                    controls
-                    playsInline
-                    preload="metadata"
-                    poster={ASSETS.LOGO_SHIELD}
-                />
-            </div>
-        </div>
-    );
-}
-
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 export default function HelpCenterPage() {
     const { language } = useTheme();
@@ -215,11 +192,6 @@ export default function HelpCenterPage() {
                     <input type="text" placeholder={isAr ? 'ابحث في المقالات...' : 'Search articles & guides...'}
                         value={search} onChange={e => setSearch(e.target.value)}
                         className="w-full pl-12 pr-4 py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500 shadow-lg shadow-blue-600/5" />
-                </div>
-
-                {/* ─ Video ─ */}
-                <div className="mb-12">
-                    <VideoSection className="shadow-2xl shadow-blue-600/10 border border-[var(--border-soft)]" />
                 </div>
 
                 {/* ─ Help Topic Cards ─ */}

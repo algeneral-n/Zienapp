@@ -269,6 +269,7 @@ function getCourseLessons(courseId: string): LessonContent[] {
 
 /* ─── Academy Video Embed ────────────────────────────────────────────── */
 function AcademyVideo({ isAr }: { isAr: boolean }) {
+  const videoSrc = isAr ? ASSETS.VIDEO_AR : ASSETS.VIDEO_EN;
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
       className="w-full mb-12" data-tour="academy-video">
@@ -279,16 +280,13 @@ function AcademyVideo({ isAr }: { isAr: boolean }) {
               <Video size={12} /> {isAr ? 'مقدمة الأكاديمية' : 'Academy Intro'}
             </span>
           </div>
-          <video
-            src={ASSETS.VIDEO_GPHOTO}
+          <iframe
+            src={videoSrc}
             className="w-full aspect-video"
-            controls
-            autoPlay
-            muted
-            playsInline
-            poster="/splash.gif"
-            style={{ border: 'none' }}
+            allow="autoplay; encrypted-media; fullscreen"
+            allowFullScreen
             title={isAr ? 'مقدمة أكاديمية ZIEN' : 'ZIEN Academy Intro'}
+            style={{ border: 'none' }}
           />
         </div>
       </div>

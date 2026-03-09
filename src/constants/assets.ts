@@ -13,8 +13,8 @@ export const ASSETS = {
 
   // Splash & Video
   SPLASH: "/splash.gif",
-  VIDEO_DRIVE: "https://drive.google.com/file/d/1JtmPoWZ1IAXEivsrBAloq_26yrM7aBFJ/preview",
-  VIDEO_GPHOTO: "https://lh3.googleusercontent.com/ggms/AF1QipPpNvwslevTyVeP6ONqwPD2GojEk3VLodzDCMdn=m18",
+  VIDEO_EN: "https://drive.google.com/file/d/1Co_CZAC37_deqopDsAnn_0XWPD0dbP5q/preview",
+  VIDEO_AR: "https://drive.google.com/file/d/1cp8_vZiGbUcjFLJIPomYJNfT2DYODct9/preview",
 
   // Characters
   RARE_AGENT: "https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w141-h235-n-k-no-nu",
@@ -34,7 +34,7 @@ export const ASSETS = {
   // Feature Images
   FEATURE_ANALYTICS: "https://lh3.googleusercontent.com/jpOJB2YOWH9eQkV8kt6TDwm2-mbOB5BcjFQHjhPoAbyxoKKyB60Vmd11WkfIN5qGTVhxSeFdhDgEAaxlZg=s265-w265-h265",
   FEATURE_COMMUNICATION: "https://lh3.googleusercontent.com/s00PvAlcfvwqlDKgH__hMv5W1XUe6yAXzqXmDqrqrg8eOFQS2IajShh7v4ovjrDIE14cEI2C_56mS4vpQQ=s265-w265-h265",
-  FEATURE_SECURITY_ALT: "https://lh3.googleusercontent.com/-iEnEPd7Mcwm2pdNKgHWwniSdB2XwEW9zK9bKAJZHyzmq3E9V6VLLg1YAyuHaGIsw5CaU3FdbZRe0--7fQ=s265-w265-h265",
+  FEATURE_SECURITY_ALT: "/landing images/security.png",
   FEATURE_AUTOMATION: "https://lh3.googleusercontent.com/P5zn4Y2m_bu2XfVrPPrPyY9yT7v3yPSaheYwJWOSZadN_J9CIbV0i4NXiRueUB8-WE76UEu9BFO_1k00tQ=s265-w265-h265",
 };
 
