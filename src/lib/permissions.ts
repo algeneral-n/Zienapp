@@ -74,6 +74,9 @@ export const MODULE_ACCESS: Record<string, { read: number; write: number }> = {
   portal_builder: { read: 85, write: 85 },
   academy: { read: 10, write: 65 },
   help: { read: 10, write: 65 },
+  marketing: { read: 55, write: 75 },
+  voice: { read: 55, write: 85 },
+  billing: { read: 65, write: 85 },
 };
 
 // ─── AI Agent Access Matrix ─────────────────────────────────────────────────
@@ -102,6 +105,9 @@ export const AGENT_MIN_LEVEL: Record<string, number> = {
   founder: 95,
   cto: 90,
   cfo: 90,
+  voice: 55,
+  campaign: 60,
+  onboarding: 35,
 };
 
 // ─── AI Action Classification ───────────────────────────────────────────────

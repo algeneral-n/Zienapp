@@ -32,7 +32,12 @@ export class StripeEngine {
       line_items: [{ price: planId, quantity: 1 }],
       success_url: successUrl,
       cancel_url: cancelUrl,
-      payment_method_types: ['card'],
+      payment_method_types: ['card', 'link'],
+      payment_method_options: {
+        card: {
+          request_three_d_secure: 'automatic',
+        },
+      },
       ...(metadata ? { metadata } : {}),
     });
   }
@@ -40,7 +45,7 @@ export class StripeEngine {
   async createSetupIntent(customerId: string, metadata?: Record<string, string>) {
     return await this.stripe.setupIntents.create({
       customer: customerId,
-      payment_method_types: ['card'],
+      payment_method_types: ['card', 'link'],
       ...(metadata ? { metadata } : {}),
     });
   }

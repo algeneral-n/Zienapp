@@ -186,7 +186,7 @@ export const provisioningService = {
     await supabase.from('company_members').insert({
       company_id: company.id,
       user_id: user.id,
-      role: 'company_gm',
+      role_code: 'company_gm',
       status: 'active',
       is_primary: true,
     });
@@ -304,7 +304,7 @@ export const provisioningService = {
           .in('code', config.needs);
 
         if (moduleCatalog?.length) {
-          await supabase.from('tenant_modules').upsert(
+          await supabase.from('company_modules').upsert(
             moduleCatalog.map(m => ({
               company_id: companyId,
               module_id: m.id,
@@ -432,7 +432,7 @@ export const provisioningService = {
     await supabase.from('company_members').insert({
       company_id: company.id,
       user_id: user.id,
-      role: 'company_gm',
+      role_code: 'company_gm',
       status: 'active',
       is_primary: true,
     });

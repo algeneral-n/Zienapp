@@ -194,6 +194,13 @@ export async function handleBilling(
         return getPlans(env);
     }
 
+    // Apple Pay domain verification — no auth needed
+    if (path === '/.well-known/apple-developer-merchantid-domain-association') {
+        return new Response(env.APPLE_PAY_LATER_TOKEN || '', {
+            headers: { 'Content-Type': 'text/plain' },
+        });
+    }
+
     // All other routes require auth
     const { userId, supabase } = await requireAuth(request, env);
 
@@ -211,6 +218,24 @@ export async function handleBilling(
 
     if (path === '/api/billing/orchestrate' && request.method === 'POST') {
         return orchestratePayment(request, env, userId, supabase);
+    }
+
+    // Subscription management
+    if (path === '/api/billing/cancel-subscription' && request.method === 'POST') {
+        return cancelSubscriptionHandler(request, env, userId, supabase);
+    }
+
+    if (path === '/api/billing/upgrade-subscription' && request.method === 'POST') {
+        return upgradeSubscriptionHandler(request, env, userId, supabase);
+    }
+
+    if (path === '/api/billing/check-subscription' && request.method === 'POST') {
+        return checkSubscriptionHandler(request, env, userId, supabase);
+    }
+
+    // Integration pricing
+    if (path === '/api/billing/integration-pricing' && request.method === 'GET') {
+        return getIntegrationPricing(env, supabase);
     }
 
     if (path.startsWith('/api/billing/subscription/') && request.method === 'GET') {
@@ -1040,4 +1065,118 @@ async function handleTilrWebhook(request: Request, env: Env): Promise<Response> 
     }
 
     return jsonResponse({ received: true });
+}
+
+// ─── Cancel Subscription ────────────────────────────────────────────────
+
+async function cancelSubscriptionHandler(
+    request: Request,
+    env: Env,
+    userId: string,
+    supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+    const body = (await request.json()) as { companyId: string; immediate?: boolean };
+    if (!body.companyId) return errorResponse('Missing companyId');
+
+    const { data: company } = await supabase
+        .from('companies')
+        .select('id, owner_user_id')
+        .eq('id', body.companyId)
+        .single();
+    if (!company || company.owner_user_id !== userId) {
+        return errorResponse('Only the company owner can cancel', 403);
+    }
+
+    const { data: sub } = await supabase
+        .from('company_subscriptions')
+        .select('gateway_subscription_id, gateway')
+        .eq('company_id', body.companyId)
+        .maybeSingle();
+
+    if (sub?.gateway_subscription_id && sub.gateway === 'stripe') {
+        const stripeEngine = new StripeEngine(env.STRIPE_SECRET_KEY);
+        await stripeEngine.cancelSubscription(sub.gateway_subscription_id);
+    }
+
+    await supabase
+        .from('company_subscriptions')
+        .update({
+            status: 'cancelled',
+            cancelled_at: new Date().toISOString(),
+            ...(body.immediate ? { current_period_end: new Date().toISOString() } : {}),
+        })
+        .eq('company_id', body.companyId);
+
+    return jsonResponse({ success: true, message: 'Subscription cancelled' });
+}
+
+// ─── Upgrade Subscription ───────────────────────────────────────────────
+
+async function upgradeSubscriptionHandler(
+    request: Request,
+    env: Env,
+    userId: string,
+    supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+    const body = (await request.json()) as {
+        companyId: string;
+        newPlanCode: string;
+        billingInterval?: 'monthly' | 'yearly';
+    };
+    if (!body.companyId || !body.newPlanCode) {
+        return errorResponse('Missing companyId or newPlanCode');
+    }
+
+    const { data: company } = await supabase
+        .from('companies')
+        .select('id, owner_user_id')
+        .eq('id', body.companyId)
+        .single();
+    if (!company || company.owner_user_id !== userId) {
+        return errorResponse('Only the company owner can upgrade', 403);
+    }
+
+    await supabase
+        .from('company_subscriptions')
+        .update({
+            plan_code: body.newPlanCode,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('company_id', body.companyId);
+
+    const adminSupabase = createAdminClient(env);
+    await activateCompanyModulesAfterPayment(adminSupabase, body.companyId);
+
+    return jsonResponse({ success: true, message: 'Subscription upgraded' });
+}
+
+// ─── Check Subscription Status ──────────────────────────────────────────
+
+async function checkSubscriptionHandler(
+    request: Request,
+    env: Env,
+    userId: string,
+    supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+    const body = (await request.json()) as { companyId: string };
+    if (!body.companyId) return errorResponse('Missing companyId');
+
+    const adminSupabase = createAdminClient(env);
+    const result = await checkSubscriptionActive(adminSupabase, body.companyId);
+    return jsonResponse(result);
+}
+
+// ─── Integration Pricing Rules ──────────────────────────────────────────
+
+async function getIntegrationPricing(
+    env: Env,
+    supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+    const { data: rules } = await supabase
+        .from('integration_pricing_rules')
+        .select('*')
+        .eq('is_active', true)
+        .order('integration_code');
+
+    return jsonResponse({ rules: rules || [] });
 }

@@ -22,6 +22,8 @@ import { handleLogistics as handleLogisticsV2 } from './routes/logistics';
 import { handleMeetings } from './routes/meetings';
 import { handleEmail } from './routes/email';
 import { handleGuest } from './routes/guest';
+import { handleMarketing } from './routes/marketing';
+import { handleVoice } from './routes/voice';
 import { corsHeaders, handleCors, getAllowedOrigin } from './cors';
 
 export interface Env {
@@ -84,8 +86,16 @@ export default {
         return handleAI(request, env, path);
       }
 
-      if (path.startsWith('/api/billing/')) {
+      if (path.startsWith('/api/billing/') || path === '/.well-known/apple-developer-merchantid-domain-association') {
         return handleBilling(request, env, path);
+      }
+
+      if (path.startsWith('/api/marketing/')) {
+        return handleMarketing(request, env, path);
+      }
+
+      if (path.startsWith('/api/voice/')) {
+        return handleVoice(request, env, path);
       }
 
       if (path.startsWith('/api/provision/') || path.startsWith('/api/pricing/')) {

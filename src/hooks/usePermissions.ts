@@ -27,9 +27,11 @@ export interface PermissionsAPI {
   isAdmin: boolean;
   /** Whether the current user can manage team (supervisor+) */
   isManager: boolean;
+  /** Whether the company has an active subscription */
+  hasActiveSubscription: boolean;
   /** Check if user meets a minimum level */
   hasLevel: (minLevel: number) => boolean;
-  /** Check if user can read a specific module */
+  /** Check if user can read a specific module (role + module activation + subscription) */
   canReadModule: (moduleCode: string) => boolean;
   /** Check if user can write to a specific module */
   canWriteModule: (moduleCode: string) => boolean;
@@ -42,7 +44,7 @@ export interface PermissionsAPI {
 }
 
 export function usePermissions(): PermissionsAPI {
-  const { role, membership } = useCompany();
+  const { role, membership, hasModule, company } = useCompany();
   const { profile } = useAuth();
 
   // Determine effective role: company role takes precedence, then platform role
@@ -54,6 +56,14 @@ export function usePermissions(): PermissionsAPI {
 
   const level = useMemo(() => getRoleLevel(effectiveRole), [effectiveRole]);
 
+  // Check subscription status (platform users bypass)
+  const hasActiveSubscription = useMemo(() => {
+    if (level >= ACTION_LEVEL.PLATFORM) return true; // founders/platform_admins always pass
+    if (!company) return false;
+    const status = (company as any).subscriptionStatus;
+    return !status || status === 'active' || status === 'trialing' || status === 'past_due';
+  }, [company, level]);
+
   return useMemo(
     () => ({
       role: effectiveRole,
@@ -61,13 +71,23 @@ export function usePermissions(): PermissionsAPI {
       isPlatform: level >= ACTION_LEVEL.PLATFORM,
       isAdmin: level >= ACTION_LEVEL.ADMIN,
       isManager: level >= 55,
+      hasActiveSubscription,
       hasLevel: (min: number) => hasLevel(effectiveRole, min),
-      canReadModule: (mod: string) => canReadModule(effectiveRole, mod),
-      canWriteModule: (mod: string) => canWriteModule(effectiveRole, mod),
+      canReadModule: (mod: string) => {
+        // Combined check: role permission + module activated for company
+        const roleOk = canReadModule(effectiveRole, mod);
+        const moduleOk = level >= ACTION_LEVEL.PLATFORM || hasModule(mod);
+        return roleOk && moduleOk;
+      },
+      canWriteModule: (mod: string) => {
+        const roleOk = canWriteModule(effectiveRole, mod);
+        const moduleOk = level >= ACTION_LEVEL.PLATFORM || hasModule(mod);
+        return roleOk && moduleOk;
+      },
       canAccessAgent: (agent: string) => canAccessAgent(effectiveRole, agent),
       canPerformAction: (action: string) => canPerformAction(effectiveRole, action),
       checkAI: (agent: string, action: string) => checkAIPermission(effectiveRole, agent, action),
     }),
-    [effectiveRole, level],
+    [effectiveRole, level, hasActiveSubscription, hasModule],
   );
 }
