@@ -24,6 +24,7 @@ export class StripeEngine {
     customerId: string,
     successUrl: string,
     cancelUrl: string,
+    metadata?: Record<string, string>,
   ) {
     return await this.stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -31,6 +32,32 @@ export class StripeEngine {
       line_items: [{ price: planId, quantity: 1 }],
       success_url: successUrl,
       cancel_url: cancelUrl,
+      payment_method_types: ['card'],
+      ...(metadata ? { metadata } : {}),
+    });
+  }
+
+  async createSetupIntent(customerId: string, metadata?: Record<string, string>) {
+    return await this.stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      ...(metadata ? { metadata } : {}),
+    });
+  }
+
+  async createSubscription(
+    customerId: string,
+    priceId: string,
+    paymentMethodId: string,
+    metadata?: Record<string, string>,
+  ) {
+    return await this.stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      default_payment_method: paymentMethodId,
+      payment_behavior: 'default_incomplete',
+      expand: ['latest_invoice.payment_intent'],
+      ...(metadata ? { metadata } : {}),
     });
   }
 

@@ -205,6 +205,10 @@ export async function handleBilling(
         return createPortalSession(request, env, userId, supabase);
     }
 
+    if (path === '/api/billing/create-setup-intent' && request.method === 'POST') {
+        return createSetupIntentHandler(request, env, userId, supabase);
+    }
+
     if (path === '/api/billing/orchestrate' && request.method === 'POST') {
         return orchestratePayment(request, env, userId, supabase);
     }
@@ -271,7 +275,8 @@ async function createCheckoutSession(
             .eq('id', userId)
             .single();
 
-        customerId = await StripeEngine.createCustomer(body.companyId, profile?.email);
+        const stripeEngine = new StripeEngine(env.STRIPE_SECRET_KEY);
+        customerId = await stripeEngine.createCustomer(body.companyId, profile?.email);
 
         // Upsert subscription record
         await supabase.from('company_subscriptions').upsert({
@@ -282,11 +287,13 @@ async function createCheckoutSession(
     }
 
     // Create checkout session using StripeEngine
-    const session = await StripeEngine.createCheckoutSession(
+    const stripeEng = new StripeEngine(env.STRIPE_SECRET_KEY);
+    const session = await stripeEng.createCheckoutSession(
         body.planCode,
         customerId,
         body.successUrl ?? 'https://www.zien-ai.app/portal?billing=success',
-        body.cancelUrl ?? 'https://www.zien-ai.app/portal?billing=cancelled'
+        body.cancelUrl ?? 'https://www.zien-ai.app/portal?billing=cancelled',
+        { companyId: body.companyId }
     );
 
     return jsonResponse({ url: session.url, sessionId: session.id });
@@ -310,11 +317,66 @@ async function createPortalSession(
         return errorResponse('No active subscription found', 404);
     }
 
-    const session = await StripeEngine.createBillingPortal(
+    const stripeEngine = new StripeEngine(env.STRIPE_SECRET_KEY);
+    const session = await stripeEngine.createBillingPortal(
         sub.stripe_customer_id,
         'https://www.zien-ai.app/portal'
     );
     return jsonResponse({ url: session.url });
+}
+
+async function createSetupIntentHandler(
+    request: Request,
+    env: Env,
+    userId: string,
+    supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+    const body = (await request.json()) as { companyId: string; planCode?: string };
+    if (!body.companyId) return errorResponse('Missing companyId');
+
+    // Verify ownership
+    const { data: company } = await supabase
+        .from('companies')
+        .select('id, owner_user_id')
+        .eq('id', body.companyId)
+        .single();
+    if (!company || company.owner_user_id !== userId) {
+        return errorResponse('Only the company owner can manage billing', 403);
+    }
+
+    // Get or create Stripe customer
+    let { data: sub } = await supabase
+        .from('company_subscriptions')
+        .select('stripe_customer_id')
+        .eq('company_id', body.companyId)
+        .maybeSingle();
+
+    let customerId = sub?.stripe_customer_id;
+    const stripeEngine = new StripeEngine(env.STRIPE_SECRET_KEY);
+
+    if (!customerId) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', userId)
+            .single();
+        customerId = await stripeEngine.createCustomer(body.companyId, profile?.email);
+        await supabase.from('company_subscriptions').upsert({
+            company_id: body.companyId,
+            stripe_customer_id: customerId,
+            status: 'incomplete',
+        });
+    }
+
+    const setupIntent = await stripeEngine.createSetupIntent(customerId, {
+        companyId: body.companyId,
+        ...(body.planCode ? { planCode: body.planCode } : {}),
+    });
+
+    return jsonResponse({
+        clientSecret: setupIntent.client_secret,
+        customerId,
+    });
 }
 
 async function handleWebhook(request: Request, env: Env): Promise<Response> {
@@ -449,7 +511,8 @@ async function orchestratePayment(
                     .eq('id', userId)
                     .single();
 
-                customerId = await StripeEngine.createCustomer(body.companyId, profile?.email);
+                const stripeEngine = new StripeEngine(env.STRIPE_SECRET_KEY);
+                customerId = await stripeEngine.createCustomer(body.companyId, profile?.email);
                 await supabase.from('company_subscriptions').upsert({
                     company_id: body.companyId,
                     stripe_customer_id: customerId,
@@ -457,11 +520,13 @@ async function orchestratePayment(
                 });
             }
 
-            const session = await StripeEngine.createCheckoutSession(
+            const stripeEng = new StripeEngine(env.STRIPE_SECRET_KEY);
+            const session = await stripeEng.createCheckoutSession(
                 body.planCode,
                 customerId,
                 body.successUrl ?? 'https://www.zien-ai.app/portal?billing=success',
-                body.cancelUrl ?? 'https://www.zien-ai.app/portal?billing=cancelled'
+                body.cancelUrl ?? 'https://www.zien-ai.app/portal?billing=cancelled',
+                { companyId: body.companyId }
             );
 
             return jsonResponse({

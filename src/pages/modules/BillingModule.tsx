@@ -2,12 +2,13 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
     CreditCard, TrendingUp, Zap, Users, BarChart3,
     Check, Loader2, ExternalLink, AlertTriangle, Crown,
-    ArrowUpRight, Settings, RefreshCw
+    ArrowUpRight, Settings, RefreshCw, X
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '../../contexts/CompanyContext';
 import { supabase } from '../../services/supabase';
+import StripePaymentForm from '../../components/StripePaymentForm';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 
@@ -252,7 +253,7 @@ const PlansGrid: React.FC<{ plans: Plan[]; currentCode: string | null; interval:
 // ─── Main Billing Module ────────────────────────────────────────────────
 
 export default function BillingModule() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { company } = useCompany();
     const [tab, setTab] = useState<'overview' | 'plans'>('overview');
     const [loading, setLoading] = useState(true);
@@ -262,6 +263,9 @@ export default function BillingModule() {
     const [usage, setUsage] = useState<UsageData | null>(null);
     const [interval, setInterval] = useState<'monthly' | 'yearly'>('monthly');
     const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [showPaymentForm, setShowPaymentForm] = useState(false);
 
     const loadData = useCallback(async () => {
         if (!company?.id) return;
@@ -289,15 +293,34 @@ export default function BillingModule() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    const handleSelectPlan = async (selectedPlan: Plan) => {
+    const handleSelectPlan = async (plan: Plan) => {
         if (!company?.id) return;
+        setSelectedPlan(plan);
         setCheckoutLoading(true);
+
         try {
+            // Try embedded payment form (supports Google Pay, Apple Pay)
+            const setupRes = await billingFetch('/api/billing/create-setup-intent', {
+                method: 'POST',
+                body: JSON.stringify({
+                    companyId: company.id,
+                    planCode: plan.code,
+                }),
+            });
+
+            if (setupRes.clientSecret) {
+                setClientSecret(setupRes.clientSecret);
+                setShowPaymentForm(true);
+                setCheckoutLoading(false);
+                return;
+            }
+
+            // Fallback: redirect to Stripe hosted checkout
             const res = await billingFetch('/api/billing/create-checkout-session', {
                 method: 'POST',
                 body: JSON.stringify({
                     companyId: company.id,
-                    planCode: selectedPlan.code,
+                    planCode: plan.code,
                     billingInterval: interval,
                     successUrl: `${window.location.origin}/dashboard/billing?success=true`,
                     cancelUrl: `${window.location.origin}/dashboard/billing?canceled=true`,
@@ -311,6 +334,43 @@ export default function BillingModule() {
         } finally {
             setCheckoutLoading(false);
         }
+    };
+
+    const handlePaymentSuccess = async (paymentMethodId: string) => {
+        if (!company?.id || !selectedPlan) return;
+        setCheckoutLoading(true);
+        try {
+            // Create subscription with the confirmed payment method
+            const res = await billingFetch('/api/billing/create-checkout-session', {
+                method: 'POST',
+                body: JSON.stringify({
+                    companyId: company.id,
+                    planCode: selectedPlan.code,
+                    billingInterval: interval,
+                    paymentMethodId,
+                    successUrl: `${window.location.origin}/dashboard/billing?success=true`,
+                    cancelUrl: `${window.location.origin}/dashboard/billing?canceled=true`,
+                }),
+            });
+            if (res.url) {
+                window.location.href = res.url;
+            }
+            // Refresh data
+            setShowPaymentForm(false);
+            setClientSecret(null);
+            setSelectedPlan(null);
+            await loadData();
+        } catch (err) {
+            console.error('Subscription creation error:', err);
+        } finally {
+            setCheckoutLoading(false);
+        }
+    };
+
+    const closePaymentForm = () => {
+        setShowPaymentForm(false);
+        setClientSecret(null);
+        setSelectedPlan(null);
     };
 
     const handleManagePortal = async () => {
@@ -360,14 +420,48 @@ export default function BillingModule() {
             </div>
 
             {/* Checkout Loading Overlay */}
-            {checkoutLoading && (
+            {checkoutLoading && !showPaymentForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                     <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 flex flex-col items-center gap-4 shadow-2xl">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                        <p className="text-sm font-bold">Redirecting to checkout...</p>
+                        <p className="text-sm font-bold">Preparing checkout...</p>
                     </div>
                 </div>
             )}
+
+            {/* Embedded Payment Form Modal (Google Pay / Apple Pay / Card) */}
+            <AnimatePresence>
+                {showPaymentForm && clientSecret && selectedPlan && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-md p-6 relative"
+                        >
+                            <button onClick={closePaymentForm} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                                <X size={18} />
+                            </button>
+                            <h3 className="text-lg font-black uppercase tracking-tight mb-1">{t('billing')}</h3>
+                            <p className="text-xs text-zinc-500 mb-5">{i18n.language === 'ar' ? 'اختر طريقة الدفع المفضلة' : 'Choose your preferred payment method'}</p>
+                            <StripePaymentForm
+                                clientSecret={clientSecret}
+                                planName={i18n.language === 'ar' ? selectedPlan.name_ar : selectedPlan.name_en}
+                                amount={String(interval === 'yearly' ? selectedPlan.price_yearly : selectedPlan.price_monthly)}
+                                currency={selectedPlan.currency}
+                                onSuccess={handlePaymentSuccess}
+                                onCancel={closePaymentForm}
+                                language={i18n.language}
+                            />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Tab Content */}
             {tab === 'overview' && (
