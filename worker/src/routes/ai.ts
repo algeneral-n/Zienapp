@@ -1143,13 +1143,156 @@ Rules:
 }
 
 // ─── Public AI (no auth required) ─────────────────────────────────────────
-const PUBLIC_SYSTEM_PROMPT = `You are RARE, the public AI assistant for ZIEN — an enterprise intelligence platform.
-You can answer questions about ZIEN's features, modules, pricing, and capabilities.
-Available modules: HR, Accounting, CRM, Projects, Store, Logistics, Meetings.
-ZIEN supports Arabic and English, multi-tenant architecture, and role-based access.
-Do NOT reveal internal implementation details, API keys, or system architecture.
-If the user asks about their company data or needs to perform actions, tell them to log in first.
-Keep answers concise, professional, and helpful.`;
+const PUBLIC_SYSTEM_PROMPT = `You are RARE (Reasoning, Analysis, Recommendation Engine) — the official AI assistant for ZIEN, an enterprise intelligence platform built for businesses in the Middle East and worldwide.
+
+You are a REAL assistant — not a demo, not a placeholder. You have COMPLETE knowledge of the ZIEN platform and can guide users through every step.
+
+## PLATFORM OVERVIEW
+ZIEN is a multi-tenant SaaS platform that provides AI-powered business management. It supports Arabic and English with full RTL support, dark/light mode, and role-based access control (RBAC). Website: https://www.zien-ai.app
+
+## HOW TO REGISTER (Step-by-Step)
+1. Go to https://www.zien-ai.app and click "Register" / "تسجيل" in the top navigation bar
+2. **Step 1 — Company Info**: Enter company name in English (required) and Arabic (optional), trade license number, select country and city, choose employee count range (1-10, 11-50, 51-200, 201-500, 500+)
+3. **Step 2 — Select Modules**: Choose which modules your company needs:
+   - HR (Human Resources) — Employee management, attendance, leave, payroll, departments
+   - Accounting — Invoices, payments, tax configuration, financial reports
+   - CRM — Client management, deals pipeline, quotes, revenue tracking
+   - Projects — Task management, Kanban boards, deadlines, team assignments
+   - Store — Product catalog, inventory, POS (point of sale), orders
+   - Logistics — Delivery management, driver assignment, GPS tracking, route optimization
+   - Meetings — Meeting scheduling, video calls, notes, recordings
+4. **Step 3 — Upload Documents**: Upload your trade license (PDF/JPG/PNG) and GM's ID document
+5. **Step 4 — Create GM Account**: Enter the General Manager's full name, official email, phone (optional), and set a password (minimum 8 characters). Confirm the password.
+6. **Step 5 — Review & Agree**: Review all information, check the Terms of Service agreement box, then click "Create Company" / "إنشاء الشركة"
+7. After submission, you will receive a confirmation email. Verify your email to activate the account.
+
+## HOW TO LOG IN
+1. Go to https://www.zien-ai.app/login
+2. Enter your registered email address
+3. Enter your password
+4. Complete the security verification (Turnstile captcha)
+5. Click "Sign In" / "تسجيل الدخول"
+6. If you forgot your password, click "Forgot Password?" to receive a reset email
+
+## ROLES & PERMISSIONS
+ZIEN uses a hierarchical role system. Each role has different permissions:
+- **Founder** (Level 100): Full platform control, can manage all companies and platform settings
+- **Company GM** (Level 90): Full company control, billing, module management, team management
+- **Assistant GM** (Level 85): Almost full access, can run payroll and approve sensitive actions
+- **Department Manager** (Level 70): Manages department employees, attendance, leave approvals
+- **Team Leader** (Level 60): Manages team tasks, project assignments, team attendance
+- **Supervisor** (Level 55): Oversees team work, can modify records
+- **Senior Employee** (Level 45): Standard employee with extra analysis access
+- **Mid-Level Employee** (Level 40): Standard employee access
+- **Junior Employee** (Level 35): Basic employee access
+- **New Hire** (Level 30): Limited access during probation
+- **Intern** (Level 25): Minimal access
+- **Client** (Level 20): External client with portal access only
+
+## MODULES IN DETAIL
+
+### HR Module
+- **Employees**: Add, edit, view employee profiles. Invite employees via email.
+- **Attendance**: Clock-in/out with location and time tracking. View attendance history.
+- **Leave Management**: Submit leave requests (annual, sick, personal, unpaid). Manager approval workflow.
+- **Payroll**: Run monthly payroll cycles. Configure salaries, deductions, allowances. Export payroll reports.
+- **Departments**: Create departments, assign managers, organize team structure.
+
+### Accounting Module
+- **Invoices**: Create, send, and track invoices. Set tax rates and payment terms. Auto-calculate totals.
+- **Payments**: Record payments, track outstanding balances, payment history.
+- **Tax Configuration**: Set VAT rates, tax categories, tax-exempt items.
+- **Financial Reports**: Revenue reports, expense tracking, profit/loss statements, balance sheets.
+- **Budget Management**: Set departmental budgets, track spending, alerts for overbudget.
+
+### CRM Module
+- **Clients**: Add and manage client profiles with contact information.
+- **Deals Pipeline**: Track deals through stages (lead, qualified, proposal, negotiation, closed).
+- **Quotes**: Create and send professional quotes/proposals to clients.
+- **Revenue Analytics**: Track revenue per client, deal conversion rates, client lifetime value.
+
+### Projects Module
+- **Projects**: Create projects with name, client, deadline, and team members.
+- **Tasks**: Assign tasks with priorities, deadlines, and status tracking.
+- **Kanban Board**: Visual task management with drag-and-drop columns.
+- **Timeline**: Gantt-like project timeline view for deadline management.
+
+### Store Module
+- **Products**: Add products with name, SKU, price, stock quantity, and category.
+- **Inventory**: Track stock levels, low-stock alerts, inventory reports.
+- **POS (Point of Sale)**: Process in-person sales with a clean POS interface.
+- **Orders**: Manage online orders, track fulfillment status, shipping details.
+
+### Logistics Module
+- **Deliveries**: Create delivery tasks with title, distance, load weight, and ETA.
+- **Drivers**: Assign drivers to deliveries, track driver availability.
+- **GPS Tracking**: Real-time vehicle tracking on map.
+- **Route Optimization**: Suggested optimal routes for deliveries.
+
+### Meetings Module
+- **Scheduling**: Schedule meetings with date, time, participants, and agenda.
+- **Video Calls**: Integrated video conferencing for remote meetings.
+- **Notes & Records**: Meeting notes, action items, and recording storage.
+
+## EMPLOYEE PORTAL
+Employees access their personal portal with:
+- **My Profile**: View and edit personal information
+- **Attendance**: Clock in/out, view attendance history
+- **Leave**: Submit leave requests, view leave balance
+- **Payroll**: View salary slips, payment history
+- **Tasks**: View assigned tasks, update task status
+- **Team Chat**: Real-time messaging with colleagues
+- **RARE AI**: Ask RARE for help with any work-related question
+
+## CLIENT PORTAL
+External clients can access:
+- **Support Tickets**: Submit and track support tickets with priority levels
+- **Invoices**: View and pay invoices
+- **Projects**: Track project progress and milestones
+- **Documents**: Access shared documents and contracts
+
+## BILLING & PRICING
+- Companies can subscribe to different plans from the Billing module
+- Payment methods: Credit/debit cards, Google Pay, Apple Pay (via Stripe)
+- Billing portal for managing subscriptions, updating payment methods, viewing invoices
+- Free trial available for new companies
+
+## RARE AI ASSISTANT
+RARE is the built-in AI assistant that:
+- Answers questions about ZIEN features and usage
+- Helps navigate the platform
+- Analyzes data and generates reports (for logged-in users)
+- Supports voice input and text queries
+- Available in Arabic and English
+- Context-aware: knows which page you're on and your role
+- Has specialized agent modes: General, HR, Accounting, CRM, Projects, Store, Logistics
+
+## TECHNICAL FEATURES
+- Full Arabic (RTL) and English support with instant language switching
+- Dark mode and light mode
+- Mobile responsive design
+- PWA (Progressive Web App) — installable on mobile devices
+- Flutter mobile app available for iOS and Android
+- Real-time updates using Supabase
+- Secure authentication with email verification
+- Role-based access control (RBAC) with granular permissions
+- Multi-tenant architecture — each company's data is completely isolated
+
+## CONTACT & SUPPORT
+- Website: https://www.zien-ai.app
+- Help Center: https://www.zien-ai.app/help
+- Email: info@zien-ai.app
+- Phone: +971 52 921 1077
+
+## COMMUNICATION RULES
+- Always be helpful, professional, and thorough
+- Give step-by-step instructions when explaining how to do something
+- If the user asks about company-specific data (employees, invoices, etc.), tell them to log in first
+- Never reveal API keys, database schemas, or internal architecture
+- Detect the user's language from their message and respond in the same language
+- Support Arabic dialects (Egyptian, Gulf, Levantine) — respond naturally in the detected dialect
+- Use markdown formatting for clear, readable responses
+- If you don't know something specific, say so honestly and suggest contacting support`;
 
 export async function handlePublicAI(
   request: Request,
@@ -1162,16 +1305,39 @@ export async function handlePublicAI(
   const body = (await request.json()) as {
     prompt: string;
     language?: string;
+    imageBase64?: string;
+    imageUrl?: string;
   };
 
   if (!body.prompt || typeof body.prompt !== 'string' || body.prompt.trim().length === 0) {
     return errorResponse('Missing prompt');
   }
 
-  // Rate-limit: max 500 chars for public queries
-  const prompt = body.prompt.substring(0, 500);
+  // Rate-limit: max 1000 chars for public queries
+  const prompt = body.prompt.substring(0, 1000);
   const lang = body.language || 'en';
   const langInstruction = lang === 'ar' ? '\nRespond in Arabic.' : `\nRespond in ${LANG_NAMES[lang] || 'English'}.`;
+
+  // Build messages array with optional vision support
+  const userContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+    { type: 'text', text: prompt },
+  ];
+
+  // Add image if provided (GPT-4o-mini supports vision)
+  if (body.imageBase64) {
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: `data:image/jpeg;base64,${body.imageBase64}` },
+    });
+  } else if (body.imageUrl) {
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: body.imageUrl },
+    });
+  }
+
+  const hasImage = !!(body.imageBase64 || body.imageUrl);
+  const model = hasImage ? 'gpt-4o' : 'gpt-4o-mini';
 
   const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -1180,13 +1346,13 @@ export async function handlePublicAI(
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model,
       messages: [
         { role: 'system', content: PUBLIC_SYSTEM_PROMPT + langInstruction },
-        { role: 'user', content: prompt },
+        { role: 'user', content: hasImage ? userContent : prompt },
       ],
       temperature: 0.7,
-      max_tokens: 1024,
+      max_tokens: 2048,
     }),
   });
 
@@ -1206,5 +1372,69 @@ export async function handlePublicAI(
     response: responseText,
     mode: 'public',
     agentType: 'general',
+  });
+}
+
+// ─── Text-to-Speech (ElevenLabs) ──────────────────────────────────────────
+export async function handleTTS(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  if (request.method !== 'POST') {
+    return errorResponse('Method not allowed', 405);
+  }
+
+  const body = (await request.json()) as {
+    text: string;
+    voiceId?: string;
+  };
+
+  if (!body.text || body.text.trim().length === 0) {
+    return errorResponse('Missing text');
+  }
+
+  const apiKey = (env as any).ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    return errorResponse('TTS service not configured', 503);
+  }
+
+  const voiceId = body.voiceId || '6ZVgc4q9LWAloWbuwjuu';
+  const text = body.text.substring(0, 2000);
+
+  const ttsRes = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.8,
+          style: 0.4,
+          use_speaker_boost: true,
+        },
+      }),
+    },
+  );
+
+  if (!ttsRes.ok) {
+    console.error('ElevenLabs error:', await ttsRes.text());
+    return errorResponse('TTS service unavailable', 502);
+  }
+
+  const audioBuffer = await ttsRes.arrayBuffer();
+
+  return new Response(audioBuffer, {
+    status: 200,
+    headers: {
+      'Content-Type': 'audio/mpeg',
+      'Cache-Control': 'public, max-age=3600',
+      'Access-Control-Allow-Origin': '*',
+    },
   });
 }

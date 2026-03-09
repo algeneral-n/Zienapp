@@ -6,12 +6,13 @@ import {
   HelpCircle, BarChart2,
   Zap, FileText, Maximize2, Minimize2,
   MoreHorizontal, MessageSquare, Info,
-  CheckCircle2, AlertCircle, History, Upload
+  CheckCircle2, AlertCircle, History, Upload,
+  Volume2, Phone
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import { ASSETS, IMAGE_PROPS } from '../constants/assets';
-import { generateRAREAnalysis, generatePublicAIResponse, RAREAgentType } from '../services/aiService';
+import { generateRAREAnalysis, generatePublicAIResponse, generateTTS, RAREAgentType } from '../services/aiService';
 import { RAREMode, RAREContext, RAREQuickAction, Language, ThemeMode } from '../types';
 import { useTheme } from './ThemeProvider';
 import { usePermissions } from '../hooks/usePermissions';
@@ -56,9 +57,44 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
   const [selectedFiles, setSelectedFiles] = useState<{ name: string, data: string, mimeType: string }[]>([]);
   const [fastMode, setFastMode] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
+  const [showGreeting, setShowGreeting] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Show greeting tooltip after 2 seconds on first load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isPanelOpen) setShowGreeting(true);
+    }, 2000);
+    const hideTimer = setTimeout(() => setShowGreeting(false), 8000);
+    return () => { clearTimeout(timer); clearTimeout(hideTimer); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // TTS playback for AI responses
+  const speakResponse = async (text: string) => {
+    if (isSpeaking && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsSpeaking(false);
+      return;
+    }
+    try {
+      setIsSpeaking(true);
+      const blobUrl = await generateTTS(text);
+      const audio = new Audio(blobUrl);
+      audioRef.current = audio;
+      audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(blobUrl); };
+      audio.onerror = () => { setIsSpeaking(false); URL.revokeObjectURL(blobUrl); };
+      await audio.play();
+    } catch (err) {
+      console.warn('[RARE] TTS unavailable:', err);
+      setIsSpeaking(false);
+    }
+  };
 
   const toggleListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -357,7 +393,9 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
       } else {
         // ─── Public AI (unauthenticated, general ZIEN info) ─────────
         try {
-          aiResponse = await generatePublicAIResponse(textToSend, language);
+          // Pass first image for vision if available
+          const imageData = selectedFiles.find(f => f.mimeType.startsWith('image/'))?.data;
+          aiResponse = await generatePublicAIResponse(textToSend, language, imageData);
         } catch (error) {
           console.warn('[RARE] Public AI unavailable:', error);
           aiResponse = language === 'ar'
@@ -428,26 +466,62 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
           )}
 
           {isRAREVisible && !isPanelOpen && (
-            <motion.button
-              drag
-              dragConstraints={{ left: -window.innerWidth + 100, right: 0, top: -window.innerHeight + 100, bottom: 0 }}
-              initial={{ scale: 0, opacity: 0, rotate: -180 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              exit={{ scale: 0, opacity: 0, rotate: 180 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsPanelOpen(true)}
-              className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-4 border-white dark:border-zinc-800 bg-white relative group cursor-grab active:cursor-grabbing"
-            >
-              <img
-                src="https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w243-h406-n-k-no-nu"
-                alt="RARE AI"
-                className="w-full h-full object-cover pointer-events-none"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-brand/10 group-hover:bg-transparent transition-colors pointer-events-none" />
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full pointer-events-none" />
-            </motion.button>
+            <div className="relative group">
+              {/* RARE Greeting Tooltip */}
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: showGreeting ? 1 : 0, y: showGreeting ? 0 : 10, scale: showGreeting ? 1 : 0.9 }}
+                className={`absolute ${language === 'ar' ? 'right-20' : 'left-auto right-20'} bottom-2 w-64 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-700 p-4 pointer-events-none z-[120] ${showGreeting ? '' : 'hidden'}`}
+              >
+                <div className="flex items-start gap-3">
+                  <img
+                    src={ASSETS.RARE_CHARACTER}
+                    alt="RARE"
+                    className="w-10 h-10 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 shrink-0"
+                    {...IMAGE_PROPS}
+                  />
+                  <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-300">
+                    {language === 'ar'
+                      ? 'مرحبًا! أنا رير، مساعدك الذكي. موجود هنا عشان أساعدك. لو محتاج أي مساعدة أنا هنا!'
+                      : language === 'fr'
+                        ? 'Bonjour ! Je suis RARE, votre assistant IA. Je suis l\u00e0 pour vous aider !'
+                        : language === 'es'
+                          ? '\u00a1Hola! Soy RARE, tu asistente de IA. \u00a1Estoy aqu\u00ed para ayudarte!'
+                          : language === 'de'
+                            ? 'Hallo! Ich bin RARE, Ihr KI-Assistent. Ich bin hier, um Ihnen zu helfen!'
+                            : language === 'tr'
+                              ? 'Merhaba! Ben RARE, yapay zeka asistan\u0131n\u0131z. Size yard\u0131mc\u0131 olmak i\u00e7in buraday\u0131m!'
+                              : language === 'ur'
+                                ? '\u0633\u0644\u0627\u0645! \u0645\u06cc\u06ba RARE \u06c1\u0648\u06ba\u060c \u0622\u067e \u06a9\u0627 AI \u0627\u0633\u0633\u0679\u0646\u0679\u06d4 \u0645\u06cc\u06ba \u0622\u067e \u06a9\u06cc \u0645\u062f\u062f \u06a9\u06d2 \u0644\u06cc\u06d2 \u06cc\u06c1\u0627\u06ba \u06c1\u0648\u06ba!'
+                                : 'Hi! I\u2019m RARE, your AI assistant. I\u2019m here to help you. Need anything? Just ask!'}
+                  </p>
+                </div>
+                <div className={`absolute bottom-3 ${language === 'ar' ? '-left-2' : '-right-2'} w-3 h-3 bg-white dark:bg-zinc-900 border-r border-b border-zinc-200 dark:border-zinc-700 rotate-[-45deg]`} />
+              </motion.div>
+
+              <motion.button
+                drag
+                dragConstraints={{ left: -window.innerWidth + 100, right: 0, top: -window.innerHeight + 100, bottom: 0 }}
+                initial={{ scale: 0, opacity: 0, rotate: -180 }}
+                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                exit={{ scale: 0, opacity: 0, rotate: 180 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => { setIsPanelOpen(true); setShowGreeting(false); }}
+                onMouseEnter={() => setShowGreeting(true)}
+                onMouseLeave={() => setShowGreeting(false)}
+                className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-4 border-white dark:border-zinc-800 bg-white relative group cursor-grab active:cursor-grabbing"
+              >
+                <img
+                  src="https://lh3.googleusercontent.com/p/AF1QipN2YjssfAFq4DmfPDprA9w13UVqNyEXmnkrGR0i=w243-h406-n-k-no-nu"
+                  alt="RARE AI"
+                  className="w-full h-full object-cover pointer-events-none"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-brand/10 group-hover:bg-transparent transition-colors pointer-events-none" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full pointer-events-none" />
+              </motion.button>
+            </div>
           )}
         </AnimatePresence>
 
@@ -530,7 +604,11 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                         <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-[10px] opacity-50 font-bold uppercase tracking-wider">
                           <span>RARE Engine v2.5</span>
                           <div className="flex gap-2">
-                            <button className="hover:text-brand">Copy</button>
+                            <button onClick={() => speakResponse(msg.text)} className={`hover:text-brand flex items-center gap-1 ${isSpeaking ? 'text-brand animate-pulse' : ''}`}>
+                              {isSpeaking ? <Volume2 className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                              {isSpeaking ? 'Stop' : 'Listen'}
+                            </button>
+                            <button onClick={() => navigator.clipboard.writeText(msg.text)} className="hover:text-brand">Copy</button>
                             <button className="hover:text-brand">Share</button>
                           </div>
                         </div>

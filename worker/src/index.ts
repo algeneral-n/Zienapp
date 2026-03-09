@@ -4,7 +4,7 @@
  */
 
 import { handleHealth } from './routes/health';
-import { handleAI, handlePublicAI } from './routes/ai';
+import { handleAI, handlePublicAI, handleTTS } from './routes/ai';
 import { handleBilling } from './routes/billing';
 import { handleProvision } from './routes/provision';
 import { handleAuth } from './routes/auth';
@@ -47,6 +47,7 @@ export interface Env {
   RESEND_API_KEY?: string;
   RESEND_FROM_EMAIL?: string;
   MONGODB_URI?: string;
+  ELEVENLABS_API_KEY?: string;
 }
 
 export default {
@@ -71,6 +72,10 @@ export default {
 
       if (path === '/api/ai/public' && request.method === 'POST') {
         return handlePublicAI(request, env);
+      }
+
+      if (path === '/api/ai/tts' && request.method === 'POST') {
+        return handleTTS(request, env);
       }
 
       if (path.startsWith('/api/ai/')) {

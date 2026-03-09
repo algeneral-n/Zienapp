@@ -101,13 +101,15 @@ export async function generateBusinessReport(
 /**
  * Public AI assistant — no authentication required.
  * Answers general questions about ZIEN platform.
+ * Supports optional image analysis (vision).
  */
 export async function generatePublicAIResponse(
   query: string,
   language: string = 'en',
+  imageBase64?: string,
 ): Promise<string> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
   try {
     const res = await fetch(`${API_URL}/api/ai/public`, {
@@ -115,8 +117,9 @@ export async function generatePublicAIResponse(
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
       body: JSON.stringify({
-        prompt: query.substring(0, 500),
+        prompt: query.substring(0, 1000),
         language,
+        ...(imageBase64 ? { imageBase64 } : {}),
       }),
     });
 
@@ -127,6 +130,35 @@ export async function generatePublicAIResponse(
 
     const data = (await res.json()) as { response: string };
     return data.response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Text-to-Speech — converts text to audio using ElevenLabs.
+ * Returns audio blob URL for playback.
+ */
+export async function generateTTS(
+  text: string,
+): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const res = await fetch(`${API_URL}/api/ai/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({ text: text.substring(0, 2000) }),
+    });
+
+    if (!res.ok) {
+      throw new Error('TTS service unavailable');
+    }
+
+    const audioBlob = await res.blob();
+    return URL.createObjectURL(audioBlob);
   } finally {
     clearTimeout(timeout);
   }
