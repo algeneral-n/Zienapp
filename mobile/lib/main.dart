@@ -12,6 +12,7 @@ import 'theme/app_theme.dart';
 import 'services/company_providers.dart';
 import 'services/theme_provider.dart';
 import 'services/i18n_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,9 @@ void main() async {
     url: AppConfig.supabaseUrl,
     anonKey: AppConfig.supabaseAnonKey,
   );
+
+  // Initialize local notifications
+  await NotificationService.instance.init();
 
   runApp(const ProviderScope(child: ZienApp()));
 }
@@ -39,13 +43,18 @@ class _ZienAppState extends ConsumerState<ZienApp> {
     Supabase.instance.client.auth.onAuthStateChange.listen((event) {
       if (event.session != null) {
         ref.read(companyNotifierProvider.notifier).load();
+        final userId = event.session!.user.id;
+        NotificationService.instance.subscribeToUserNotifications(userId);
       } else {
         ref.read(companyNotifierProvider.notifier).clear();
+        NotificationService.instance.unsubscribe();
       }
     });
     // Initial load if already authenticated
     if (Supabase.instance.client.auth.currentSession != null) {
       ref.read(companyNotifierProvider.notifier).load();
+      final userId = Supabase.instance.client.auth.currentUser!.id;
+      NotificationService.instance.subscribeToUserNotifications(userId);
     }
   }
 

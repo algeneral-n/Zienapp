@@ -27,9 +27,12 @@ const ChatModule = React.lazy(() => import('./modules/ChatModule'));
 const IntegrationsModule = React.lazy(() => import('./modules/IntegrationsModule'));
 const PortalBuilder = React.lazy(() => import('./modules/PortalBuilder'));
 const BillingModule = React.lazy(() => import('./modules/BillingModule'));
+const SettingsPage = React.lazy(() => import('./modules/SettingsPage'));
+const ProfilePage = React.lazy(() => import('./modules/ProfilePage'));
 
 export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { t } = useTranslation();
   const { user, profile } = useAuth();
   const { company: activeCompany, role } = useCompany();
@@ -40,14 +43,28 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <div data-tour="sidebar">
-        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      <div
+        data-tour="sidebar"
+        className={`fixed inset-y-0 left-0 z-50 transition-transform duration-300 lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
+      >
+        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} onClose={() => setSidebarOpen(false)} />
       </div>
 
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="h-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-8 sticky top-0 z-30">
+        <header className="h-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30">
           <div className="flex items-center gap-4 flex-1">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+              aria-label="Open menu"
+            >
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
             <div className="relative max-w-md w-full hidden md:block" data-tour="search">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
               <input
@@ -94,6 +111,8 @@ export default function Dashboard() {
               <Route path="/integrations" element={<IntegrationsModule />} />
               <Route path="/portal-builder" element={<PortalBuilder />} />
               <Route path="/billing/*" element={<BillingModule />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Routes>
           </React.Suspense>
         </div>

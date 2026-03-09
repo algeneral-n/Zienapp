@@ -10,6 +10,9 @@ import '../screens/home_screen.dart';
 import '../screens/employee_portal_screen.dart';
 import '../screens/billing_screen.dart';
 import '../screens/accounting_screen.dart';
+import '../screens/chat_screen.dart';
+import '../screens/register_screen.dart';
+import '../screens/tasks_screen.dart';
 import '../services/auth_providers.dart';
 
 // ─── Route names ─────────────────────────────────────────────────────────────
@@ -26,6 +29,9 @@ class Routes {
   static const employeePortal = '/employee';
   static const billing = '/billing';
   static const accounting = '/accounting';
+  static const chat = '/chat';
+  static const register = '/register';
+  static const tasks = '/tasks';
 }
 
 // ─── Router provider ─────────────────────────────────────────────────────────
@@ -40,8 +46,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authNotifier.isAuthenticated;
       final isLoginRoute = state.matchedLocation == Routes.login;
 
-      // Not logged in -> force login
-      if (!isLoggedIn && !isLoginRoute) return Routes.login;
+      final isRegisterRoute = state.matchedLocation == Routes.register;
+
+      // Not logged in -> force login (allow register page)
+      if (!isLoggedIn && !isLoginRoute && !isRegisterRoute) return Routes.login;
       // Logged in but on login page -> go home
       if (isLoggedIn && isLoginRoute) return Routes.home;
 
@@ -67,6 +75,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.accounting,
         builder: (context, state) => const AccountingScreen(),
+      ),
+      GoRoute(
+        path: Routes.chat,
+        builder: (context, state) => const ChatScreen(),
+      ),
+      GoRoute(
+        path: Routes.register,
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: Routes.tasks,
+        builder: (context, state) => const TasksScreen(),
       ),
     ],
   );

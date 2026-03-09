@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, BarChart3, Truck,
   MessageSquare, ShoppingBag, Briefcase, BrainCircuit,
   Settings, HelpCircle, GraduationCap, FileText,
-  ChevronLeft, ChevronRight, LogOut, FolderKanban, Plug, PanelLeft, CreditCard, Video
+  ChevronLeft, ChevronRight, LogOut, FolderKanban, Plug, PanelLeft, CreditCard, Video, X
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCompany } from '../contexts/CompanyContext';
@@ -37,9 +37,10 @@ const menuItems: (Omit<MenuItem, 'label'> & { labelKey: string })[] = [
   { id: 'billing', icon: CreditCard, labelKey: 'nav_billing', path: '/dashboard/billing', moduleCode: 'dashboard' },
   { id: 'academy', icon: GraduationCap, labelKey: 'nav_academy', path: '/dashboard/academy', moduleCode: 'academy' },
   { id: 'help', icon: HelpCircle, labelKey: 'nav_help', path: '/dashboard/help', moduleCode: 'help' },
+  { id: 'settings', icon: Settings, labelKey: 'nav_settings', path: '/dashboard/settings', moduleCode: 'dashboard' },
 ];
 
-export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCollapsed: (c: boolean) => void }) {
+export function Sidebar({ collapsed, setCollapsed, onClose }: { collapsed: boolean, setCollapsed: (c: boolean) => void, onClose?: () => void }) {
   const { t } = useTranslation();
   const { role } = useCompany();
 
@@ -56,6 +57,15 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
       className="h-screen bg-[var(--bg-primary)] border-r border-[var(--border-soft)] flex flex-col sticky top-0 shadow-[4px_0_20px_rgba(0,0,0,0.05)]"
     >
       <div className="p-6 flex items-center justify-between">
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1.5 hover:bg-[var(--surface-2)] rounded-lg transition-colors text-[var(--text-muted)]"
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
+        )}
         {!collapsed && (
           <div className="flex items-center gap-2">
             <img src={ASSETS.LOGO_PRIMARY} alt="ZIEN Platform" className="h-12 object-contain" {...IMAGE_PROPS} />
@@ -76,6 +86,7 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean, setCo
             key={item.id}
             to={item.path}
             end={item.path === '/dashboard'}
+            onClick={() => onClose?.()}
             className={({ isActive }) => `
               flex items-center gap-3 px-3 py-3 rounded-xl transition-all group relative
               ${isActive

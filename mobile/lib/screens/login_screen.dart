@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/router.dart';
 
 enum _LoginMode { email, phone }
 
@@ -400,6 +402,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         icon: const Icon(Icons.apple, size: 20),
                         label: const Text('Apple'),
                       ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // Create Account link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account?",
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    TextButton(
+                      onPressed: () => context.push(Routes.register),
+                      child: const Text('Create Account'),
                     ),
                   ],
                 ),

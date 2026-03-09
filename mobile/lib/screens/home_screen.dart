@@ -5,10 +5,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/company_providers.dart';
 import '../services/auth_providers.dart';
+import '../services/theme_provider.dart';
+import '../services/i18n_service.dart';
 import '../services/api_client.dart';
+import '../models/enums.dart';
+import '../config/router.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -152,11 +157,15 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                           .toList(),
             ),
           IconButton(
+            icon: const Icon(Icons.chat_bubble_outline),
+            onPressed: () => context.push(Routes.chat),
+          ),
+          IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Notifications not available yet'),
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const _NotificationsPage(),
                 ),
               );
             },
@@ -559,9 +568,18 @@ class _ModulesTab extends ConsumerWidget {
                         color: Colors.grey.shade400,
                       ),
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${mod.moduleCode} module')),
-                        );
+                        final code = mod.moduleCode ?? '';
+                        if (code == 'projects') {
+                          context.push(Routes.tasks);
+                        } else if (code == 'accounting') {
+                          context.push(Routes.accounting);
+                        } else if (code == 'hr') {
+                          context.push(Routes.employeePortal);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${mod.moduleCode} module')),
+                          );
+                        }
                       },
                     ),
                   );
@@ -1252,9 +1270,9 @@ class _SettingsTab extends ConsumerWidget {
             title: const Text('Profile'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Profile settings not available yet'),
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const _ProfileSettingsPage(),
                 ),
               );
             },
@@ -1275,26 +1293,21 @@ class _SettingsTab extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Theme'),
-            subtitle: const Text('System default'),
+            subtitle: Text(ref.watch(themeNotifierProvider).name),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Theme settings not available yet'),
-                ),
-              );
+              ref.read(themeNotifierProvider.notifier).toggle();
             },
           ),
           ListTile(
             leading: const Icon(Icons.language),
             title: const Text('Language'),
-            subtitle: const Text('English'),
+            subtitle: Text(ref.watch(i18nProvider).language.label),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Language settings not available yet'),
-                ),
+              showModalBottomSheet(
+                context: context,
+                builder: (_) => _LanguagePicker(ref: ref),
               );
             },
           ),
@@ -1322,5 +1335,289 @@ class _SettingsTab extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+// ─── Notifications Page ──────────────────────────────────────────────────────
+
+class _NotificationsPage extends ConsumerStatefulWidget {
+  const _NotificationsPage();
+
+  @override
+  ConsumerState<_NotificationsPage> createState() =>
+      _NotificationsPageState();
+}
+
+class _NotificationsPageState extends ConsumerState<_NotificationsPage> {
+  List<Map<String, dynamic>> _items = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      final res = await Supabase.instance.client
+          .from('notifications')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(50);
+      setState(() {
+        _items = List<Map<String, dynamic>>.from(res);
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _markRead(String id) async {
+    await Supabase.instance.client
+        .from('notifications')
+        .update({'read': true}).eq('id', id);
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Notifications')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _items.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.notifications_none,
+                          size: 64, color: Colors.grey.shade400),
+                      const SizedBox(height: 16),
+                      Text('No notifications',
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(color: Colors.grey)),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView.separated(
+                    itemCount: _items.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final n = _items[index];
+                      final isRead = n['read'] == true;
+                      return ListTile(
+                        leading: Icon(
+                          _iconForType(n['type']),
+                          color: isRead ? Colors.grey : theme.colorScheme.primary,
+                        ),
+                        title: Text(
+                          n['title']?.toString() ?? 'Notification',
+                          style: TextStyle(
+                            fontWeight:
+                                isRead ? FontWeight.normal : FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          n['body']?.toString() ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: isRead
+                            ? null
+                            : Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                        onTap: () {
+                          if (!isRead) _markRead(n['id'].toString());
+                        },
+                      );
+                    },
+                  ),
+                ),
+    );
+  }
+
+  IconData _iconForType(dynamic type) {
+    switch (type?.toString()) {
+      case 'hr':
+      case 'leave':
+      case 'attendance':
+        return Icons.badge;
+      case 'chat':
+      case 'message':
+        return Icons.chat_bubble;
+      case 'payroll':
+        return Icons.payments;
+      case 'invoice':
+        return Icons.receipt;
+      default:
+        return Icons.notifications;
+    }
+  }
+}
+
+// ─── Language Picker Bottom Sheet ────────────────────────────────────────────
+
+class _LanguagePicker extends StatelessWidget {
+  final WidgetRef ref;
+  const _LanguagePicker({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final current = ref.read(i18nProvider).language;
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Select Language',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          ...AppLanguage.values.map((lang) => ListTile(
+                leading: lang.isRtl
+                    ? const Icon(Icons.format_textdirection_r_to_l)
+                    : const Icon(Icons.language),
+                title: Text(lang.label),
+                subtitle: Text(lang.code),
+                trailing: lang == current
+                    ? Icon(Icons.check,
+                        color: Theme.of(context).colorScheme.primary)
+                    : null,
+                onTap: () {
+                  ref.read(i18nProvider.notifier).setLanguage(lang);
+                  Navigator.pop(context);
+                },
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Profile Settings Page ───────────────────────────────────────────────────
+
+class _ProfileSettingsPage extends ConsumerStatefulWidget {
+  const _ProfileSettingsPage();
+
+  @override
+  ConsumerState<_ProfileSettingsPage> createState() =>
+      _ProfileSettingsPageState();
+}
+
+class _ProfileSettingsPageState extends ConsumerState<_ProfileSettingsPage> {
+  final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  bool _saving = false;
+  String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    final profile = ref.read(profileProvider).valueOrNull;
+    _nameCtrl.text = profile?.fullName ?? '';
+    _phoneCtrl.text = profile?.phone ?? '';
+  }
+
+  Future<void> _save() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    setState(() {
+      _saving = true;
+      _message = null;
+    });
+    try {
+      await Supabase.instance.client.from('profiles').upsert({
+        'id': userId,
+        'full_name': _nameCtrl.text.trim(),
+        'phone': _phoneCtrl.text.trim(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+      setState(() => _message = 'Profile saved');
+    } catch (e) {
+      setState(() => _message = 'Failed to save');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profile')),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            TextField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Full Name',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _phoneCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Phone',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saving ? null : _save,
+                child: _saving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Save'),
+              ),
+            ),
+            if (_message != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _message!,
+                style: TextStyle(
+                  color: _message == 'Profile saved'
+                      ? Colors.green
+                      : Colors.red,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
   }
 }
