@@ -5,7 +5,7 @@ import { useTheme } from '../components/ThemeProvider';
 import { useCompany } from '../contexts/CompanyContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
-import { generateRAREAnalysis, RAREAgentType } from '../services/geminiService';
+import { generateRAREAnalysis, RAREAgentType } from '../services/aiService';
 import {
   Clock, Calendar, Wallet, FileText,
   CheckCircle2, AlertCircle, User, LayoutDashboard,
@@ -315,7 +315,7 @@ export default function EmployeePortal() {
                 <div className="flex gap-2">
                   <div className="relative">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="text" value={invoiceSearch} onChange={e => setInvoiceSearch(e.target.value)} placeholder={t('search_invoices')} className="bg-black/5 border border-[var(--border-soft)] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:ring-1 focus:ring-blue-500" />
+                    <input id="invoice-search" name="invoiceSearch" type="text" value={invoiceSearch} onChange={e => setInvoiceSearch(e.target.value)} placeholder={t('search_invoices')} className="bg-black/5 border border-[var(--border-soft)] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:ring-1 focus:ring-blue-500" />
                   </div>
                 </div>
               </div>
@@ -545,6 +545,8 @@ export default function EmployeePortal() {
               <div className="p-4 border-t border-[var(--border-soft)]">
                 <div className="flex items-center gap-3">
                   <input
+                    id="chat-input"
+                    name="chatMessage"
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
@@ -730,6 +732,8 @@ export default function EmployeePortal() {
               <div className="p-4 border-t border-[var(--border-soft)] bg-white/80">
                 <div className="flex items-center gap-2">
                   <input
+                    id="rare-query"
+                    name="rareQuery"
                     type="text"
                     value={rareQuery}
                     onChange={(e) => setRareQuery(e.target.value)}

@@ -692,7 +692,7 @@ class _AITabState extends ConsumerState<_AITab> {
         // Maestro auto-routes to the best agent
         endpoint = '/api/ai/maestro';
         body = {
-          'query': query,
+          'prompt': query,
           if (companyId != null) 'companyId': companyId,
           if (role != null) 'role': role,
         };
@@ -700,7 +700,7 @@ class _AITabState extends ConsumerState<_AITab> {
         // Direct RARE call with selected agent + mode
         endpoint = '/api/ai/rare';
         body = {
-          'query': query,
+          'prompt': query,
           'agentType': _selectedAgent,
           'mode': _selectedMode,
           if (companyId != null) 'companyId': companyId,

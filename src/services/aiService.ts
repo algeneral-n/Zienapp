@@ -1,6 +1,10 @@
 /**
- * RARE AI Service — thin client that calls the Cloudflare Worker.
+ * ZIEN AI Service — thin client that calls the Cloudflare Worker.
  * API keys are NEVER exposed to the client bundle.
+ *
+ * - generateRAREAnalysis() = authenticated RARE agent (private)
+ * - generatePublicAIResponse() = unauthenticated public assistant
+ * - generateBusinessReport() = high-level GM report
  */
 import { supabase } from './supabase';
 import type { RAREMode, RAREContext } from '../types';
@@ -92,4 +96,38 @@ export async function generateBusinessReport(
       theme: 'system' as any,
     },
   );
+}
+
+/**
+ * Public AI assistant — no authentication required.
+ * Answers general questions about ZIEN platform.
+ */
+export async function generatePublicAIResponse(
+  query: string,
+  language: string = 'en',
+): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const res = await fetch(`${API_URL}/api/ai/public`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        prompt: query.substring(0, 500),
+        language,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'AI service unavailable' }));
+      throw new Error((err as { error?: string }).error ?? 'AI service unavailable');
+    }
+
+    const data = (await res.json()) as { response: string };
+    return data.response;
+  } finally {
+    clearTimeout(timeout);
+  }
 }

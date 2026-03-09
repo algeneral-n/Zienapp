@@ -81,10 +81,10 @@ const TaskFollowUp = () => {
               <button onClick={() => setShowCreate(false)} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
             </div>
             <div className="space-y-4">
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Delivery title" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
-              <input value={form.distance_km} onChange={e => setForm(f => ({ ...f, distance_km: e.target.value }))} placeholder="Distance (km)" type="number" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
-              <input value={form.load_kg} onChange={e => setForm(f => ({ ...f, load_kg: e.target.value }))} placeholder="Load weight (kg)" type="number" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
-              <input value={form.eta} onChange={e => setForm(f => ({ ...f, eta: e.target.value }))} placeholder="ETA" type="datetime-local" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+              <input id="delivery-title" name="title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Delivery title" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+              <input id="delivery-distance" name="distanceKm" value={form.distance_km} onChange={e => setForm(f => ({ ...f, distance_km: e.target.value }))} placeholder="Distance (km)" type="number" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+              <input id="delivery-load" name="loadKg" value={form.load_kg} onChange={e => setForm(f => ({ ...f, load_kg: e.target.value }))} placeholder="Load weight (kg)" type="number" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+              <input id="delivery-eta" name="eta" value={form.eta} onChange={e => setForm(f => ({ ...f, eta: e.target.value }))} placeholder="ETA" type="datetime-local" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
             </div>
             <button onClick={handleCreate} disabled={saving || !form.title} className="mt-6 w-full bg-blue-600 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all">
               {saving ? 'Creating...' : 'Create Delivery'}

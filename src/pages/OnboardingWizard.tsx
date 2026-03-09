@@ -405,14 +405,14 @@ export default function OnboardingWizard() {
                 <h2 className="text-3xl font-bold">{language === 'ar' ? 'أخبرنا عن شركتك' : 'Tell us about your company'}</h2>
                 <p className="text-[var(--text-secondary)] text-sm">{language === 'ar' ? 'ستكون هذه المعلومات أساس بيئة عملك على ZIEN' : 'This information will form the foundation of your ZIEN workspace'}</p>
                 <div className="grid gap-4">
-                  <input type="text" placeholder={language === 'ar' ? 'اسم الشركة (بالإنجليزية)' : 'Company Name (English)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.companyName} onChange={e => setFormData({ ...formData, companyName: e.target.value })} />
-                  <input type="text" placeholder={language === 'ar' ? 'اسم الشركة (بالعربية)' : 'Company Name (Arabic - optional)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" dir="rtl" value={formData.companyNameAr} onChange={e => setFormData({ ...formData, companyNameAr: e.target.value })} />
-                  <input type="text" placeholder={translate('license_number')} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.tradeLicenseNumber} onChange={e => setFormData({ ...formData, tradeLicenseNumber: e.target.value })} />
+                  <input id="company-name" name="companyName" autoComplete="organization" type="text" placeholder={language === 'ar' ? 'اسم الشركة (بالإنجليزية)' : 'Company Name (English)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.companyName} onChange={e => setFormData({ ...formData, companyName: e.target.value })} />
+                  <input id="company-name-ar" name="companyNameAr" type="text" placeholder={language === 'ar' ? 'اسم الشركة (بالعربية)' : 'Company Name (Arabic - optional)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" dir="rtl" value={formData.companyNameAr} onChange={e => setFormData({ ...formData, companyNameAr: e.target.value })} />
+                  <input id="trade-license" name="tradeLicenseNumber" type="text" placeholder={translate('license_number')} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.tradeLicenseNumber} onChange={e => setFormData({ ...formData, tradeLicenseNumber: e.target.value })} />
                   <div className="grid grid-cols-2 gap-4">
-                    <input type="text" placeholder={language === 'ar' ? 'الدولة' : 'Country'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} />
-                    <input type="text" placeholder={language === 'ar' ? 'المدينة' : 'City'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} />
+                    <input id="country" name="country" autoComplete="country-name" type="text" placeholder={language === 'ar' ? 'الدولة' : 'Country'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} />
+                    <input id="city" name="city" autoComplete="address-level2" type="text" placeholder={language === 'ar' ? 'المدينة' : 'City'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} />
                   </div>
-                  <select value={employeeCount} onChange={e => setEmployeeCount(e.target.value)} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                  <select id="employee-count" name="employeeCount" value={employeeCount} onChange={e => setEmployeeCount(e.target.value)} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="1-10">{language === 'ar' ? '1-10 موظفين' : '1-10 Employees'}</option>
                     <option value="11-50">{language === 'ar' ? '11-50 موظف' : '11-50 Employees'}</option>
                     <option value="51-200">{language === 'ar' ? '51-200 موظف' : '51-200 Employees'}</option>
@@ -435,16 +435,16 @@ export default function OnboardingWizard() {
             <h2 className="text-3xl font-bold">{language === 'ar' ? 'حساب المدير العام' : 'General Manager Account'}</h2>
             <p className="text-[var(--text-secondary)] text-sm">{language === 'ar' ? 'سيكون هذا حساب المدير العام مع صلاحيات كاملة' : 'This will be the GM account with full company permissions'}</p>
             <div className="grid gap-4">
-              <input type="text" placeholder={language === 'ar' ? 'الاسم الكامل' : 'Full Name'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.gmName} onChange={e => setFormData({ ...formData, gmName: e.target.value })} />
-              <input type="email" placeholder={language === 'ar' ? 'البريد الإلكتروني الرسمي' : 'Official Email'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.gmEmail} onChange={e => setFormData({ ...formData, gmEmail: e.target.value })} />
-              <input type="tel" placeholder={language === 'ar' ? 'رقم الهاتف (اختياري)' : 'Phone Number (optional)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
+              <input id="gm-name" name="gmName" autoComplete="name" type="text" placeholder={language === 'ar' ? 'الاسم الكامل' : 'Full Name'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.gmName} onChange={e => setFormData({ ...formData, gmName: e.target.value })} />
+              <input id="gm-email" name="gmEmail" autoComplete="email" type="email" placeholder={language === 'ar' ? 'البريد الإلكتروني الرسمي' : 'Official Email'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.gmEmail} onChange={e => setFormData({ ...formData, gmEmail: e.target.value })} />
+              <input id="gm-phone" name="phone" autoComplete="tel" type="tel" placeholder={language === 'ar' ? 'رقم الهاتف (اختياري)' : 'Phone Number (optional)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
               <div className="relative">
-                <input type={showPassword ? 'text' : 'password'} placeholder={language === 'ar' ? 'كلمة المرور (8 أحرف على الأقل)' : 'Password (min 8 characters)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 pr-12" value={formData.gmPassword} onChange={e => setFormData({ ...formData, gmPassword: e.target.value })} />
+                <input id="gm-password" name="password" autoComplete="new-password" type={showPassword ? 'text' : 'password'} placeholder={language === 'ar' ? 'كلمة المرور (8 أحرف على الأقل)' : 'Password (min 8 characters)'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 pr-12" value={formData.gmPassword} onChange={e => setFormData({ ...formData, gmPassword: e.target.value })} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-blue-600">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <input type="password" placeholder={language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.gmPasswordConfirm} onChange={e => setFormData({ ...formData, gmPasswordConfirm: e.target.value })} />
+              <input id="gm-password-confirm" name="passwordConfirm" autoComplete="new-password" type="password" placeholder={language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'} className="w-full glass-card p-4 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.gmPasswordConfirm} onChange={e => setFormData({ ...formData, gmPasswordConfirm: e.target.value })} />
               {formData.gmPassword && formData.gmPassword.length >= 8 && formData.gmPassword === formData.gmPasswordConfirm && (
                 <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold"><Check size={14} /> {language === 'ar' ? 'كلمة المرور متطابقة' : 'Passwords match'}</div>
               )}
@@ -475,7 +475,7 @@ export default function OnboardingWizard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {INDUSTRY_MODULES[formData.industry].map(mod => (
                     <label key={mod.code} className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedModules.includes(mod.code) ? 'border-blue-600 bg-blue-50 dark:bg-blue-600/10' : 'border-[var(--border-soft)] hover:border-blue-300'}`}>
-                      <input type="checkbox" checked={selectedModules.includes(mod.code)} onChange={() => toggleModule(mod.code)} className="w-5 h-5 rounded accent-blue-600" />
+                      <input id={`module-${mod.code}`} name={`module-${mod.code}`} type="checkbox" checked={selectedModules.includes(mod.code)} onChange={() => toggleModule(mod.code)} className="w-5 h-5 rounded accent-blue-600" />
                       <div>
                         <span className="font-bold text-sm block">{language === 'ar' ? mod.name_ar : mod.name_en}</span>
                         {mod.default && <span className="text-[10px] text-blue-600 font-bold uppercase">{language === 'ar' ? 'موصى به' : 'Recommended'}</span>}
@@ -497,13 +497,13 @@ export default function OnboardingWizard() {
             <p className="text-[var(--text-secondary)] text-sm">{language === 'ar' ? 'هذه المستندات اختيارية لكنها تسرع عملية التحقق.' : 'These documents are optional but speed up verification.'}</p>
             <div className="grid gap-6">
               <label className="glass-card p-8 border-dashed border-2 border-blue-200 text-center cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-600/5 transition-all block rounded-2xl">
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFormData({ ...formData, licenseFile: e.target.files?.[0] || null })} />
+                <input id="license-file" name="licenseFile" type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFormData({ ...formData, licenseFile: e.target.files?.[0] || null })} />
                 <Upload className={`w-10 h-10 mx-auto mb-4 ${formData.licenseFile ? 'text-emerald-500' : 'text-blue-600'}`} />
                 <div className="font-bold">{formData.licenseFile ? formData.licenseFile.name : (language === 'ar' ? 'الرخصة التجارية' : 'Trade License')}</div>
                 <div className="text-xs text-[var(--text-secondary)] mt-1">PDF, JPG, PNG ({language === 'ar' ? 'حد أقصى 10MB' : 'Max 10MB'})</div>
               </label>
               <label className="glass-card p-8 border-dashed border-2 border-blue-200 text-center cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-600/5 transition-all block rounded-2xl">
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFormData({ ...formData, idFile: e.target.files?.[0] || null })} />
+                <input id="id-file" name="idFile" type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => setFormData({ ...formData, idFile: e.target.files?.[0] || null })} />
                 <User className={`w-10 h-10 mx-auto mb-4 ${formData.idFile ? 'text-emerald-500' : 'text-blue-600'}`} />
                 <div className="font-bold">{formData.idFile ? formData.idFile.name : (language === 'ar' ? 'هوية المدير العام' : 'GM Identity (Passport/ID)')}</div>
                 <div className="text-xs text-[var(--text-secondary)] mt-1">PDF, JPG, PNG ({language === 'ar' ? 'حد أقصى 10MB' : 'Max 10MB'})</div>
@@ -617,7 +617,7 @@ export default function OnboardingWizard() {
               <p>{language === 'ar' ? 'لا نبيع بياناتك. جميع المعلومات تُستخدم فقط لتقديم وتحسين خدماتنا.' : 'We do not sell your data. All information is used solely for providing and improving our services.'}</p>
             </div>
             <label className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" className="w-6 h-6 rounded-lg accent-blue-600" checked={formData.agreedToTerms} onChange={e => setFormData({ ...formData, agreedToTerms: e.target.checked })} />
+              <input id="agree-terms" name="agreedToTerms" type="checkbox" className="w-6 h-6 rounded-lg accent-blue-600" checked={formData.agreedToTerms} onChange={e => setFormData({ ...formData, agreedToTerms: e.target.checked })} />
               <span className="font-medium group-hover:text-blue-600 transition-colors">{language === 'ar' ? 'أوافق على الشروط والسياسات وأؤكد صحة البيانات' : 'I agree to the terms & policies and confirm the data is accurate'}</span>
             </label>
           </motion.div>

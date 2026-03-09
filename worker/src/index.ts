@@ -4,7 +4,7 @@
  */
 
 import { handleHealth } from './routes/health';
-import { handleAI } from './routes/ai';
+import { handleAI, handlePublicAI } from './routes/ai';
 import { handleBilling } from './routes/billing';
 import { handleProvision } from './routes/provision';
 import { handleAuth } from './routes/auth';
@@ -67,6 +67,10 @@ export default {
 
       if (path.startsWith('/api/auth/')) {
         return handleAuth(request, env, path);
+      }
+
+      if (path === '/api/ai/public' && request.method === 'POST') {
+        return handlePublicAI(request, env);
       }
 
       if (path.startsWith('/api/ai/')) {

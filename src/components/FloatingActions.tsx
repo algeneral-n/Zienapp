@@ -11,7 +11,7 @@ import {
 import Markdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import { ASSETS, IMAGE_PROPS } from '../constants/assets';
-import { generateRAREAnalysis, RAREAgentType } from '../services/geminiService';
+import { generateRAREAnalysis, generatePublicAIResponse, RAREAgentType } from '../services/aiService';
 import { RAREMode, RAREContext, RAREQuickAction, Language, ThemeMode } from '../types';
 import { useTheme } from './ThemeProvider';
 import { usePermissions } from '../hooks/usePermissions';
@@ -321,38 +321,49 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
       const context = getContext();
       const agentType = getAgentType(context);
 
-      // Build role-aware system context for the AI
-      const roleContext = [
-        `User Role: ${membership?.role || profile?.platformRole || 'unknown'}`,
-        `Company: ${company?.name || 'N/A'}`,
-        `Current Page: ${context.pageCode}${context.moduleCode ? ' / ' + context.moduleCode : ''}`,
-        `Agent Mode: ${activeMode}`,
-        `Permissions: ${permRole || 'standard employee access'}`,
-        isFounder ? 'Platform Access: FOUNDER (full platform control)' : '',
-        isPlatformAdmin ? 'Platform Access: ADMIN (platform-level management)' : '',
-      ].filter(Boolean).join('\n');
-
-      const enhancedPrompt = `[CONTEXT]\n${roleContext}\n\n[USER QUERY]\n${textToSend}`;
-
-      // Attempt API call first, fall back to local knowledge base
       let aiResponse: string | null = null;
 
-      try {
-        const response = await generateRAREAnalysis(agentType, enhancedPrompt, {
-          ...context,
-          companyId: company?.id || '',
-          mode: activeMode,
-          language,
-          files: selectedFiles.map(f => ({ data: f.data, mimeType: f.mimeType }))
-        });
-        aiResponse = response;
-      } catch (error) {
-        console.warn('[RARE] API unavailable, using local knowledge base:', error);
-      }
+      // Check authentication state
+      const isAuthenticated = !!token;
 
-      // If API failed, generate local response from knowledge base
-      if (!aiResponse) {
-        aiResponse = generateLocalRAREResponse(textToSend, agentType, activeMode, language);
+      if (isAuthenticated) {
+        // ─── Private AI (authenticated user, role-aware) ────────────
+        const roleContext = [
+          `User Role: ${membership?.role || profile?.platformRole || 'unknown'}`,
+          `Company: ${company?.name || 'N/A'}`,
+          `Current Page: ${context.pageCode}${context.moduleCode ? ' / ' + context.moduleCode : ''}`,
+          `Agent Mode: ${activeMode}`,
+          `Permissions: ${permRole || 'standard employee access'}`,
+          isFounder ? 'Platform Access: FOUNDER (full platform control)' : '',
+          isPlatformAdmin ? 'Platform Access: ADMIN (platform-level management)' : '',
+        ].filter(Boolean).join('\n');
+
+        const enhancedPrompt = `[CONTEXT]\n${roleContext}\n\n[USER QUERY]\n${textToSend}`;
+
+        try {
+          aiResponse = await generateRAREAnalysis(agentType, enhancedPrompt, {
+            ...context,
+            companyId: company?.id || '',
+            mode: activeMode,
+            language,
+            files: selectedFiles.map(f => ({ data: f.data, mimeType: f.mimeType }))
+          });
+        } catch (error) {
+          console.warn('[RARE] Private AI unavailable:', error);
+          aiResponse = language === 'ar'
+            ? 'خدمة الذكاء الاصطناعي غير متاحة حالياً. يرجى المحاولة مرة أخرى لاحقاً.'
+            : 'AI service is currently unavailable. Please try again later.';
+        }
+      } else {
+        // ─── Public AI (unauthenticated, general ZIEN info) ─────────
+        try {
+          aiResponse = await generatePublicAIResponse(textToSend, language);
+        } catch (error) {
+          console.warn('[RARE] Public AI unavailable:', error);
+          aiResponse = language === 'ar'
+            ? 'خدمة الذكاء الاصطناعي غير متاحة حالياً. يرجى المحاولة مرة أخرى لاحقاً.'
+            : 'AI service is currently unavailable. Please try again later.';
+        }
       }
 
       setMessages(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), role: 'ai', text: aiResponse!, mode: activeMode }]);
@@ -366,57 +377,6 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // ─── Local RARE Response (offline fallback) ─────────────────────────────
-  const generateLocalRAREResponse = (query: string, agent: string, mode: string, lang: string): string => {
-    const isAr = lang === 'ar';
-    const q = query.toLowerCase();
-
-    // FAQ-based matching
-    const faqAnswers: Record<string, { en: string; ar: string }> = {
-      'invoice': { en: 'To create an invoice, go to the Accounting module > Invoices > New Invoice. Fill in the client details, items, and amounts, then click Create. You can also set tax rates and payment terms.', ar: 'لإنشاء فاتورة، انتقل إلى وحدة المحاسبة > الفواتير > فاتورة جديدة. أدخل بيانات العميل والعناصر والمبالغ ثم اضغط إنشاء. يمكنك أيضاً ضبط نسب الضرائب وشروط الدفع.' },
-      'employee|hire|staff': { en: 'To add a new employee, go to HR module > Employees > Add Employee. Enter their name, email, role, department, and salary details. They will receive an invitation to join the platform.', ar: 'لإضافة موظف جديد، انتقل إلى وحدة الموارد البشرية > الموظفين > إضافة موظف. أدخل الاسم والبريد والمنصب والقسم وتفاصيل الراتب. سيتلقى دعوة للانضمام للمنصة.' },
-      'clock|attendance|حضور': { en: 'To clock in, go to Employee Portal > Attendance tab and click the "Clock In" button. Your location and time will be recorded automatically.', ar: 'لتسجيل الحضور، انتقل إلى بوابة الموظف > تبويب الحضور واضغط زر "تسجيل حضور". سيتم تسجيل موقعك ووقتك تلقائياً.' },
-      'leave|vacation|إجازة': { en: 'To request leave, go to Employee Portal > Leave tab. Select the leave type, start/end dates, and provide a reason. Submit it for your manager\'s approval.', ar: 'لطلب إجازة، انتقل إلى بوابة الموظف > تبويب الإجازات. اختر نوع الإجازة وتواريخ البداية والنهاية واكتب السبب. قدّم الطلب لموافقة المدير.' },
-      'client|customer|عميل': { en: 'To manage clients, go to CRM module > Clients. You can add new clients, track deals, create quotes, and monitor revenue per client.', ar: 'لإدارة العملاء، انتقل إلى وحدة إدارة العلاقات > العملاء. يمكنك إضافة عملاء جدد وتتبع الصفقات وإنشاء عروض أسعار ومراقبة الإيرادات.' },
-      'project|مشروع': { en: 'To create a project, go to Projects module > New Project. Set the name, deadline, and team members. You can use list view or Kanban board to track progress.', ar: 'لإنشاء مشروع، انتقل إلى وحدة المشاريع > مشروع جديد. حدد الاسم والموعد النهائي وأعضاء الفريق. يمكنك استخدام العرض القائمة أو لوحة كانبان لتتبع التقدم.' },
-      'integration|تكامل': { en: 'Browse available integrations in the Integrations module. You can connect payment gateways (Stripe, PayPal), communication tools (WhatsApp, Slack), and more. Each integration has different pricing plans.', ar: 'تصفح التكاملات المتاحة في وحدة التكاملات. يمكنك ربط بوابات الدفع (Stripe, PayPal) وأدوات التواصل (WhatsApp, Slack) والمزيد. لكل تكامل خطط أسعار مختلفة.' },
-      'payroll|salary|راتب': { en: 'To run payroll, go to HR module > Payroll tab > Run Payroll. Review employee salaries, deductions, and allowances, then process the cycle. Payroll history is available for reporting.', ar: 'لتشغيل الرواتب، انتقل إلى وحدة الموارد البشرية > تبويب الرواتب > تشغيل الرواتب. راجع رواتب الموظفين والخصومات والبدلات ثم نفّذ الدورة. سجل الرواتب متاح للتقارير.' },
-      'report|تقرير|analytics': { en: 'Each module has built-in reporting. For a company overview, visit the Dashboard which shows revenue, team activity, pending invoices, and active projects at a glance.', ar: 'كل وحدة بها تقارير مدمجة. للنظرة الشاملة على الشركة، زُر لوحة التحكم التي تعرض الإيرادات ونشاط الفريق والفواتير المعلقة والمشاريع النشطة.' },
-      'department|قسم': { en: 'To manage departments, go to HR module > Departments. Create new departments, assign department managers, and organize your team structure.', ar: 'لإدارة الأقسام، انتقل إلى وحدة الموارد البشرية > الأقسام. أنشئ أقسام جديدة وعيّن مدراء الأقسام ونظّم هيكل فريقك.' },
-      'store|product|متجر|منتج': { en: 'Manage your online store from the Store module. Add products with categories, track inventory, process orders, and use the POS interface for in-person sales.', ar: 'أدر متجرك الإلكتروني من وحدة المتجر. أضف منتجات بفئات وتتبع المخزون ومعالجة الطلبات واستخدم نقطة البيع للمبيعات المباشرة.' },
-      'meeting|chat|اجتماع': { en: 'Schedule meetings via the Meetings module. Real-time team chat is available with channels and direct messaging. Meeting recordings and notes can be saved.', ar: 'جدوِل الاجتماعات عبر وحدة الاجتماعات. الدردشة الفورية متاحة مع القنوات والرسائل المباشرة. يمكن حفظ تسجيلات الاجتماعات والملاحظات.' },
-      'logistics|delivery|توصيل': { en: 'Create delivery tasks in Logistics module, assign drivers, track vehicles, and monitor delivery progress in real-time with GPS tracking.', ar: 'أنشئ مهام التوصيل في وحدة اللوجستيات، عيّن السائقين، تتبع المركبات، وراقب تقدم التوصيل بالوقت الفعلي مع تتبع GPS.' },
-      'hello|hi|مرحبا|اهلا|السلام': { en: 'Hello! I\'m RARE, your AI assistant for the ZIEN platform. I can help you navigate modules, answer questions about features, and guide you through workflows. What can I help you with?', ar: 'مرحباً! أنا RARE، مساعدك الذكي في منصة ZIEN. يمكنني مساعدتك في التنقل بين الوحدات والإجابة عن الميزات وإرشادك خلال سير العمل. كيف يمكنني مساعدتك؟' },
-      'help|مساعدة|what can you do': { en: 'I\'m RARE, your AI assistant. I can help with:\n- Navigating ZIEN modules (HR, Accounting, CRM, Projects, Store, etc.)\n- Explaining features and workflows\n- Guiding you through tasks like creating invoices, managing employees, or running payroll\n- Answering questions about your role and permissions\n\nJust ask me anything!', ar: 'أنا RARE، مساعدك الذكي. يمكنني المساعدة في:\n- التنقل بين وحدات ZIEN (الموارد البشرية، المحاسبة، إدارة العلاقات، المشاريع، المتجر، إلخ)\n- شرح الميزات وسير العمل\n- إرشادك خلال المهام مثل إنشاء الفواتير وإدارة الموظفين وتشغيل الرواتب\n- الإجابة عن صلاحياتك ودورك\n\nاسألني أي شيء!' },
-    };
-
-    // Try to match query against FAQ patterns
-    for (const [patterns, answer] of Object.entries(faqAnswers)) {
-      const keys = patterns.split('|');
-      if (keys.some(k => q.includes(k))) {
-        return isAr ? answer.ar : answer.en;
-      }
-    }
-
-    // Module-specific context response
-    const moduleResponses: Record<string, { en: string; ar: string }> = {
-      hr: { en: 'You\'re in the HR module. I can help you manage employees, process attendance, handle leave requests, and run payroll. What would you like to do?', ar: 'أنت في وحدة الموارد البشرية. يمكنني مساعدتك في إدارة الموظفين ومعالجة الحضور وإدارة طلبات الإجازة وتشغيل الرواتب. ماذا تريد أن تفعل؟' },
-      accounting: { en: 'You\'re in the Accounting module. I can help with creating invoices, tracking payments, configuring taxes, and generating financial reports. What do you need?', ar: 'أنت في وحدة المحاسبة. يمكنني المساعدة في إنشاء الفواتير وتتبع المدفوعات وإعداد الضرائب وإنشاء التقارير المالية. ماذا تحتاج؟' },
-      crm: { en: 'You\'re in the CRM module. I can help manage clients, track deals, create quotes, and monitor revenue per client. How can I assist?', ar: 'أنت في وحدة إدارة العلاقات. يمكنني مساعدتك في إدارة العملاء وتتبع الصفقات وإنشاء عروض الأسعار ومراقبة الإيرادات. كيف يمكنني المساعدة؟' },
-      projects: { en: 'You\'re in the Projects module. I can help create projects, assign tasks, track progress, and manage deadlines. What would you like to do?', ar: 'أنت في وحدة المشاريع. يمكنني مساعدتك في إنشاء المشاريع وتعيين المهام وتتبع التقدم وإدارة المواعيد النهائية. ماذا تريد أن تفعل؟' },
-      store: { en: 'You\'re in the Store module. I can help add products, manage inventory, process orders, and configure your POS. What do you need?', ar: 'أنت في وحدة المتجر. يمكنني مساعدتك في إضافة المنتجات وإدارة المخزون ومعالجة الطلبات وإعداد نقطة البيع. ماذا تحتاج؟' },
-    };
-
-    if (agent && moduleResponses[agent]) {
-      return isAr ? moduleResponses[agent].ar : moduleResponses[agent].en;
-    }
-
-    // Default response
-    return isAr
-      ? 'مرحباً! أنا RARE، مساعد ZIEN الذكي. يمكنني مساعدتك في التنقل بين وحدات المنصة، شرح الميزات، وإرشادك خلال سير العمل. اسألني عن أي وحدة مثل الموارد البشرية أو المحاسبة أو إدارة العلاقات أو المتجر وسأساعدك فوراً.'
-      : 'Hello! I\'m RARE, ZIEN\'s AI assistant. I can help you navigate platform modules, explain features, and guide you through workflows. Ask me about any module like HR, Accounting, CRM, or Store and I\'ll help you right away.';
   };
 
   const context = getContext();

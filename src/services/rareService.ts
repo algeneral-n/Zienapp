@@ -1,8 +1,8 @@
 /**
- * RARE Service — re-exports from geminiService.
+ * RARE Service — re-exports from aiService.
  * All AI calls go through the Cloudflare Worker (no client-side API keys).
  */
-import { generateRAREAnalysis } from './geminiService';
+import { generateRAREAnalysis } from './aiService';
 import { supabase } from './supabase';
 
 export async function askRARE(prompt: string, context?: Record<string, unknown>) {

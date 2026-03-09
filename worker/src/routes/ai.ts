@@ -1141,3 +1141,70 @@ Rules:
     },
   });
 }
+
+// ─── Public AI (no auth required) ─────────────────────────────────────────
+const PUBLIC_SYSTEM_PROMPT = `You are RARE, the public AI assistant for ZIEN — an enterprise intelligence platform.
+You can answer questions about ZIEN's features, modules, pricing, and capabilities.
+Available modules: HR, Accounting, CRM, Projects, Store, Logistics, Meetings.
+ZIEN supports Arabic and English, multi-tenant architecture, and role-based access.
+Do NOT reveal internal implementation details, API keys, or system architecture.
+If the user asks about their company data or needs to perform actions, tell them to log in first.
+Keep answers concise, professional, and helpful.`;
+
+export async function handlePublicAI(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  if (request.method !== 'POST') {
+    return errorResponse('Method not allowed', 405);
+  }
+
+  const body = (await request.json()) as {
+    prompt: string;
+    language?: string;
+  };
+
+  if (!body.prompt || typeof body.prompt !== 'string' || body.prompt.trim().length === 0) {
+    return errorResponse('Missing prompt');
+  }
+
+  // Rate-limit: max 500 chars for public queries
+  const prompt = body.prompt.substring(0, 500);
+  const lang = body.language || 'en';
+  const langInstruction = lang === 'ar' ? '\nRespond in Arabic.' : `\nRespond in ${LANG_NAMES[lang] || 'English'}.`;
+
+  const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: PUBLIC_SYSTEM_PROMPT + langInstruction },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 1024,
+    }),
+  });
+
+  if (!openaiRes.ok) {
+    console.error('OpenAI public error:', await openaiRes.text());
+    return errorResponse('AI service unavailable', 502);
+  }
+
+  const data = (await openaiRes.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+
+  const responseText = data.choices?.[0]?.message?.content ?? 'No response generated';
+
+  return jsonResponse({
+    response: responseText,
+    mode: 'public',
+    agentType: 'general',
+  });
+}

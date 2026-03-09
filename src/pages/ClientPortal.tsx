@@ -378,12 +378,12 @@ const SupportPage = () => {
 
       {showNew && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
-          <input type="text" required placeholder={t('subject')} value={newTicket.subject} onChange={e => setNewTicket({ ...newTicket, subject: e.target.value })}
+          <input id="ticket-subject" name="subject" type="text" required placeholder={t('subject')} value={newTicket.subject} onChange={e => setNewTicket({ ...newTicket, subject: e.target.value })}
             className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium" />
-          <textarea rows={4} required placeholder={t('describe_issue')} value={newTicket.message} onChange={e => setNewTicket({ ...newTicket, message: e.target.value })}
+          <textarea id="ticket-message" name="message" rows={4} required placeholder={t('describe_issue')} value={newTicket.message} onChange={e => setNewTicket({ ...newTicket, message: e.target.value })}
             className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium resize-none" />
           <div className="flex items-center gap-4">
-            <select value={newTicket.priority} onChange={e => setNewTicket({ ...newTicket, priority: e.target.value })}
+            <select id="ticket-priority" name="priority" value={newTicket.priority} onChange={e => setNewTicket({ ...newTicket, priority: e.target.value })}
               className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium">
               <option value="low">{t('low_priority')}</option>
               <option value="medium">{t('medium_priority')}</option>

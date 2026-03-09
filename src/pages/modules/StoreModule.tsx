@@ -101,7 +101,7 @@ function ProductsTab({ companyId, language }: { companyId?: string; language: st
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
-          <input placeholder={language === 'ar' ? 'بحث...' : 'Search products...'} value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+          <input id="product-search" name="search" placeholder={language === 'ar' ? 'بحث...' : 'Search products...'} value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all">
           <Plus size={14} /> {language === 'ar' ? 'منتج جديد' : 'Add Product'}
@@ -112,11 +112,11 @@ function ProductsTab({ companyId, language }: { companyId?: string; language: st
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 space-y-4">
           <h3 className="font-bold text-sm">{language === 'ar' ? 'منتج جديد' : 'New Product'}</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <input placeholder={language === 'ar' ? 'اسم المنتج' : 'Product Name'} value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
-            <input placeholder="SKU" value={newProduct.sku} onChange={e => setNewProduct({ ...newProduct, sku: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
-            <input placeholder={language === 'ar' ? 'السعر' : 'Price'} type="number" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
-            <input placeholder={language === 'ar' ? 'الكمية' : 'Stock Qty'} type="number" value={newProduct.stock_quantity} onChange={e => setNewProduct({ ...newProduct, stock_quantity: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
-            <input placeholder={language === 'ar' ? 'الفئة' : 'Category'} value={newProduct.category} onChange={e => setNewProduct({ ...newProduct, category: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
+            <input id="product-name" name="productName" placeholder={language === 'ar' ? 'اسم المنتج' : 'Product Name'} value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
+            <input id="product-sku" name="sku" placeholder="SKU" value={newProduct.sku} onChange={e => setNewProduct({ ...newProduct, sku: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
+            <input id="product-price" name="price" placeholder={language === 'ar' ? 'السعر' : 'Price'} type="number" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
+            <input id="product-stock" name="stockQuantity" placeholder={language === 'ar' ? 'الكمية' : 'Stock Qty'} type="number" value={newProduct.stock_quantity} onChange={e => setNewProduct({ ...newProduct, stock_quantity: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
+            <input id="product-category" name="category" placeholder={language === 'ar' ? 'الفئة' : 'Category'} value={newProduct.category} onChange={e => setNewProduct({ ...newProduct, category: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm outline-none" />
           </div>
           <div className="flex gap-2 justify-end">
             <button onClick={() => setShowAdd(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">{language === 'ar' ? 'إلغاء' : 'Cancel'}</button>
@@ -202,8 +202,8 @@ function OrdersTab({ companyId, language }: { companyId?: string; language: stri
               <td className="px-6 py-4 text-sm">{o.store_customers?.name || '—'}</td>
               <td className="px-6 py-4 text-sm font-bold">{o.total_amount?.toFixed(2)} {o.currency || 'AED'}</td>
               <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${o.status === 'completed' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10' :
-                  o.status === 'pending' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10' :
-                    'bg-zinc-100 text-zinc-500 dark:bg-zinc-800'
+                o.status === 'pending' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10' :
+                  'bg-zinc-100 text-zinc-500 dark:bg-zinc-800'
                 }`}>{o.status}</span></td>
               <td className="px-6 py-4 text-xs text-zinc-400">{new Date(o.created_at).toLocaleDateString()}</td>
             </tr>

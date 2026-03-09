@@ -173,20 +173,20 @@ export default function ContactPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block mb-2">{isArabic ? 'الاسم' : 'Name'}</label>
-                                    <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium" />
+                                    <input id="contact-name" name="name" autoComplete="name" type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium" />
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block mb-2">{isArabic ? 'الهاتف' : 'Phone'}</label>
-                                    <input type="tel" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium" />
+                                    <input id="contact-phone" name="phone" autoComplete="tel" type="tel" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium" />
                                 </div>
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block mb-2">{isArabic ? 'البريد الإلكتروني' : 'Email'}</label>
-                                <input type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium" />
+                                <input id="contact-email" name="email" autoComplete="email" type="email" required value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium" />
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block mb-2">{isArabic ? 'الموضوع' : 'Subject'}</label>
-                                <select value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium">
+                                <select id="contact-subject" name="subject" value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium">
                                     <option value="General Inquiry">{isArabic ? 'استفسار عام' : 'General Inquiry'}</option>
                                     <option value="Technical Support">{isArabic ? 'دعم فني' : 'Technical Support'}</option>
                                     <option value="Sales">{isArabic ? 'المبيعات' : 'Sales'}</option>
@@ -196,7 +196,7 @@ export default function ContactPage() {
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest block mb-2">{isArabic ? 'الرسالة' : 'Message'}</label>
-                                <textarea rows={5} required value={formData.message} onChange={e => setFormData({ ...formData, message: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium resize-none" />
+                                <textarea id="contact-message" name="message" rows={5} required value={formData.message} onChange={e => setFormData({ ...formData, message: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl py-3 px-4 text-sm font-medium resize-none" />
                             </div>
                             {error && (
                                 <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">
