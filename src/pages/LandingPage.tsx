@@ -169,101 +169,115 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section with Slider */}
-      <section className="pt-32 pb-20 px-6 relative overflow-hidden min-h-[90vh] flex items-center">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
-          <div>
+      <section className="pt-32 pb-20 px-6 relative overflow-hidden min-h-[90vh] flex flex-col items-center justify-center">
+        <div className="max-w-7xl mx-auto w-full relative z-10">
+          {/* Top Row: Text + Image */}
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentSlide % textSlides.length}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-bold mb-6">
+                    <Zap className="w-4 h-4 fill-current" />
+                    {t.rareAi}
+                  </div>
+                  <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
+                    {t.heroTitle}
+                  </h1>
+                  <p className="text-xl text-[var(--text-secondary)] mb-6 max-w-lg leading-relaxed">
+                    {t.heroSub}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentSlide % textSlides.length}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.6 }}
+                key={currentSlide}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.1 }}
+                transition={{ duration: 0.8 }}
+                className="relative"
               >
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-bold mb-6">
-                  <Zap className="w-4 h-4 fill-current" />
-                  {t.rareAi}
+                <div className="aspect-video rounded-[3rem] bg-gradient-to-br from-blue-600 to-cyan-400 p-1 shadow-2xl overflow-hidden">
+                  <img
+                    src={landingImages[currentSlide]}
+                    alt="Platform"
+                    className="w-full h-full object-cover rounded-[2.8rem] bg-white"
+                  />
                 </div>
-                <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
-                  {t.heroTitle}
-                </h1>
-                <p className="text-xl text-[var(--text-secondary)] mb-10 max-w-lg leading-relaxed">
-                  {t.heroSub}
-                </p>
+
+                {/* Image Description Card */}
+                <div className="absolute bottom-4 left-4 right-4 z-10">
+                  <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl px-5 py-3 shadow-lg border border-white/20">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                      {translate(`landing_img_${currentSlide + 1}` as any)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Floating AI Agent Card */}
+                <div className="absolute -bottom-6 -left-6 glass-card p-6 max-w-xs animate-bounce-slow hidden lg:block">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                      <img src={ASSETS.RARE_AGENT} alt="RARE AI" className="w-full h-full object-cover" {...IMAGE_PROPS} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-blue-600">{translate('rare_ai_active')}</div>
+                      <div className="text-xs text-[var(--text-secondary)]">{translate('intelligent_shield')}</div>
+                    </div>
+                  </div>
+                  <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
+                    <div className="h-full w-3/4 bg-blue-500" />
+                  </div>
+                </div>
               </motion.div>
             </AnimatePresence>
-            <div className="flex flex-wrap gap-4">
-              <button
-                onClick={() => navigate('/register')}
-                className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 flex items-center gap-2"
-              >
-                {t.joinNow}
-                <ArrowRight className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setShowDemoModal(true)}
-                className="glass-card px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black/5 transition-all"
-              >
-                {t.createDemo}
-              </button>
-              <button
-                onClick={() => navigate('/guest')}
-                className="border border-blue-600/30 text-blue-600 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center gap-2"
-              >
-                <Eye className="w-5 h-5" />
-                {translate('browse_as_guest')}
-              </button>
+          </div>
+
+          {/* Slider Controls */}
+          <div className="flex items-center justify-center gap-3 mt-8">
+            <button onClick={() => setCurrentSlide((prev) => (prev - 1 + landingImages.length) % landingImages.length)} className="w-8 h-8 rounded-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur flex items-center justify-center hover:bg-white transition shadow">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="w-32 h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+              <motion.div animate={{ width: `${((currentSlide + 1) / landingImages.length) * 100}%` }} className="h-full bg-blue-600 rounded-full" transition={{ duration: 0.3 }} />
             </div>
+            <span className="text-xs font-bold text-[var(--text-secondary)] min-w-[2.5rem] text-center">{currentSlide + 1}/{landingImages.length}</span>
+            <button onClick={() => setCurrentSlide((prev) => (prev + 1) % landingImages.length)} className="w-8 h-8 rounded-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur flex items-center justify-center hover:bg-white transition shadow">
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.1 }}
-              transition={{ duration: 0.8 }}
-              className="relative"
+          {/* Action Buttons - Fixed Below Images */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-10">
+            <button
+              onClick={() => navigate('/register')}
+              className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 flex items-center gap-2"
             >
-              <div className="aspect-video rounded-[3rem] bg-gradient-to-br from-blue-600 to-cyan-400 p-1 shadow-2xl overflow-hidden">
-                <img
-                  src={landingImages[currentSlide]}
-                  alt="Platform"
-                  className="w-full h-full object-cover rounded-[2.8rem] bg-white"
-                />
-              </div>
-
-              {/* Floating AI Agent Card */}
-              <div className="absolute -bottom-6 -left-6 glass-card p-6 max-w-xs animate-bounce-slow">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center overflow-hidden">
-                    <img src={ASSETS.RARE_AGENT} alt="RARE AI" className="w-full h-full object-cover" {...IMAGE_PROPS} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-blue-600">{translate('rare_ai_active')}</div>
-                    <div className="text-xs text-[var(--text-secondary)]">{translate('intelligent_shield')}</div>
-                  </div>
-                </div>
-                <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
-                  <div className="h-full w-3/4 bg-blue-500" />
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Slider Controls */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
-          <button onClick={() => setCurrentSlide((prev) => (prev - 1 + landingImages.length) % landingImages.length)} className="w-8 h-8 rounded-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur flex items-center justify-center hover:bg-white transition shadow">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <div className="w-32 h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-            <motion.div animate={{ width: `${((currentSlide + 1) / landingImages.length) * 100}%` }} className="h-full bg-blue-600 rounded-full" transition={{ duration: 0.3 }} />
+              {t.joinNow}
+              <ArrowRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowDemoModal(true)}
+              className="glass-card px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black/5 transition-all"
+            >
+              {t.createDemo}
+            </button>
+            <button
+              onClick={() => navigate('/guest')}
+              className="border border-blue-600/30 text-blue-600 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center gap-2"
+            >
+              <Eye className="w-5 h-5" />
+              {translate('browse_as_guest')}
+            </button>
           </div>
-          <span className="text-xs font-bold text-[var(--text-secondary)] min-w-[2.5rem] text-center">{currentSlide + 1}/{landingImages.length}</span>
-          <button onClick={() => setCurrentSlide((prev) => (prev + 1) % landingImages.length)} className="w-8 h-8 rounded-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur flex items-center justify-center hover:bg-white transition shadow">
-            <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
       </section>
 

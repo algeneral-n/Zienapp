@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
-import { Plus, Minus, Search, ShieldCheck, Send, CheckCircle, Tag, MessageSquarePlus, ChevronDown } from 'lucide-react';
+import { Plus, Minus, Search, ShieldCheck, Send, CheckCircle, Tag, MessageSquarePlus, ChevronDown, HelpCircle } from 'lucide-react';
 
 type FaqCategory = 'all' | 'getting-started' | 'billing' | 'security' | 'modules' | 'ai' | 'technical';
 
@@ -174,6 +174,10 @@ export default function FAQPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/10 text-blue-600 rounded-full text-sm font-bold mb-6">
+            <HelpCircle className="w-4 h-4" />
+            {isAr ? `${faqCategories.length} أقسام • ${faqCategories.reduce((a, c) => a + c.faqs.length, 0)} سؤال` : `${faqCategories.length} Categories • ${faqCategories.reduce((a, c) => a + c.faqs.length, 0)} Questions`}
+          </div>
           <h1 className="text-5xl font-bold mb-4">
             {isAr ? 'الأسئلة الشائعة' : 'Frequently Asked Questions'}
           </h1>

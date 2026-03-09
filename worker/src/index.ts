@@ -48,6 +48,8 @@ export interface Env {
   RESEND_FROM_EMAIL?: string;
   MONGODB_URI?: string;
   ELEVENLABS_API_KEY?: string;
+  APPLE_PAY_MERCHANT_ID?: string;
+  APPLE_PAY_LATER_TOKEN?: string;
 }
 
 export default {

@@ -25,12 +25,16 @@ export default function IndustriesPage() {
     return (
         <div className="min-h-screen bg-[var(--bg-primary)] pt-28 px-4">
             <div className="max-w-6xl mx-auto">
-                <h1 className="text-4xl font-bold text-center mb-4 text-gray-900 dark:text-white">
-                    {isAr ? 'الصناعات المدعومة' : 'Supported Industries'}
-                </h1>
-                <p className="text-center text-gray-500 dark:text-gray-400 mb-12">
+                {/* Page Title Card */}
+                <div className="flex flex-col items-center mb-12">
+                  <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-600/20 mb-4">
+                    <Factory className="w-6 h-6" />
+                    <span className="text-xl font-bold">{isAr ? 'الصناعات المدعومة' : 'Supported Industries'}</span>
+                  </div>
+                  <p className="text-center text-gray-500 dark:text-gray-400 max-w-lg">
                     {isAr ? 'تتكيف ZIEN مع نوع عملك بوحدات وسير عمل مُعدة مسبقًا' : 'ZIEN adapts to your business type with pre-configured modules and workflows'}
-                </p>
+                  </p>
+                </div>
 
                 {/* Video Section */}
                 <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
