@@ -1381,6 +1381,304 @@ const SupportTickets = () => {
   );
 };
 
+// ─── Voice Control ──────────────────────────────────────────────────────────
+
+const VoiceControl = () => {
+  const [voiceConfig, setVoiceConfig] = useState<any>(null);
+  const [callLogs, setCallLogs] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<any>(null);
+
+  useEffect(() => {
+    const loadVoice = async () => {
+      try {
+        const [configRes, callsRes, analyticsRes] = await Promise.all([
+          fetch(`${API}/api/voice/config`, { headers: { ...authHeaders(), 'x-company-id': 'platform' } }),
+          fetch(`${API}/api/voice/calls`, { headers: { ...authHeaders(), 'x-company-id': 'platform' } }),
+          fetch(`${API}/api/voice/analytics`, { headers: { ...authHeaders(), 'x-company-id': 'platform' } }),
+        ]);
+        if (configRes.ok) setVoiceConfig((await configRes.json()).config);
+        if (callsRes.ok) setCallLogs((await callsRes.json()).calls || []);
+        if (analyticsRes.ok) setAnalytics((await analyticsRes.json()).summary);
+      } catch {}
+    };
+    loadVoice();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <Headphones className="w-6 h-6 text-blue-600" />
+        <h2 className="text-2xl font-black">Voice AI Control</h2>
+      </div>
+
+      {/* Voice Analytics */}
+      {analytics && (
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label: 'Total Calls', value: analytics.totalCalls, color: 'blue' },
+            { label: 'Completed', value: analytics.completed, color: 'green' },
+            { label: 'Missed', value: analytics.missed, color: 'red' },
+            { label: 'Avg Duration', value: `${analytics.avgDuration}s`, color: 'purple' },
+          ].map(s => (
+            <div key={s.label} className={`bg-${s.color}-50 dark:bg-${s.color}-950/20 rounded-2xl p-6 border border-${s.color}-200 dark:border-${s.color}-800`}>
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-1">{s.label}</p>
+              <p className="text-3xl font-black">{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Voice Config */}
+      {voiceConfig && (
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800">
+          <h3 className="text-lg font-bold mb-4">Voice Agent Configuration</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div><span className="text-zinc-500">Agent Name:</span> <span className="font-bold">{voiceConfig.agent_name}</span></div>
+            <div><span className="text-zinc-500">Voice ID:</span> <span className="font-mono text-xs">{voiceConfig.voice_id}</span></div>
+            <div><span className="text-zinc-500">Language:</span> <span className="font-bold">{voiceConfig.language}</span></div>
+            <div><span className="text-zinc-500">Max Duration:</span> <span className="font-bold">{voiceConfig.max_call_duration}s</span></div>
+            <div><span className="text-zinc-500">Status:</span> <span className={`font-bold ${voiceConfig.is_active ? 'text-green-600' : 'text-red-600'}`}>{voiceConfig.is_active ? 'Active' : 'Inactive'}</span></div>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Calls */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800">
+        <h3 className="text-lg font-bold mb-4">Recent Calls ({callLogs.length})</h3>
+        <div className="space-y-2">
+          {callLogs.slice(0, 10).map((call: any) => (
+            <div key={call.id} className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${call.status === 'completed' ? 'bg-green-500' : call.status === 'missed' ? 'bg-red-500' : 'bg-yellow-500'}`} />
+                <span className="font-medium text-sm">{call.caller_id || 'Unknown'}</span>
+                <span className="text-xs text-zinc-500">{call.direction}</span>
+              </div>
+              <div className="flex items-center gap-4 text-xs text-zinc-500">
+                <span>{call.duration_seconds}s</span>
+                <span>{call.sentiment || '-'}</span>
+                <span>{new Date(call.created_at).toLocaleString()}</span>
+              </div>
+            </div>
+          ))}
+          {callLogs.length === 0 && <p className="text-zinc-500 text-sm">No call logs yet</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Incidents & Alerts ─────────────────────────────────────────────────────
+
+const IncidentsAlerts = () => {
+  const [incidents, setIncidents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadIncidents = async () => {
+      try {
+        const admin = supabase;
+        const { data } = await admin.from('platform_incidents').select('*').order('created_at', { ascending: false }).limit(50);
+        setIncidents(data || []);
+      } catch {}
+      setLoading(false);
+    };
+    loadIncidents();
+  }, []);
+
+  const severityColor = (s: string) => {
+    switch (s) {
+      case 'critical': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+      case 'high': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
+      default: return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
+    }
+  };
+
+  const statusColor = (s: string) => {
+    switch (s) {
+      case 'open': return 'text-red-600';
+      case 'investigating': return 'text-orange-600';
+      case 'mitigated': return 'text-yellow-600';
+      case 'resolved': case 'auto_resolved': return 'text-green-600';
+      default: return 'text-zinc-500';
+    }
+  };
+
+  const resolveIncident = async (id: string) => {
+    await supabase.from('platform_incidents').update({ status: 'resolved', resolved_at: new Date().toISOString() }).eq('id', id);
+    setIncidents(prev => prev.map(i => i.id === id ? { ...i, status: 'resolved' } : i));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <Bell className="w-6 h-6 text-orange-600" />
+        <h2 className="text-2xl font-black">Incidents & Alerts</h2>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { label: 'Open', value: incidents.filter(i => i.status === 'open').length, color: 'red' },
+          { label: 'Investigating', value: incidents.filter(i => i.status === 'investigating').length, color: 'orange' },
+          { label: 'Mitigated', value: incidents.filter(i => i.status === 'mitigated').length, color: 'yellow' },
+          { label: 'Resolved', value: incidents.filter(i => ['resolved', 'auto_resolved'].includes(i.status)).length, color: 'green' },
+        ].map(s => (
+          <div key={s.label} className={`bg-${s.color}-50 dark:bg-${s.color}-950/20 rounded-2xl p-6 border border-${s.color}-200 dark:border-${s.color}-800`}>
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-1">{s.label}</p>
+            <p className="text-3xl font-black">{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Incidents list */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800">
+        <h3 className="text-lg font-bold mb-4">Recent Incidents</h3>
+        {loading ? <p className="text-zinc-500">Loading...</p> : (
+          <div className="space-y-3">
+            {incidents.map((incident) => (
+              <div key={incident.id} className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${severityColor(incident.severity)}`}>{incident.severity}</span>
+                    <span className={`text-xs font-bold ${statusColor(incident.status)}`}>{incident.status}</span>
+                    <span className="text-xs text-zinc-500">{incident.category}</span>
+                  </div>
+                  <p className="font-bold text-sm">{incident.title}</p>
+                  {incident.description && <p className="text-xs text-zinc-500 mt-1">{incident.description}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  {incident.auto_fix_available && incident.status === 'open' && (
+                    <button
+                      onClick={() => resolveIncident(incident.id)}
+                      className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700"
+                    >Auto-Fix</button>
+                  )}
+                  {incident.status === 'open' && (
+                    <button
+                      onClick={() => resolveIncident(incident.id)}
+                      className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700"
+                    >Resolve</button>
+                  )}
+                  <span className="text-[10px] text-zinc-500">{new Date(incident.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+            {incidents.length === 0 && <p className="text-zinc-500 text-sm">No incidents recorded</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── Provisioning Operations ────────────────────────────────────────────────
+
+const ProvisioningOps = () => {
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        const { data } = await supabase
+          .from('provisioning_jobs')
+          .select('*, companies(name)')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        setJobs(data || []);
+      } catch {}
+      setLoading(false);
+    };
+    loadJobs();
+  }, []);
+
+  const retryJob = async (jobId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      await fetch(`${API}/api/provision/retry`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      });
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'queued', error_message: null } : j));
+    } catch {}
+  };
+
+  const statusColor = (s: string) => {
+    switch (s) {
+      case 'done': return 'text-green-600 bg-green-50';
+      case 'running': return 'text-blue-600 bg-blue-50';
+      case 'queued': return 'text-yellow-600 bg-yellow-50';
+      case 'error': return 'text-red-600 bg-red-50';
+      default: return 'text-zinc-500 bg-zinc-50';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <Database className="w-6 h-6 text-purple-600" />
+        <h2 className="text-2xl font-black">Provisioning Operations</h2>
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-5 gap-4">
+        {[
+          { label: 'Total', value: jobs.length, color: 'zinc' },
+          { label: 'Queued', value: jobs.filter(j => j.status === 'queued').length, color: 'yellow' },
+          { label: 'Running', value: jobs.filter(j => j.status === 'running').length, color: 'blue' },
+          { label: 'Completed', value: jobs.filter(j => j.status === 'done').length, color: 'green' },
+          { label: 'Failed', value: jobs.filter(j => j.status === 'error').length, color: 'red' },
+        ].map(s => (
+          <div key={s.label} className={`bg-${s.color}-50 dark:bg-${s.color}-950/20 rounded-2xl p-6 border border-${s.color}-200 dark:border-${s.color}-800`}>
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-1">{s.label}</p>
+            <p className="text-3xl font-black">{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Jobs list */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800">
+        <h3 className="text-lg font-bold mb-4">Provisioning Jobs</h3>
+        {loading ? <p className="text-zinc-500">Loading...</p> : (
+          <div className="space-y-3">
+            {jobs.map((job) => (
+              <div key={job.id} className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusColor(job.status)}`}>{job.status}</span>
+                    <span className="text-xs text-zinc-500">{job.companies?.name || job.company_id?.slice(0, 8)}</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs">
+                    <span>Step: <strong>{job.current_step || '-'}</strong></span>
+                    <span>Progress: <strong>{job.completed_steps}/{job.total_steps}</strong></span>
+                    {/* Progress bar */}
+                    <div className="w-32 h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${job.total_steps ? (job.completed_steps / job.total_steps) * 100 : 0}%` }} />
+                    </div>
+                  </div>
+                  {job.error_message && <p className="text-xs text-red-500 mt-1">{job.error_message}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  {job.status === 'error' && (
+                    <button
+                      onClick={() => retryJob(job.id)}
+                      className="px-3 py-1.5 bg-orange-600 text-white text-xs font-bold rounded-lg hover:bg-orange-700"
+                    >Retry</button>
+                  )}
+                  <span className="text-[10px] text-zinc-500">{new Date(job.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+            {jobs.length === 0 && <p className="text-zinc-500 text-sm">No provisioning jobs</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ─── Main Layout ────────────────────────────────────────────────────────────
 
 export default function FounderPage() {
@@ -1412,6 +1710,9 @@ export default function FounderPage() {
               { icon: Shield, label: t('security'), path: 'security' },
               { icon: MessageSquare, label: 'Chat Builder', path: 'chat' },
               { icon: TicketCheck, label: 'Support', path: 'support' },
+              { icon: Headphones, label: 'Voice AI', path: 'voice' },
+              { icon: Bell, label: 'Incidents', path: 'incidents' },
+              { icon: Database, label: 'Provisioning', path: 'provisioning' },
             ].map((item) => (
               <NavLink
                 key={item.label}
@@ -1460,6 +1761,9 @@ export default function FounderPage() {
             <Route path="/security" element={<SecurityDashboard />} />
             <Route path="/chat" element={<ChatBuilder />} />
             <Route path="/support" element={<SupportTickets />} />
+            <Route path="/voice" element={<VoiceControl />} />
+            <Route path="/incidents" element={<IncidentsAlerts />} />
+            <Route path="/provisioning" element={<ProvisioningOps />} />
           </Routes>
         </div>
       </main>

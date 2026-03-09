@@ -84,3 +84,118 @@ export async function requireAuth(
 
   return { userId: user.id, email: user.email ?? '', supabase };
 }
+
+/**
+ * Full auth context with company membership, role, platform role, enabled modules.
+ * Used by hardened endpoints that need full RBAC context.
+ */
+export interface AuthContext {
+  userId: string;
+  email: string;
+  supabase: SupabaseClient;
+  companyId: string | null;
+  platformRole: string | null;
+  companyRole: string | null;
+  roleLevel: number;
+  enabledModules: string[];
+}
+
+export async function requireAuthFull(
+  request: Request,
+  env: Env,
+): Promise<AuthContext> {
+  const { userId, email, supabase } = await requireAuth(request, env);
+  const companyId = request.headers.get('x-company-id') || null;
+  const admin = createAdminClient(env);
+
+  // Fetch platform role
+  const { data: platformRoleRow } = await admin
+    .from('platform_roles')
+    .select('role_code')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .maybeSingle();
+  const platformRole = platformRoleRow?.role_code || null;
+
+  // Fetch company role + enabled modules if companyId provided
+  let companyRole: string | null = null;
+  let enabledModules: string[] = [];
+
+  if (companyId) {
+    const membership = await checkMembership(env, userId, companyId);
+    companyRole = membership?.role || null;
+
+    const { data: modules } = await admin
+      .from('company_modules')
+      .select('modules_catalog(code)')
+      .eq('company_id', companyId)
+      .eq('is_active', true);
+
+    enabledModules = (modules || [])
+      .map((m: any) => m.modules_catalog?.code)
+      .filter(Boolean);
+  }
+
+  // Compute effective role level
+  const effectiveRole = companyRole || platformRole || 'user';
+  const ROLE_LEVELS: Record<string, number> = {
+    founder: 100, platform_admin: 95, platform_support: 90,
+    company_gm: 85, assistant_gm: 80, executive_secretary: 75,
+    department_manager: 65, hr_officer: 60, accountant: 60,
+    supervisor: 55, senior_employee: 45, sales_rep: 45,
+    employee: 35, field_employee: 30, driver: 25,
+    new_hire: 20, trainee: 15, client_user: 10,
+  };
+  const roleLevel = ROLE_LEVELS[effectiveRole] ?? 0;
+
+  return {
+    userId, email, supabase, companyId,
+    platformRole, companyRole, roleLevel, enabledModules,
+  };
+}
+
+/**
+ * Guard an endpoint: validates company header, membership, module, and permission level.
+ * Throws descriptive error if any check fails.
+ */
+export function guardEndpoint(
+  ctx: AuthContext,
+  options: {
+    requireCompany?: boolean;
+    requireModule?: string;
+    minLevel?: number;
+    requirePlatformRole?: string[];
+  } = {},
+): void {
+  const { requireCompany = true, requireModule, minLevel = 0, requirePlatformRole } = options;
+
+  // Platform role gate
+  if (requirePlatformRole?.length) {
+    if (!ctx.platformRole || !requirePlatformRole.includes(ctx.platformRole)) {
+      throw new Error(`Platform role required: ${requirePlatformRole.join('|')}`);
+    }
+    return; // Platform admins bypass company checks
+  }
+
+  // Company gate
+  if (requireCompany && !ctx.companyId) {
+    throw new Error('Missing X-Company-Id header');
+  }
+
+  // Membership gate
+  if (requireCompany && !ctx.companyRole && !ctx.platformRole) {
+    throw new Error('Not a member of this company');
+  }
+
+  // Module entitlement gate
+  if (requireModule && ctx.roleLevel < 90) {
+    if (!ctx.enabledModules.includes(requireModule)) {
+      throw new Error(`Module '${requireModule}' is not enabled for this company`);
+    }
+  }
+
+  // Permission level gate
+  if (minLevel > 0 && ctx.roleLevel < minLevel) {
+    throw new Error(`Insufficient permissions. Required level: ${minLevel}, your level: ${ctx.roleLevel}`);
+  }
+}

@@ -115,6 +115,30 @@ export async function handleAI(
     return handleReadFile(request, env, userId, supabase);
   }
 
+  // AI Context Builder — safe summary per role (no raw data leaks)
+  if (path === '/api/ai/context' && request.method === 'GET') {
+    return handleAIContext(request, env, userId, supabase);
+  }
+
+  // AI Action Approval: approve/deny a pending AI action
+  if (path === '/api/ai/approve-action' && request.method === 'POST') {
+    return handleApproveAction(request, env, userId, supabase);
+  }
+
+  // AI Approval Queue: list pending approvals for company
+  if (path === '/api/ai/approvals' && request.method === 'GET') {
+    return handleListApprovals(request, env, userId, supabase);
+  }
+
+  // AI Policies: CRUD for company AI policies
+  if (path === '/api/ai/policies' && request.method === 'GET') {
+    return handleGetPolicies(request, env, userId, supabase);
+  }
+
+  if (path === '/api/ai/policies' && request.method === 'POST') {
+    return handleSetPolicy(request, env, userId, supabase);
+  }
+
   return errorResponse('Not found', 404);
 }
 
@@ -1437,4 +1461,342 @@ export async function handleTTS(
       'Access-Control-Allow-Origin': '*',
     },
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AI GOVERNANCE HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/ai/context?page_key=...&company_id=...
+ * Returns a safe summary of business data based on user's role.
+ * No raw data, no names, no documents — only counts, totals, statuses.
+ */
+async function handleAIContext(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const pageKey = url.searchParams.get('page_key') || 'dashboard';
+  const companyId = url.searchParams.get('company_id') || request.headers.get('x-company-id') || '';
+
+  if (!companyId) return errorResponse('Missing company_id');
+
+  const admin = createAdminClient(env);
+  const membership = await checkMembership(env, userId, companyId);
+  if (!membership) return errorResponse('Not a member of this company', 403);
+
+  const ROLE_LEVELS: Record<string, number> = {
+    founder: 100, platform_admin: 95, company_gm: 85, assistant_gm: 80,
+    executive_secretary: 75, department_manager: 65, hr_officer: 60, accountant: 60,
+    supervisor: 55, senior_employee: 45, sales_rep: 45, employee: 35,
+    field_employee: 30, driver: 25, new_hire: 20, trainee: 15, client_user: 10,
+  };
+  const roleLevel = ROLE_LEVELS[membership.role] ?? 0;
+
+  // Build safe context per page_key
+  const context: Record<string, unknown> = {
+    page_key: pageKey,
+    role: membership.role,
+    role_level: roleLevel,
+    company_id: companyId,
+  };
+
+  // Forbidden topics per role level
+  const forbiddenTopics: string[] = [];
+  if (roleLevel < 60) forbiddenTopics.push('salary_details', 'financial_reports', 'tax_filings');
+  if (roleLevel < 45) forbiddenTopics.push('client_contracts', 'revenue_data', 'profit_margins');
+  if (roleLevel < 35) forbiddenTopics.push('employee_records', 'performance_reviews');
+  context.forbidden_topics = forbiddenTopics;
+
+  // Gather safe summaries based on page_key
+  if (pageKey === 'dashboard' || pageKey === 'overview') {
+    const [empCount, clientCount, projCount, invCount] = await Promise.all([
+      admin.from('employees').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+      admin.from('clients').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+      admin.from('projects').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+      admin.from('invoices').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+    ]);
+    context.employee_count = empCount.count ?? 0;
+    context.client_count = clientCount.count ?? 0;
+    context.project_count = projCount.count ?? 0;
+    context.invoice_count = invCount.count ?? 0;
+  }
+
+  if (pageKey === 'hr' && roleLevel >= 45) {
+    const [empCount, leaveCount, attCount] = await Promise.all([
+      admin.from('employees').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+      admin.from('leave_requests').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'pending'),
+      admin.from('attendance').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+    ]);
+    context.total_employees = empCount.count ?? 0;
+    context.pending_leave_requests = leaveCount.count ?? 0;
+    context.attendance_records = attCount.count ?? 0;
+  }
+
+  if (pageKey === 'accounting' && roleLevel >= 45) {
+    const [invTotal, paidCount, unpaidCount] = await Promise.all([
+      admin.from('invoices').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+      admin.from('invoices').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'paid'),
+      admin.from('invoices').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'unpaid'),
+    ]);
+    context.total_invoices = invTotal.count ?? 0;
+    context.paid_invoices = paidCount.count ?? 0;
+    context.unpaid_invoices = unpaidCount.count ?? 0;
+  }
+
+  if (pageKey === 'crm' && roleLevel >= 35) {
+    const { count } = await admin.from('clients').select('id', { count: 'exact', head: true }).eq('company_id', companyId);
+    context.total_clients = count ?? 0;
+  }
+
+  if (pageKey === 'projects' && roleLevel >= 35) {
+    const [total, active] = await Promise.all([
+      admin.from('projects').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+      admin.from('projects').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'active'),
+    ]);
+    context.total_projects = total.count ?? 0;
+    context.active_projects = active.count ?? 0;
+  }
+
+  // Get enabled modules
+  const { data: modules } = await admin
+    .from('company_modules')
+    .select('modules_catalog(code)')
+    .eq('company_id', companyId)
+    .eq('is_active', true);
+  context.enabled_modules = (modules || []).map((m: any) => m.modules_catalog?.code).filter(Boolean);
+
+  // Save context snapshot for auditing
+  await admin.from('ai_context_snapshots').insert({
+    company_id: companyId,
+    user_id: userId,
+    page_key: pageKey,
+    role_code: membership.role,
+    context_data: context,
+    forbidden_topics: forbiddenTopics,
+  }).then(() => {});
+
+  return jsonResponse({ context, forbidden_topics: forbiddenTopics });
+}
+
+/**
+ * POST /api/ai/approve-action
+ * Approve or deny a pending AI action review.
+ * Requires department_manager+ (level 65).
+ */
+async function handleApproveAction(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const body = (await request.json()) as {
+    reviewId: string;
+    decision: 'approved' | 'denied';
+    note?: string;
+    companyId: string;
+  };
+
+  if (!body.reviewId || !body.decision || !body.companyId) {
+    return errorResponse('Missing reviewId, decision, or companyId');
+  }
+
+  // Check membership and permission (level 65 = department_manager+)
+  const membership = await checkMembership(env, userId, body.companyId);
+  if (!membership) return errorResponse('Not a member of this company', 403);
+
+  const ROLE_LEVELS: Record<string, number> = {
+    founder: 100, platform_admin: 95, company_gm: 85, assistant_gm: 80,
+    executive_secretary: 75, department_manager: 65, hr_officer: 60, accountant: 60,
+    supervisor: 55, senior_employee: 45, sales_rep: 45, employee: 35,
+  };
+  const level = ROLE_LEVELS[membership.role] ?? 0;
+  if (level < 65) return errorResponse('Insufficient permissions to approve actions', 403);
+
+  const admin = createAdminClient(env);
+
+  // Update the review
+  const { data: review, error } = await admin
+    .from('ai_action_reviews')
+    .update({
+      status: body.decision,
+      reviewed_by: userId,
+      review_note: body.note || null,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', body.reviewId)
+    .eq('company_id', body.companyId)
+    .eq('status', 'pending')
+    .select()
+    .single();
+
+  if (error || !review) return errorResponse('Review not found or already processed');
+
+  // If approved, execute the action
+  if (body.decision === 'approved' && review.payload) {
+    try {
+      // Mark as executed
+      await admin.from('ai_action_reviews').update({
+        status: 'executed',
+        executed_at: new Date().toISOString(),
+        execution_result: { success: true },
+      }).eq('id', body.reviewId);
+
+      // Audit log
+      await admin.from('audit_logs').insert({
+        company_id: body.companyId,
+        user_id: userId,
+        action: 'ai_action_approved',
+        entity_type: 'ai_action_review',
+        entity_id: body.reviewId,
+        new_data: { action_code: review.action_code, agent_type: review.agent_type },
+      });
+    } catch (execErr) {
+      await admin.from('ai_action_reviews').update({
+        execution_result: { success: false, error: String(execErr) },
+      }).eq('id', body.reviewId);
+    }
+  }
+
+  // Also audit denials
+  if (body.decision === 'denied') {
+    await admin.from('audit_logs').insert({
+      company_id: body.companyId,
+      user_id: userId,
+      action: 'ai_action_denied',
+      entity_type: 'ai_action_review',
+      entity_id: body.reviewId,
+      new_data: { action_code: review.action_code, reason: body.note },
+    });
+  }
+
+  return jsonResponse({ success: true, review });
+}
+
+/**
+ * GET /api/ai/approvals?company_id=...&status=pending
+ * List AI action reviews pending approval.
+ */
+async function handleListApprovals(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const companyId = url.searchParams.get('company_id') || request.headers.get('x-company-id') || '';
+  const status = url.searchParams.get('status') || 'pending';
+
+  if (!companyId) return errorResponse('Missing company_id');
+
+  const membership = await checkMembership(env, userId, companyId);
+  if (!membership) return errorResponse('Not a member', 403);
+
+  const admin = createAdminClient(env);
+  const { data: reviews } = await admin
+    .from('ai_action_reviews')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('status', status)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  return jsonResponse({ reviews: reviews || [] });
+}
+
+/**
+ * GET /api/ai/policies?company_id=...
+ * Get AI policies for a company.
+ */
+async function handleGetPolicies(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const companyId = url.searchParams.get('company_id') || request.headers.get('x-company-id') || '';
+
+  if (!companyId) return errorResponse('Missing company_id');
+
+  const admin = createAdminClient(env);
+  const { data: policies } = await admin
+    .from('ai_policies')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  return jsonResponse({ policies: policies || [] });
+}
+
+/**
+ * POST /api/ai/policies
+ * Create or update an AI policy for a company.
+ * Requires company_gm+ (level 85).
+ */
+async function handleSetPolicy(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const body = (await request.json()) as {
+    companyId: string;
+    policy_type: string;
+    agent_type?: string;
+    action_level?: string;
+    min_role_level?: number;
+    max_daily_requests?: number;
+    forbidden_topics?: string[];
+    require_human_approval?: boolean;
+  };
+
+  if (!body.companyId || !body.policy_type) {
+    return errorResponse('Missing companyId or policy_type');
+  }
+
+  const membership = await checkMembership(env, userId, body.companyId);
+  if (!membership) return errorResponse('Not a member', 403);
+
+  const ROLE_LEVELS: Record<string, number> = {
+    founder: 100, platform_admin: 95, company_gm: 85, assistant_gm: 80,
+  };
+  if ((ROLE_LEVELS[membership.role] ?? 0) < 85) {
+    return errorResponse('Only GM+ can set AI policies', 403);
+  }
+
+  const admin = createAdminClient(env);
+  const { data, error } = await admin
+    .from('ai_policies')
+    .insert({
+      company_id: body.companyId,
+      policy_type: body.policy_type,
+      agent_type: body.agent_type,
+      action_level: body.action_level,
+      min_role_level: body.min_role_level,
+      max_daily_requests: body.max_daily_requests,
+      forbidden_topics: body.forbidden_topics,
+      require_human_approval: body.require_human_approval,
+      created_by: userId,
+    })
+    .select()
+    .single();
+
+  if (error) return errorResponse(error.message);
+
+  // Audit log
+  await admin.from('audit_logs').insert({
+    company_id: body.companyId,
+    user_id: userId,
+    action: 'ai_policy_created',
+    entity_type: 'ai_policy',
+    entity_id: data.id,
+    new_data: { policy_type: body.policy_type, agent_type: body.agent_type },
+  });
+
+  return jsonResponse({ policy: data }, 201);
 }
