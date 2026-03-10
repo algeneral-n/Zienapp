@@ -54,6 +54,7 @@ export interface Env {
   ELEVENLABS_API_KEY?: string;
   APPLE_PAY_MERCHANT_ID?: string;
   APPLE_PAY_LATER_TOKEN?: string;
+  SUPREME_AI_KEY?: string;
 }
 
 export default {

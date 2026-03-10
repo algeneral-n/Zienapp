@@ -44,6 +44,11 @@ class _SupremeAccessScreenState extends ConsumerState<SupremeAccessScreen>
   String _cmdType = 'query';
   List<Map<String, dynamic>> _cmdHistory = [];
 
+  // AI Agent panel
+  List<Map<String, dynamic>> _queueCommands = [];
+  Map<String, dynamic> _aiHeartbeat = {};
+  bool _aiConnected = false;
+
   static const _supremePin = '070725'; // founder-set PIN
 
   static const Map<String, Map<String, dynamic>> _cmdTypes = {
@@ -57,7 +62,7 @@ class _SupremeAccessScreenState extends ConsumerState<SupremeAccessScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -101,6 +106,8 @@ class _SupremeAccessScreenState extends ConsumerState<SupremeAccessScreen>
       _loadAuditLog(),
       _loadAlerts(),
       _loadMetrics(),
+      _loadQueue(),
+      _loadAIHeartbeat(),
     ]);
     setState(() => _loading = false);
   }
@@ -131,6 +138,55 @@ class _SupremeAccessScreenState extends ConsumerState<SupremeAccessScreen>
     if (res.isSuccess && res.data != null) {
       setState(() => _metrics = res.data!);
     }
+  }
+
+  Future<void> _loadQueue() async {
+    final res = await _api.get('/api/supreme/queue?status=pending');
+    if (res.isSuccess && res.data != null) {
+      setState(() => _queueCommands = List<Map<String, dynamic>>.from(res.data?['commands'] ?? []));
+    }
+  }
+
+  Future<void> _loadAIHeartbeat() async {
+    final res = await _api.get('/api/supreme/ai/heartbeat');
+    if (res.isSuccess && res.data != null) {
+      setState(() {
+        _aiHeartbeat = res.data!;
+        _aiConnected = true;
+      });
+    } else {
+      setState(() => _aiConnected = false);
+    }
+  }
+
+  Future<void> _approveQueueItem(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Approve AI Command?', style: TextStyle(color: Colors.white)),
+        content: Text('This will execute the AI-requested command.', style: TextStyle(color: Colors.grey[300])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]),
+            child: const Text('APPROVE', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    HapticFeedback.heavyImpact();
+    await _api.post('/api/supreme/queue/$id/approve', body: {});
+    _loadQueue();
+  }
+
+  Future<void> _rejectQueueItem(String id) async {
+    await _api.post('/api/supreme/queue/$id/reject', body: {'reason': 'Founder rejected'});
+    HapticFeedback.mediumImpact();
+    _loadQueue();
   }
 
   // ─── Command execution (with confirmation) ────────────────────────────
@@ -390,6 +446,7 @@ class _SupremeAccessScreenState extends ConsumerState<SupremeAccessScreen>
             Tab(icon: Icon(Icons.security, size: 18), text: 'Security'),
             Tab(icon: Icon(Icons.assessment, size: 18), text: 'Reports'),
             Tab(icon: Icon(Icons.terminal, size: 18), text: 'Command'),
+            Tab(icon: Icon(Icons.smart_toy, size: 18), text: 'AI Agent'),
           ],
         ),
       ),
@@ -402,6 +459,7 @@ class _SupremeAccessScreenState extends ConsumerState<SupremeAccessScreen>
                 _buildSecurityTab(),
                 _buildReportsTab(),
                 _buildCommandTab(),
+                _buildAIAgentTab(),
               ],
             ),
     );
@@ -1248,6 +1306,264 @@ class _SupremeAccessScreenState extends ConsumerState<SupremeAccessScreen>
             cmd['timestamp'] as String? ?? '',
             style: TextStyle(color: Colors.grey[600], fontSize: 9),
           ),
+        ],
+      ),
+    );
+  }
+
+  // ─── AI AGENT TAB ──────────────────────────────────────────────────────
+
+  Widget _buildAIAgentTab() {
+    return RefreshIndicator(
+      color: Colors.amber,
+      onRefresh: () async { await _loadQueue(); await _loadAIHeartbeat(); },
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Connection status
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: _aiConnected
+                    ? [const Color(0xFF064E3B), const Color(0xFF065F46)]
+                    : [const Color(0xFF7F1D1D), const Color(0xFF991B1B)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _aiConnected ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 14, height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _aiConnected ? Colors.green : Colors.red,
+                    boxShadow: [BoxShadow(
+                      color: (_aiConnected ? Colors.green : Colors.red).withValues(alpha: 0.5),
+                      blurRadius: 10,
+                    )],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _aiConnected ? 'AI AGENT CONNECTED' : 'AI AGENT OFFLINE',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _aiConnected
+                            ? 'Last heartbeat: ${_aiHeartbeat['server_time'] ?? 'now'}'
+                            : 'No heartbeat received',
+                        style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  _aiConnected ? Icons.smart_toy : Icons.smart_toy_outlined,
+                  color: _aiConnected ? Colors.green : Colors.red,
+                  size: 28,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Service Key section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A2E),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.vpn_key, color: Colors.amber, size: 18),
+                    const SizedBox(width: 8),
+                    const Text('AI Service Key', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Set X-Supreme-Key header in your AI agent.\nKey is stored as a Cloudflare Worker secret.',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12, height: 1.5),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, size: 14, color: Colors.green[400]),
+                    const SizedBox(width: 6),
+                    Text('SUPREME_AI_KEY configured', style: TextStyle(color: Colors.green[400], fontSize: 12)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Pending commands queue
+          _sectionTitle('Pending AI Commands (${_queueCommands.length})'),
+          const SizedBox(height: 10),
+          if (_queueCommands.isEmpty)
+            _emptyState('No pending AI commands')
+          else
+            ..._queueCommands.map((cmd) => _queueCommandTile(cmd)),
+
+          const SizedBox(height: 20),
+
+          // Capabilities list
+          _sectionTitle('AI Agent Capabilities'),
+          const SizedBox(height: 10),
+          _capabilityTile('Monitor Platform', Icons.monitor_heart, Colors.blue, 'Read-only access to metrics and health'),
+          _capabilityTile('Security Scanning', Icons.security, Colors.red, 'Detect threats and anomalies autonomously'),
+          _capabilityTile('Generate Reports', Icons.assessment, Colors.purple, 'Create reports on demand'),
+          _capabilityTile('Submit Commands', Icons.queue, Colors.orange, 'Queue commands for your approval'),
+          _capabilityTile('Heartbeat Check-in', Icons.favorite, Colors.pink, 'Periodic alive signal with metrics'),
+        ],
+      ),
+    );
+  }
+
+  Widget _queueCommandTile(Map<String, dynamic> cmd) {
+    final priority = cmd['priority'] as String? ?? 'normal';
+    final priorityColor = priority == 'critical'
+        ? Colors.red
+        : priority == 'high'
+            ? Colors.orange
+            : Colors.blue;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: priorityColor.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: priorityColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(priority.toUpperCase(), style: TextStyle(
+                  color: priorityColor, fontSize: 9, fontWeight: FontWeight.bold,
+                )),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(cmd['command_type'] as String? ?? 'query', style: const TextStyle(
+                  color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold,
+                )),
+              ),
+              const Spacer(),
+              Text(cmd['created_at'] as String? ?? '', style: TextStyle(color: Colors.grey[600], fontSize: 9)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              cmd['command'] as String? ?? '',
+              style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontSize: 12),
+            ),
+          ),
+          if (cmd['reason'] != null) ...[
+            const SizedBox(height: 6),
+            Text('Reason: ${cmd['reason']}', style: TextStyle(color: Colors.grey[400], fontSize: 11, fontStyle: FontStyle.italic)),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _approveQueueItem(cmd['id'] as String),
+                  icon: const Icon(Icons.check, size: 16),
+                  label: const Text('APPROVE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _rejectQueueItem(cmd['id'] as String),
+                  icon: const Icon(Icons.close, size: 16),
+                  label: const Text('REJECT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red[400],
+                    side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _capabilityTile(String title, IconData icon, Color color, String desc) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(desc, style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+              ],
+            ),
+          ),
+          Icon(Icons.check_circle, color: Colors.green.withValues(alpha: 0.6), size: 18),
         ],
       ),
     );
