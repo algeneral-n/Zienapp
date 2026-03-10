@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   MessageSquare, Video, Calendar, Users, Plus, Send,
   Mic, Paperclip, Search, Phone, MoreVertical, Clock,
-  CheckCheck, ChevronRight, Loader2
+  CheckCheck, ChevronRight, Loader2, X
 } from 'lucide-react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,6 +25,9 @@ export default function MeetingsModule() {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [meetingStats, setMeetingStats] = useState({ today: 0, week: 0 });
   const [loadingMeetings, setLoadingMeetings] = useState(true);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [meetingForm, setMeetingForm] = useState({ title: '', scheduled_at: '', duration_minutes: '30' });
+  const [meetingSaving, setMeetingSaving] = useState(false);
 
   // Load channels
   useEffect(() => {
@@ -110,6 +113,39 @@ export default function MeetingsModule() {
     await supabase.from('chats').update({ last_message: text, updated_at: new Date().toISOString() }).eq('id', selectedChannel.id);
   };
 
+  const scheduleMeeting = async () => {
+    if (!meetingForm.title.trim() || !meetingForm.scheduled_at || !company?.id) return;
+    setMeetingSaving(true);
+    try {
+      const { data, error } = await supabase.from('meetings').insert({
+        title: meetingForm.title.trim(),
+        scheduled_at: meetingForm.scheduled_at,
+        duration_minutes: parseInt(meetingForm.duration_minutes) || 30,
+        participant_count: 0,
+        status: 'scheduled',
+        company_id: company.id,
+      }).select().single();
+      if (!error && data) {
+        setMeetings(prev => [...prev, data].sort((a, b) => (a.scheduled_at ?? '').localeCompare(b.scheduled_at ?? '')));
+        const todayStr = new Date().toISOString().slice(0, 10);
+        setMeetingStats(prev => ({
+          today: data.scheduled_at?.startsWith(todayStr) ? prev.today + 1 : prev.today,
+          week: prev.week + 1,
+        }));
+      }
+      setMeetingForm({ title: '', scheduled_at: '', duration_minutes: '30' });
+      setShowSchedule(false);
+    } finally {
+      setMeetingSaving(false);
+    }
+  };
+
+  const cancelMeeting = async (id: string) => {
+    await supabase.from('meetings').delete().eq('id', id);
+    setMeetings(prev => prev.filter(m => m.id !== id));
+    setMeetingStats(prev => ({ today: Math.max(0, prev.today - 1), week: Math.max(0, prev.week - 1) }));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -118,11 +154,8 @@ export default function MeetingsModule() {
           <p className="text-zinc-500 mt-1 text-sm">Team communication, meetings, and video calls</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="bg-blue-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all">
-            <Video size={14} /> Start Meeting
-          </button>
-          <button className="bg-zinc-100 dark:bg-zinc-800 px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-            <Calendar size={14} /> Schedule
+          <button onClick={() => setShowSchedule(true)} className="bg-blue-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all">
+            <Calendar size={14} /> Schedule Meeting
           </button>
         </div>
       </div>
@@ -243,6 +276,53 @@ export default function MeetingsModule() {
         </div>
       )}
 
+      {/* Schedule Meeting Form */}
+      {showSchedule && (
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-sm">Schedule New Meeting</h3>
+            <button onClick={() => setShowSchedule(false)} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg"><X size={16} /></button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <input
+              type="text"
+              placeholder="Meeting title"
+              value={meetingForm.title}
+              onChange={e => setMeetingForm(f => ({ ...f, title: e.target.value }))}
+              className="bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl py-2.5 px-4 text-sm font-medium"
+            />
+            <input
+              type="datetime-local"
+              value={meetingForm.scheduled_at}
+              onChange={e => setMeetingForm(f => ({ ...f, scheduled_at: e.target.value }))}
+              className="bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl py-2.5 px-4 text-sm font-medium"
+            />
+            <select
+              value={meetingForm.duration_minutes}
+              onChange={e => setMeetingForm(f => ({ ...f, duration_minutes: e.target.value }))}
+              className="bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl py-2.5 px-4 text-sm font-medium"
+            >
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+            </select>
+          </div>
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={scheduleMeeting}
+              disabled={meetingSaving || !meetingForm.title.trim() || !meetingForm.scheduled_at}
+              className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {meetingSaving ? <Loader2 size={14} className="animate-spin" /> : <Calendar size={14} />}
+              Schedule
+            </button>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'meetings' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -281,7 +361,10 @@ export default function MeetingsModule() {
                 {meeting.status === 'live' ? (
                   <button className="bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Join Now</button>
                 ) : (
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Details</button>
+                  <>
+                    <button onClick={() => cancelMeeting(meeting.id)} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-2 rounded-xl text-xs font-bold transition-all">Cancel</button>
+                    <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Details</button>
+                  </>
                 )}
                 <ChevronRight size={16} className="text-zinc-400" />
               </div>

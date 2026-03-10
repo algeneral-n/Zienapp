@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import {
   Truck, MapPin, ClipboardList, Settings,
-  Navigation, Package, Clock, AlertCircle, Loader2, X, Plus
+  Navigation, Package, Clock, AlertCircle, Loader2, X, Plus,
+  CheckCircle2, ArrowRight, User
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCompany } from '../../contexts/CompanyContext';
@@ -230,6 +231,88 @@ const FleetManagement = () => {
   );
 };
 
+// ─── Tracking ───────────────────────────────────────────────────────────
+const DeliveryTracking = () => {
+  const { company } = useCompany();
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!company?.id) return;
+    supabase
+      .from('logistics_tasks')
+      .select('id, title, status, assigned_to, eta, progress, created_at, profiles(full_name)')
+      .eq('company_id', company.id)
+      .order('created_at', { ascending: false })
+      .limit(30)
+      .then(({ data }) => { setTasks(data ?? []); setLoading(false); });
+  }, [company?.id]);
+
+  const updateStatus = async (id: string, status: string, progress: number) => {
+    await supabase.from('logistics_tasks').update({ status, progress }).eq('id', id);
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status, progress } : t));
+  };
+
+  const STAGES = [
+    { key: 'pending', label: 'Pending', color: 'bg-zinc-400' },
+    { key: 'assigned', label: 'Assigned', color: 'bg-amber-500' },
+    { key: 'in_transit', label: 'In Transit', color: 'bg-blue-500' },
+    { key: 'delivered', label: 'Delivered', color: 'bg-emerald-500' },
+  ];
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tighter">Delivery Tracking</h2>
+      <div className="grid grid-cols-4 gap-4">
+        {STAGES.map(s => {
+          const count = tasks.filter(t => t.status === s.key).length;
+          return (
+            <div key={s.key} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 text-center">
+              <div className={`w-3 h-3 rounded-full ${s.color} mx-auto mb-2`} />
+              <div className="text-2xl font-black">{count}</div>
+              <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{s.label}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="space-y-4">
+        {tasks.map(task => {
+          const stageIdx = STAGES.findIndex(s => s.key === task.status);
+          return (
+            <div key={task.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="font-bold text-sm">{task.title}</h4>
+                  <p className="text-[10px] text-zinc-400 flex items-center gap-1"><User size={10} />{task.profiles?.full_name ?? 'Unassigned'}</p>
+                </div>
+                {task.eta && <div className="text-[10px] text-zinc-400 flex items-center gap-1"><Clock size={10} />ETA: {new Date(task.eta).toLocaleString()}</div>}
+              </div>
+              <div className="flex items-center gap-2 mb-4">
+                {STAGES.map((s, i) => (
+                  <React.Fragment key={s.key}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${i <= stageIdx ? s.color : 'bg-zinc-200 dark:bg-zinc-700'}`}>
+                      {i < stageIdx ? <CheckCircle2 size={14} /> : i === stageIdx ? (i + 1) : (i + 1)}
+                    </div>
+                    {i < STAGES.length - 1 && <div className={`flex-1 h-0.5 ${i < stageIdx ? 'bg-blue-500' : 'bg-zinc-200 dark:bg-zinc-700'}`} />}
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                {task.status === 'pending' && <button onClick={() => updateStatus(task.id, 'assigned', 25)} className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-amber-600">Assign</button>}
+                {task.status === 'assigned' && <button onClick={() => updateStatus(task.id, 'in_transit', 50)} className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-blue-600">Start Transit</button>}
+                {task.status === 'in_transit' && <button onClick={() => updateStatus(task.id, 'delivered', 100)} className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-600">Mark Delivered</button>}
+                {task.status === 'delivered' && <span className="px-3 py-1.5 text-emerald-600 text-[10px] font-bold uppercase flex items-center gap-1"><CheckCircle2 size={12} />Completed</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default function LogisticsModule() {
   return (
     <div className="space-y-8">
@@ -238,7 +321,6 @@ export default function LogisticsModule() {
           { icon: ClipboardList, label: 'Tasks', path: '' },
           { icon: Truck, label: 'Fleet', path: 'fleet' },
           { icon: MapPin, label: 'Tracking', path: 'tracking' },
-          { icon: Settings, label: 'Settings', path: 'settings' },
         ].map((item) => (
           <NavLink
             key={item.label}
@@ -265,26 +347,7 @@ export default function LogisticsModule() {
         <Routes>
           <Route path="/" element={<TaskFollowUp />} />
           <Route path="/fleet" element={<FleetManagement />} />
-          <Route path="/tracking" element={
-            <div className="text-center py-16">
-              <MapPin size={48} className="mx-auto mb-4 text-zinc-300 dark:text-zinc-600" />
-              <h3 className="text-lg font-bold text-zinc-500">GPS Tracking</h3>
-              <p className="text-sm text-zinc-400 mt-1 max-w-md mx-auto">
-                Real-time vehicle tracking, route history, geofencing alerts, and live map view.
-              </p>
-              <span className="mt-4 inline-block px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 text-xs font-bold rounded-xl uppercase tracking-widest">Coming Soon</span>
-            </div>
-          } />
-          <Route path="/settings" element={
-            <div className="text-center py-16">
-              <Settings size={48} className="mx-auto mb-4 text-zinc-300 dark:text-zinc-600" />
-              <h3 className="text-lg font-bold text-zinc-500">Logistics Settings</h3>
-              <p className="text-sm text-zinc-400 mt-1 max-w-md mx-auto">
-                Configure task categories, vehicle types, driver assignments, and notification preferences.
-              </p>
-              <span className="mt-4 inline-block px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 text-xs font-bold rounded-xl uppercase tracking-widest">Coming Soon</span>
-            </div>
-          } />
+          <Route path="/tracking" element={<DeliveryTracking />} />
         </Routes>
       </motion.div>
     </div>

@@ -3,7 +3,8 @@ import { Routes, Route, NavLink } from 'react-router-dom';
 import {
   FileText, BarChart3, Settings, BookOpen, Layers, Building2, Brain,
   Plus, Download, Printer, Send, Loader2, X, ChevronRight, RefreshCw,
-  TrendingUp, TrendingDown, AlertTriangle, DollarSign, Eye
+  TrendingUp, TrendingDown, AlertTriangle, DollarSign, Eye,
+  ArrowDownRight, ArrowUpRight, Clock
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
@@ -678,6 +679,164 @@ const TaxSettings = () => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 9. AP / AR TRACKER
+// ═══════════════════════════════════════════════════════════════════════════
+const APARTracker = () => {
+  const { t } = useTranslation();
+  const { company } = useCompany();
+  const [tab, setTab] = useState<'receivable' | 'payable'>('receivable');
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!company?.id) return;
+    supabase.from('invoices').select('id, invoice_number, client_name, total_amount, vat_amount, status, due_date, created_at, direction')
+      .eq('company_id', company.id).order('created_at', { ascending: false }).limit(100)
+      .then(({ data }) => { setInvoices(data ?? []); setLoading(false); });
+  }, [company?.id]);
+
+  const filtered = invoices.filter(inv => {
+    if (tab === 'receivable') return !inv.direction || inv.direction === 'outgoing';
+    return inv.direction === 'incoming';
+  });
+  const totalOutstanding = filtered.filter(i => i.status !== 'paid').reduce((s, i) => s + (Number(i.total_amount) || 0), 0);
+  const overdue = filtered.filter(i => i.status !== 'paid' && i.due_date && new Date(i.due_date) < new Date());
+
+  if (loading) return <Spinner />;
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tighter">{t('ap_ar', 'AP / AR')}</h2>
+      <div className="flex gap-3">
+        <button onClick={() => setTab('receivable')} className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${tab === 'receivable' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500'}`}>
+          <ArrowDownRight size={16} /> {t('accounts_receivable', 'Receivable')}
+        </button>
+        <button onClick={() => setTab('payable')} className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${tab === 'payable' ? 'bg-red-500 text-white' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500'}`}>
+          <ArrowUpRight size={16} /> {t('accounts_payable', 'Payable')}
+        </button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-6"><p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">{t('total_outstanding', 'Outstanding')}</p><p className="text-2xl font-black">{totalOutstanding.toLocaleString()} AED</p></Card>
+        <Card className="p-6"><p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">{t('overdue_count', 'Overdue')}</p><p className="text-2xl font-black text-red-500">{overdue.length}</p></Card>
+        <Card className="p-6"><p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">{t('total_invoices', 'Invoices')}</p><p className="text-2xl font-black">{filtered.length}</p></Card>
+      </div>
+      <Card className="overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead><tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+            <TH>#</TH><TH>{t('client', 'Client')}</TH><TH>{t('amount', 'Amount')}</TH><TH>{t('due_date', 'Due')}</TH><TH>{t('status', 'Status')}</TH>
+          </tr></thead>
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            {filtered.length === 0 ? <tr><td colSpan={5} className="px-6 py-8 text-center text-zinc-400 text-sm">{t('no_records', 'No records')}</td></tr> :
+              filtered.map(inv => {
+                const isOverdue = inv.status !== 'paid' && inv.due_date && new Date(inv.due_date) < new Date();
+                return (
+                  <tr key={inv.id} className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors ${isOverdue ? 'bg-red-50/50 dark:bg-red-500/5' : ''}`}>
+                    <td className="px-6 py-4 text-sm font-black">{inv.invoice_number}</td>
+                    <td className="px-6 py-4 text-xs">{inv.client_name}</td>
+                    <td className="px-6 py-4 text-sm font-bold">{Number(inv.total_amount).toLocaleString()} AED</td>
+                    <td className="px-6 py-4 text-xs text-zinc-500">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</td>
+                    <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${inv.status === 'paid' ? 'bg-emerald-600/10 text-emerald-600' : isOverdue ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>{isOverdue ? 'overdue' : inv.status}</span></td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 10. AGING REPORT
+// ═══════════════════════════════════════════════════════════════════════════
+const AgingReport = () => {
+  const { t } = useTranslation();
+  const { company } = useCompany();
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!company?.id) return;
+    supabase.from('invoices').select('id, invoice_number, client_name, total_amount, status, due_date, created_at')
+      .eq('company_id', company.id).neq('status', 'paid').order('due_date', { ascending: true })
+      .then(({ data }) => { setInvoices(data ?? []); setLoading(false); });
+  }, [company?.id]);
+
+  const now = new Date();
+  const buckets = [
+    { label: 'Current', min: -Infinity, max: 0 },
+    { label: '1-30 days', min: 1, max: 30 },
+    { label: '31-60 days', min: 31, max: 60 },
+    { label: '61-90 days', min: 61, max: 90 },
+    { label: '90+ days', min: 91, max: Infinity },
+  ];
+  const colors = ['bg-emerald-600', 'bg-blue-600', 'bg-amber-500', 'bg-orange-500', 'bg-red-600'];
+
+  const getBucket = (dueDate: string | null) => {
+    if (!dueDate) return 0;
+    const days = Math.floor((now.getTime() - new Date(dueDate).getTime()) / (1000 * 60 * 60 * 24));
+    return buckets.findIndex(b => days >= b.min && days <= b.max);
+  };
+
+  const bucketTotals = buckets.map((_, i) => invoices.filter(inv => getBucket(inv.due_date) === i).reduce((s, inv) => s + (Number(inv.total_amount) || 0), 0));
+  const totalUnpaid = bucketTotals.reduce((s, v) => s + v, 0);
+
+  if (loading) return <Spinner />;
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tighter">{t('aging_report', 'Aging Report')}</h2>
+      <div className="grid grid-cols-5 gap-3">
+        {buckets.map((b, i) => (
+          <Card key={b.label} className="p-4 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">{b.label}</p>
+            <p className="text-xl font-black">{bucketTotals[i].toLocaleString()}</p>
+            <p className="text-[10px] text-zinc-400">AED</p>
+          </Card>
+        ))}
+      </div>
+      {totalUnpaid > 0 && (
+        <Card className="p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3">{t('distribution', 'Distribution')}</p>
+          <div className="flex h-4 rounded-full overflow-hidden">
+            {bucketTotals.map((v, i) => v > 0 ? (
+              <div key={i} className={`${colors[i]} transition-all`} style={{ width: `${(v / totalUnpaid) * 100}%` }} title={`${buckets[i].label}: ${v.toLocaleString()} AED`} />
+            ) : null)}
+          </div>
+          <div className="flex justify-between mt-2">
+            {buckets.map((b, i) => bucketTotals[i] > 0 ? (
+              <span key={i} className="text-[10px] text-zinc-400">{b.label}: {Math.round((bucketTotals[i] / totalUnpaid) * 100)}%</span>
+            ) : null)}
+          </div>
+        </Card>
+      )}
+      <Card className="overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead><tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+            <TH>#</TH><TH>{t('client', 'Client')}</TH><TH>{t('amount', 'Amount')}</TH><TH>{t('due_date', 'Due')}</TH><TH>{t('days_overdue', 'Days Overdue')}</TH><TH>{t('bucket', 'Bucket')}</TH>
+          </tr></thead>
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            {invoices.length === 0 ? <tr><td colSpan={6} className="px-6 py-8 text-center text-zinc-400 text-sm">{t('all_paid', 'All invoices paid!')}</td></tr> :
+              invoices.map(inv => {
+                const days = inv.due_date ? Math.floor((now.getTime() - new Date(inv.due_date).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                const bi = getBucket(inv.due_date);
+                return (
+                  <tr key={inv.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-6 py-4 text-sm font-black">{inv.invoice_number}</td>
+                    <td className="px-6 py-4 text-xs">{inv.client_name}</td>
+                    <td className="px-6 py-4 text-sm font-bold">{Number(inv.total_amount).toLocaleString()} AED</td>
+                    <td className="px-6 py-4 text-xs text-zinc-500">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</td>
+                    <td className="px-6 py-4 text-sm font-bold">{days > 0 ? <span className="text-red-500">{days}d</span> : <span className="text-emerald-600">Current</span>}</td>
+                    <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase text-white ${colors[bi]}`}>{buckets[bi]?.label}</span></td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MODULE LAYOUT + ROUTER
 // ═══════════════════════════════════════════════════════════════════════════
 export default function AccountingModule() {
@@ -691,6 +850,8 @@ export default function AccountingModule() {
     { icon: Building2, label: t('cost_centers', 'Cost Centers'), path: 'cost-centers' },
     { icon: Brain, label: t('ai_insights', 'AI Insights'), path: 'ai' },
     { icon: Settings, label: t('tax_settings', 'Tax Settings'), path: 'tax' },
+    { icon: ArrowDownRight, label: t('ap_ar', 'AP / AR'), path: 'apar' },
+    { icon: Clock, label: t('aging_report', 'Aging'), path: 'aging' },
   ];
 
   return (
@@ -714,6 +875,8 @@ export default function AccountingModule() {
           <Route path="/cost-centers" element={<CostCenters />} />
           <Route path="/ai" element={<AIInsights />} />
           <Route path="/tax" element={<TaxSettings />} />
+          <Route path="/apar" element={<APARTracker />} />
+          <Route path="/aging" element={<AgingReport />} />
         </Routes>
       </motion.div>
     </div>

@@ -170,7 +170,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
-                          value: priority,
+                          initialValue: priority,
                           decoration: const InputDecoration(
                             labelText: 'Priority',
                             prefixIcon: Icon(Icons.flag),

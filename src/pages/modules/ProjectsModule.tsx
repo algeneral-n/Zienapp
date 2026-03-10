@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   FolderKanban, CheckCircle2, Clock, AlertCircle, Plus,
-  Calendar, Users, BarChart3, ArrowUpRight, Target, Loader2, X, Search
+  Calendar, Users, BarChart3, ArrowUpRight, Target, Loader2, X, Search,
+  ChevronRight, Circle, Trash2
 } from 'lucide-react';
 import { useCompany } from '../../contexts/CompanyContext';
 import { supabase } from '../../services/supabase';
@@ -34,6 +35,10 @@ export default function ProjectsModule() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', client_name: '', deadline: '' });
   const [search, setSearch] = useState('');
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [taskLoading, setTaskLoading] = useState(false);
+  const [newTask, setNewTask] = useState('');
 
   const fetchProjects = () => {
     if (!company?.id) return;
@@ -77,6 +82,38 @@ export default function ProjectsModule() {
       setForm({ name: '', client_name: '', deadline: '' });
       fetchProjects();
     }
+  };
+
+  const openProject = async (id: string) => {
+    setSelectedProject(id);
+    setTaskLoading(true);
+    const { data } = await supabase.from('project_tasks').select('*').eq('project_id', id).order('created_at', { ascending: false });
+    setTasks(data ?? []);
+    setTaskLoading(false);
+  };
+
+  const addTask = async () => {
+    if (!selectedProject || !newTask.trim()) return;
+    const { data } = await supabase.from('project_tasks').insert({ project_id: selectedProject, title: newTask.trim(), status: 'todo' }).select().single();
+    if (data) setTasks(prev => [data, ...prev]);
+    setNewTask('');
+  };
+
+  const toggleTask = async (taskId: string, done: boolean) => {
+    const status = done ? 'done' : 'todo';
+    await supabase.from('project_tasks').update({ status }).eq('id', taskId);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status } : t));
+  };
+
+  const deleteTask = async (taskId: string) => {
+    await supabase.from('project_tasks').delete().eq('id', taskId);
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+  };
+
+  const updateProjectStatus = async (id: string, status: string) => {
+    const progress = status === 'completed' ? 100 : status === 'active' ? 50 : projects.find(p => p.id === id)?.progress ?? 0;
+    await supabase.from('projects').update({ status, progress }).eq('id', id);
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, status, progress } : p));
   };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>;
@@ -169,7 +206,7 @@ export default function ProjectsModule() {
             const sc = STATUS_CONFIG[project.status] ?? STATUS_CONFIG.active;
             const StatusIcon = sc.icon;
             return (
-              <div key={project.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-md transition-all cursor-pointer">
+              <div key={project.id} onClick={() => openProject(project.id)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-md hover:border-blue-600/50 transition-all cursor-pointer">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="font-bold text-sm">{project.name}</h3>
@@ -219,7 +256,7 @@ export default function ProjectsModule() {
                   <span className="text-xs text-zinc-400 font-bold">{filtered.length}</span>
                 </div>
                 {filtered.map(p => (
-                  <div key={p.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 hover:shadow-md transition-all cursor-pointer">
+                  <div key={p.id} onClick={() => openProject(p.id)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 hover:shadow-md hover:border-blue-600/50 transition-all cursor-pointer">
                     <h4 className="font-bold text-xs mb-1">{p.name}</h4>
                     <p className="text-[10px] text-zinc-500 mb-3">{p.client_name ?? '-'}</p>
                     <div className="bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
@@ -236,6 +273,63 @@ export default function ProjectsModule() {
           })}
         </div>
       )}
+
+      {/* Project Detail Panel with Tasks */}
+      {selectedProject && (() => {
+        const proj = projects.find(p => p.id === selectedProject);
+        if (!proj) return null;
+        const sc = STATUS_CONFIG[proj.status] ?? STATUS_CONFIG.active;
+        const doneTasks = tasks.filter(t => t.status === 'done').length;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setSelectedProject(null)}>
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl p-8" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-black">{proj.name}</h3>
+                  <p className="text-xs text-zinc-500">{proj.client_name ?? 'No client'} {proj.deadline ? `• Due ${proj.deadline}` : ''}</p>
+                </div>
+                <button onClick={() => setSelectedProject(null)} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
+              </div>
+
+              <div className="flex gap-2 mb-6">
+                {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                  <button key={key} onClick={() => updateProjectStatus(proj.id, key)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${proj.status === key ? cfg.style + ' ring-2 ring-offset-1' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'}`}>
+                    {cfg.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mb-4">
+                <div className="flex justify-between text-xs mb-1"><span className="text-zinc-500">Task Progress</span><span className="font-bold">{doneTasks}/{tasks.length}</span></div>
+                <div className="bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                  <div className="bg-blue-600 h-full rounded-full transition-all" style={{ width: tasks.length > 0 ? `${(doneTasks / tasks.length) * 100}%` : '0%' }} />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mb-4">
+                <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} placeholder="Add a task..." className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+                <button onClick={addTask} disabled={!newTask.trim()} className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-blue-700 disabled:opacity-50"><Plus size={16} /></button>
+              </div>
+
+              {taskLoading ? <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-blue-600" /></div> : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {tasks.length === 0 ? <p className="text-center py-4 text-zinc-400 text-sm">No tasks yet</p> :
+                    tasks.map(task => (
+                      <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 group">
+                        <button onClick={() => toggleTask(task.id, task.status !== 'done')}>
+                          {task.status === 'done' ? <CheckCircle2 size={18} className="text-emerald-500" /> : <Circle size={18} className="text-zinc-300" />}
+                        </button>
+                        <span className={`flex-1 text-sm ${task.status === 'done' ? 'line-through text-zinc-400' : ''}`}>{task.title}</span>
+                        <button onClick={() => deleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-zinc-300 hover:text-red-500 transition-all"><Trash2 size={14} /></button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

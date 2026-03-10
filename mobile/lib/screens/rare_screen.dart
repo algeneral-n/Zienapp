@@ -24,7 +24,7 @@ class _RareScreenState extends ConsumerState<RareScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
 
-  List<Map<String, dynamic>> _messages = [];
+  final List<Map<String, dynamic>> _messages = [];
   bool _loading = false;
   String _mode = 'assistant'; // assistant | architect | analyst | operator
 

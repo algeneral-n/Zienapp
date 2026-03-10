@@ -3,7 +3,8 @@ import { Routes, Route, NavLink } from 'react-router-dom';
 import {
   Users, FileText, Briefcase, Settings,
   Plus, Search, Filter, MoreHorizontal, Loader2, X,
-  TrendingUp, DollarSign, ArrowRight, Target
+  TrendingUp, DollarSign, ArrowRight, Target,
+  UserPlus, Activity, CheckCircle2, Calendar, Phone, Mail
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCompany } from '../../contexts/CompanyContext';
@@ -271,15 +272,185 @@ const Quotes = () => {
   );
 };
 
+// ─── Leads ──────────────────────────────────────────────────────────────
+const Leads = () => {
+  const { company } = useCompany();
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name: '', email: '', phone: '', source: 'website', notes: '' });
+
+  useEffect(() => {
+    if (!company?.id) return;
+    crmService.listLeads({ limit: 50 }).then(r => { setLeads((r as any).data ?? r ?? []); setLoading(false); }).catch(() => setLoading(false));
+  }, [company?.id]);
+
+  const handleCreate = async () => {
+    if (!form.name) return;
+    setSaving(true);
+    try {
+      const lead = await crmService.createLead({ name: form.name, email: form.email || undefined, phone: form.phone || undefined, source: form.source, notes: form.notes || undefined });
+      setLeads(prev => [lead, ...prev]);
+      setShowCreate(false);
+      setForm({ name: '', email: '', phone: '', source: 'website', notes: '' });
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
+  };
+
+  const handleConvert = async (id: string) => {
+    try {
+      await crmService.convertLeadToClient(id);
+      setLeads(prev => prev.filter(l => l.id !== id));
+    } catch (err) { console.error(err); }
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black uppercase tracking-tighter">Leads</h2>
+        <button onClick={() => setShowCreate(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700"><Plus size={16} /> New Lead</button>
+      </div>
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowCreate(false)}>
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-8 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6"><h3 className="text-lg font-black uppercase tracking-tight">New Lead</h3><button onClick={() => setShowCreate(false)} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button></div>
+            <div className="space-y-4">
+              <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Lead name" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+              <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" type="email" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+              <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+              <select value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm">
+                {['website', 'referral', 'social_media', 'cold_call', 'event', 'other'].map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+              </select>
+              <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notes" rows={2} className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm resize-none" />
+            </div>
+            <button onClick={handleCreate} disabled={saving || !form.name} className="mt-6 w-full bg-blue-600 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50">{saving ? 'Creating...' : 'Create Lead'}</button>
+          </div>
+        </div>
+      )}
+      <div className="space-y-3">
+        {leads.length === 0 ? <div className="text-center py-8 text-zinc-400 text-sm">No leads yet</div> :
+          leads.map(lead => (
+            <div key={lead.id} className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center font-black text-sm">{(lead.name ?? '?').charAt(0)}</div>
+                <div>
+                  <h4 className="font-bold text-sm">{lead.name}</h4>
+                  <div className="flex items-center gap-3 text-[10px] text-zinc-400">
+                    {lead.email && <span className="flex items-center gap-1"><Mail size={10} />{lead.email}</span>}
+                    {lead.phone && <span className="flex items-center gap-1"><Phone size={10} />{lead.phone}</span>}
+                    <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-bold uppercase">{lead.source}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${lead.status === 'qualified' ? 'bg-emerald-500/10 text-emerald-600' : lead.status === 'contacted' ? 'bg-blue-500/10 text-blue-600' : 'bg-zinc-100 text-zinc-500'}`}>{lead.status || 'new'}</span>
+                <button onClick={() => handleConvert(lead.id)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-700">Convert</button>
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Activities ─────────────────────────────────────────────────────────
+const Activities = () => {
+  const { company } = useCompany();
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ type: 'call', subject: '', notes: '', scheduledAt: '' });
+
+  useEffect(() => {
+    if (!company?.id) return;
+    crmService.listActivities({ limit: 50 }).then(r => { setActivities((r as any).data ?? r ?? []); setLoading(false); }).catch(() => setLoading(false));
+  }, [company?.id]);
+
+  const handleCreate = async () => {
+    if (!form.subject) return;
+    setSaving(true);
+    try {
+      const act = await crmService.createActivity({ type: form.type as any, subject: form.subject, notes: form.notes || undefined, scheduledAt: form.scheduledAt || undefined });
+      setActivities(prev => [act, ...prev]);
+      setShowCreate(false);
+      setForm({ type: 'call', subject: '', notes: '', scheduledAt: '' });
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
+  };
+
+  const handleComplete = async (id: string) => {
+    try {
+      const updated = await crmService.completeActivity(id);
+      setActivities(prev => prev.map(a => a.id === id ? updated : a));
+    } catch (err) { console.error(err); }
+  };
+
+  const iconMap: Record<string, any> = { call: Phone, email: Mail, meeting: Calendar, task: CheckCircle2 };
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black uppercase tracking-tighter">Activities</h2>
+        <button onClick={() => setShowCreate(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700"><Plus size={16} /> Log Activity</button>
+      </div>
+      {showCreate && (
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} className="px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm">
+              {['call', 'email', 'meeting', 'task', 'note'].map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <input type="datetime-local" value={form.scheduledAt} onChange={e => setForm(f => ({ ...f, scheduledAt: e.target.value }))} className="px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+          </div>
+          <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="Subject" className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm" />
+          <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notes" rows={2} className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm resize-none" />
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-500">Cancel</button>
+            <button onClick={handleCreate} disabled={saving || !form.subject} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50">{saving ? 'Saving...' : 'Log Activity'}</button>
+          </div>
+        </div>
+      )}
+      <div className="space-y-3">
+        {activities.length === 0 ? <div className="text-center py-8 text-zinc-400 text-sm">No activities logged</div> :
+          activities.map(act => {
+            const Icon = iconMap[act.type] || Activity;
+            return (
+              <div key={act.id} className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${act.is_completed ? 'bg-emerald-500/10 text-emerald-600' : 'bg-blue-500/10 text-blue-600'}`}><Icon size={18} /></div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-sm">{act.subject}</h4>
+                  <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+                    <span className="font-bold uppercase">{act.type}</span>
+                    {act.scheduled_at && <span>{new Date(act.scheduled_at).toLocaleString()}</span>}
+                  </div>
+                </div>
+                {!act.is_completed && (
+                  <button onClick={() => handleComplete(act.id)} className="p-2 text-zinc-400 hover:text-emerald-600"><CheckCircle2 size={18} /></button>
+                )}
+                {act.is_completed && <span className="text-[10px] font-bold text-emerald-600 uppercase">Done</span>}
+              </div>
+            );
+          })}
+      </div>
+    </div>
+  );
+};
+
 export default function CRMModule() {
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4 overflow-x-auto pb-4 scrollbar-hide">
         {[
           { icon: Users, label: 'Clients', path: '' },
+          { icon: UserPlus, label: 'Leads', path: 'leads' },
           { icon: FileText, label: 'Quotes', path: 'quotes' },
           { icon: Target, label: 'Pipeline', path: 'pipeline' },
-          { icon: Settings, label: 'Settings', path: 'settings' },
+          { icon: Activity, label: 'Activities', path: 'activities' },
         ].map((item) => (
           <NavLink
             key={item.label}
@@ -305,9 +476,10 @@ export default function CRMModule() {
       >
         <Routes>
           <Route path="/" element={<ClientList />} />
+          <Route path="/leads" element={<Leads />} />
           <Route path="/quotes" element={<Quotes />} />
           <Route path="/pipeline" element={<Pipeline />} />
-          <Route path="/settings" element={<div className="text-center py-16 text-zinc-400"><Settings size={40} className="mx-auto mb-4 opacity-30" /><p className="font-bold">CRM Settings</p><p className="text-xs mt-1">Coming soon</p></div>} />
+          <Route path="/activities" element={<Activities />} />
         </Routes>
       </motion.div>
     </div>

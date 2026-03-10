@@ -54,6 +54,7 @@ const LANGUAGES = [
     { code: 'it', label: 'Italiano' },
     { code: 'pt', label: 'Portugues' },
     { code: 'nl', label: 'Nederlands' },
+    { code: 'bn', label: 'বাংলা' },
 ];
 
 export default function SettingsPage() {
@@ -69,6 +70,7 @@ export default function SettingsPage() {
     const [notifEmail, setNotifEmail] = useState(true);
     const [notifPush, setNotifPush] = useState(true);
     const [notifAI, setNotifAI] = useState(true);
+    const [notifLoaded, setNotifLoaded] = useState(false);
 
     // Delegation state
     const [delegations, setDelegations] = useState<Delegation[]>([]);
@@ -84,6 +86,26 @@ export default function SettingsPage() {
     const [newRule, setNewRule] = useState({ eventType: '', targetScope: 'role', targetValue: '', deliveryChannels: ['in_app'] as string[], priority: 'normal', messageTemplateEn: '', messageTemplateAr: '' });
 
     const isAdmin = role === 'company_gm' || role === 'executive_secretary';
+
+    // Load notification preferences from profile
+    useEffect(() => {
+        if (!user?.id || notifLoaded) return;
+        supabase.from('profiles').select('notification_prefs').eq('id', user.id).single().then(({ data }) => {
+            if (data?.notification_prefs) {
+                const p = data.notification_prefs as Record<string, boolean>;
+                if (typeof p.email === 'boolean') setNotifEmail(p.email);
+                if (typeof p.push === 'boolean') setNotifPush(p.push);
+                if (typeof p.ai === 'boolean') setNotifAI(p.ai);
+            }
+            setNotifLoaded(true);
+        });
+    }, [user?.id, notifLoaded]);
+
+    const saveNotifPref = async (key: string, val: boolean) => {
+        if (!user?.id) return;
+        const prefs = { email: notifEmail, push: notifPush, ai: notifAI, [key]: val };
+        await supabase.from('profiles').update({ notification_prefs: prefs }).eq('id', user.id);
+    };
 
     const DELEGATABLE_ROLES = [
         'company_gm', 'assistant_gm', 'department_head', 'department_manager',
@@ -320,9 +342,9 @@ export default function SettingsPage() {
             {activeTab === 'notifications' && (
                 <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
                     {[
-                        { key: 'email', label: t('notif_email', 'Email Notifications'), val: notifEmail, set: setNotifEmail },
-                        { key: 'push', label: t('notif_push', 'Push Notifications'), val: notifPush, set: setNotifPush },
-                        { key: 'ai', label: t('notif_ai', 'AI Activity Alerts'), val: notifAI, set: setNotifAI },
+                        { key: 'email', label: t('notif_email', 'Email Notifications'), val: notifEmail, set: (v: boolean) => { setNotifEmail(v); saveNotifPref('email', v); } },
+                        { key: 'push', label: t('notif_push', 'Push Notifications'), val: notifPush, set: (v: boolean) => { setNotifPush(v); saveNotifPref('push', v); } },
+                        { key: 'ai', label: t('notif_ai', 'AI Activity Alerts'), val: notifAI, set: (v: boolean) => { setNotifAI(v); saveNotifPref('ai', v); } },
                     ].map(item => (
                         <div key={item.key} className="flex items-center justify-between py-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
                             <span className="text-sm font-bold text-zinc-900 dark:text-white">{item.label}</span>

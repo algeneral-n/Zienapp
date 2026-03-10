@@ -537,11 +537,13 @@ async function generateReport(type: string, adminSupabase: SupabaseClient): Prom
                 summary: 'Tenant activity overview',
                 sections: [
                     { title: 'Recent Tenants', content: (companies || []).slice(0, 10).map(c => `${c.name} — ${c.status} (${c.created_at?.substring(0, 10)})`).join('\n') || 'None' },
-                    { title: 'Status Breakdown', content: (() => {
-                        const counts: Record<string, number> = {};
-                        for (const c of companies || []) counts[c.status] = (counts[c.status] || 0) + 1;
-                        return Object.entries(counts).map(([k, v]) => `${k}: ${v}`).join('\n');
-                    })() },
+                    {
+                        title: 'Status Breakdown', content: (() => {
+                            const counts: Record<string, number> = {};
+                            for (const c of companies || []) counts[c.status] = (counts[c.status] || 0) + 1;
+                            return Object.entries(counts).map(([k, v]) => `${k}: ${v}`).join('\n');
+                        })()
+                    },
                 ],
             });
         }
@@ -744,7 +746,7 @@ async function logSupremeAction(
         action: `supreme_${action}`,
         entity_type: entityType,
         metadata: { ...metadata, source: 'supreme_access' },
-    }).then(() => {});
+    }).then(() => { });
 }
 
 async function getAuditLog(request: Request, adminSupabase: SupabaseClient): Promise<Response> {
