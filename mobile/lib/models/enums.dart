@@ -203,7 +203,8 @@ enum AppLanguage {
   ur('ur', 'اردو', true),
   it('it', 'Italiano', false),
   pt('pt', 'Português', false),
-  nl('nl', 'Nederlands', false);
+  nl('nl', 'Nederlands', false),
+  bn('bn', 'বাংলা', false);
 
   const AppLanguage(this.code, this.label, this.isRtl);
   final String code;

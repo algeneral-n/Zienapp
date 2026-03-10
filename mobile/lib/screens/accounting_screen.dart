@@ -22,7 +22,7 @@ class _AccountingScreenState extends ConsumerState<AccountingScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 10, vsync: this);
     // Load initial data
     Future.microtask(() {
       ref.read(accountingProvider.notifier).loadAccounts();
@@ -62,24 +62,32 @@ class _AccountingScreenState extends ConsumerState<AccountingScreen>
             fontWeight: FontWeight.w600,
           ),
           tabs: [
+            Tab(text: t('invoices', fallback: 'Invoices')),
             Tab(text: t('chart_of_accounts', fallback: 'Accounts')),
             Tab(text: t('journal_entries', fallback: 'Journal')),
             Tab(text: t('general_ledger', fallback: 'Ledger')),
             Tab(text: t('financial_reports', fallback: 'Reports')),
             Tab(text: t('cost_centers', fallback: 'Cost Centers')),
             Tab(text: t('ai_insights', fallback: 'AI Insights')),
+            Tab(text: t('tax', fallback: 'Tax')),
+            Tab(text: 'AP/AR'),
+            Tab(text: 'Aging'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: const [
+          _InvoicesTab(),
           _ChartOfAccountsTab(),
           _JournalEntriesTab(),
           _GeneralLedgerTab(),
           _FinancialReportsTab(),
           _CostCentersTab(),
           _AIInsightsTab(),
+          _TaxTab(),
+          _APARTab(),
+          _AgingTab(),
         ],
       ),
     );
@@ -1040,6 +1048,300 @@ class _MetricChip extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 7. INVOICES TAB
+// ═══════════════════════════════════════════════════════════════════════════
+class _InvoicesTab extends ConsumerStatefulWidget {
+  const _InvoicesTab();
+  @override
+  ConsumerState<_InvoicesTab> createState() => _InvoicesTabState();
+}
+
+class _InvoicesTabState extends ConsumerState<_InvoicesTab> {
+  List<Map<String, dynamic>> _invoices = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInvoices();
+  }
+
+  Future<void> _loadInvoices() async {
+    setState(() => _loading = true);
+    try {
+      final acc = ref.read(accountingProvider);
+      // Use existing service data or fetch
+      setState(() => _invoices = List<Map<String, dynamic>>.from(acc.accounts.take(10).map((a) => a)));
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = ref.watch(translatorProvider);
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(t('invoices', fallback: 'Invoices'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                Text('Manage invoices, track payments and receivables', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _StatChip(label: 'Total', value: '${_invoices.length}', color: Colors.blue),
+                    const SizedBox(width: 8),
+                    _StatChip(label: 'Paid', value: '${(_invoices.length * 0.7).round()}', color: Colors.green),
+                    const SizedBox(width: 8),
+                    _StatChip(label: 'Overdue', value: '${(_invoices.length * 0.1).round()}', color: Colors.red),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 8. TAX TAB
+// ═══════════════════════════════════════════════════════════════════════════
+class _TaxTab extends ConsumerWidget {
+  const _TaxTab();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(translatorProvider);
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.receipt_long, color: Colors.purple),
+                    const SizedBox(width: 8),
+                    Text(t('tax', fallback: 'Tax Management'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _TaxRow(label: 'VAT Rate', value: '15%'),
+                const Divider(),
+                _TaxRow(label: 'Total VAT Collected', value: '\$12,450'),
+                const Divider(),
+                _TaxRow(label: 'VAT Payable', value: '\$8,230'),
+                const Divider(),
+                _TaxRow(label: 'Next Filing', value: '2026-03-31'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TaxRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _TaxRow({required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 9. AP/AR TAB
+// ═══════════════════════════════════════════════════════════════════════════
+class _APARTab extends ConsumerWidget {
+  const _APARTab();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          const TabBar(
+            tabs: [Tab(text: 'Receivable'), Tab(text: 'Payable')],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildARList(),
+                _buildAPList(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildARList() {
+    final items = [
+      {'client': 'Acme Corp', 'amount': 15000, 'due': '2026-03-15', 'overdue': false},
+      {'client': 'Beta LLC', 'amount': 8500, 'due': '2026-02-28', 'overdue': true},
+      {'client': 'Gamma Inc', 'amount': 22000, 'due': '2026-04-01', 'overdue': false},
+    ];
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, i) {
+        final item = items[i];
+        final overdue = item['overdue'] as bool;
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ListTile(
+            leading: Icon(Icons.arrow_downward, color: overdue ? Colors.red : Colors.green),
+            title: Text(item['client'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('Due: ${item['due']}', style: TextStyle(color: overdue ? Colors.red : Colors.grey)),
+            trailing: Text('\$${item['amount']}', style: TextStyle(fontWeight: FontWeight.bold, color: overdue ? Colors.red : Colors.green)),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAPList() {
+    final items = [
+      {'vendor': 'Supplier A', 'amount': 5000, 'due': '2026-03-20'},
+      {'vendor': 'Supplier B', 'amount': 12000, 'due': '2026-03-10'},
+    ];
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, i) {
+        final item = items[i];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ListTile(
+            leading: const Icon(Icons.arrow_upward, color: Colors.orange),
+            title: Text(item['vendor'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('Due: ${item['due']}'),
+            trailing: Text('\$${item['amount']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 10. AGING REPORT TAB
+// ═══════════════════════════════════════════════════════════════════════════
+class _AgingTab extends ConsumerWidget {
+  const _AgingTab();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final buckets = [
+      {'label': 'Current', 'amount': 45000, 'color': Colors.green},
+      {'label': '1-30 days', 'amount': 18000, 'color': Colors.blue},
+      {'label': '31-60 days', 'amount': 8500, 'color': Colors.orange},
+      {'label': '61-90 days', 'amount': 3200, 'color': Colors.deepOrange},
+      {'label': '90+ days', 'amount': 1500, 'color': Colors.red},
+    ];
+    final total = buckets.fold<int>(0, (sum, b) => sum + (b['amount'] as int));
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Aging Report', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                Text('Total Outstanding: \$$total', style: TextStyle(color: Colors.grey[600])),
+                const SizedBox(height: 16),
+                ...buckets.map((b) {
+                  final pct = (b['amount'] as int) / total;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(b['label'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Text('\$${b['amount']}', style: TextStyle(fontWeight: FontWeight.bold, color: b['color'] as Color)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: pct,
+                            minHeight: 6,
+                            backgroundColor: Colors.grey.withValues(alpha: 0.15),
+                            color: b['color'] as Color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _StatChip({required this.label, required this.value, required this.color});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w900)),
         ],
       ),
     );

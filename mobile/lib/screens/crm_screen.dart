@@ -24,6 +24,7 @@ class _CRMScreenState extends ConsumerState<CRMScreen>
 
   List<Map<String, dynamic>> _clients = [];
   List<Map<String, dynamic>> _leads = [];
+  List<Map<String, dynamic>> _quotes = [];
   List<Map<String, dynamic>> _opportunities = [];
   List<Map<String, dynamic>> _activities = [];
   bool _loading = true;
@@ -33,7 +34,7 @@ class _CRMScreenState extends ConsumerState<CRMScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) _loadTabData(_tabController.index);
     });
@@ -61,10 +62,14 @@ class _CRMScreenState extends ConsumerState<CRMScreen>
           if (res.isSuccess) setState(() => _leads = List<Map<String, dynamic>>.from(res.data?['leads'] ?? []));
           break;
         case 2:
+          final res = await _api.get('/api/crm/quotes', extraHeaders: headers);
+          if (res.isSuccess) setState(() => _quotes = List<Map<String, dynamic>>.from(res.data?['quotes'] ?? []));
+          break;
+        case 3:
           final res = await _api.get('/api/crm/opportunities', extraHeaders: headers);
           if (res.isSuccess) setState(() => _opportunities = List<Map<String, dynamic>>.from(res.data?['opportunities'] ?? []));
           break;
-        case 3:
+        case 4:
           final res = await _api.get('/api/crm/activities', extraHeaders: headers);
           if (res.isSuccess) setState(() => _activities = List<Map<String, dynamic>>.from(res.data?['activities'] ?? []));
           break;
@@ -84,7 +89,8 @@ class _CRMScreenState extends ConsumerState<CRMScreen>
           tabs: const [
             Tab(text: 'Clients'),
             Tab(text: 'Leads'),
-            Tab(text: 'Opportunities'),
+            Tab(text: 'Quotes'),
+            Tab(text: 'Pipeline'),
             Tab(text: 'Activities'),
           ],
         ),
@@ -94,6 +100,7 @@ class _CRMScreenState extends ConsumerState<CRMScreen>
         children: [
           _buildClientsTab(),
           _buildLeadsTab(),
+          _buildQuotesTab(),
           _buildOpportunitiesTab(),
           _buildActivitiesTab(),
         ],
@@ -166,11 +173,62 @@ class _CRMScreenState extends ConsumerState<CRMScreen>
     );
   }
 
+  Widget _buildQuotesTab() {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_quotes.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.request_quote, size: 48, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('Quotes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            SizedBox(height: 8),
+            Text('No quotes generated yet', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () => _loadTabData(2),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _quotes.length,
+        itemBuilder: (context, i) {
+          final q = _quotes[i];
+          final status = q['status'] ?? 'draft';
+          final statusColor = status == 'accepted' ? Colors.green : status == 'sent' ? Colors.blue : Colors.grey;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ListTile(
+              leading: Icon(Icons.request_quote, color: statusColor),
+              title: Text(q['title'] ?? 'Quote #${q['id']?.toString().substring(0, 8) ?? ''}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(q['client_name'] ?? ''),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('\$${q['total'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    child: Text(status.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: statusColor)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildOpportunitiesTab() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_opportunities.isEmpty) return const Center(child: Text('No opportunities'));
     return RefreshIndicator(
-      onRefresh: () => _loadTabData(2),
+      onRefresh: () => _loadTabData(3),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _opportunities.length,
@@ -198,7 +256,7 @@ class _CRMScreenState extends ConsumerState<CRMScreen>
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_activities.isEmpty) return const Center(child: Text('No activities'));
     return RefreshIndicator(
-      onRefresh: () => _loadTabData(3),
+      onRefresh: () => _loadTabData(4),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _activities.length,

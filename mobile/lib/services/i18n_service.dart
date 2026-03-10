@@ -74,6 +74,7 @@ class I18nNotifier extends StateNotifier<I18nState> {
     'it',
     'pt',
     'nl',
+    'bn',
   ];
 
   /// Initialize: load saved language preference, then load translation file.

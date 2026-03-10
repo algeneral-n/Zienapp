@@ -26,6 +26,8 @@ class _HRScreenState extends ConsumerState<HRScreen>
   List<Map<String, dynamic>> _attendance = [];
   List<Map<String, dynamic>> _leaveRequests = [];
   List<Map<String, dynamic>> _departments = [];
+  List<Map<String, dynamic>> _kpis = [];
+  List<Map<String, dynamic>> _shifts = [];
   bool _loading = true;
 
   String? get _companyId => ref.read(companyNotifierProvider).active?.id;
@@ -33,7 +35,7 @@ class _HRScreenState extends ConsumerState<HRScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) _loadTabData(_tabController.index);
     });
@@ -71,6 +73,14 @@ class _HRScreenState extends ConsumerState<HRScreen>
           final res = await _api.get('/api/hr/departments', extraHeaders: headers);
           if (res.isSuccess) setState(() => _departments = List<Map<String, dynamic>>.from(res.data?['departments'] ?? []));
           break;
+        case 5:
+          final res = await _api.get('/api/hr/kpi-goals', extraHeaders: headers);
+          if (res.isSuccess) setState(() => _kpis = List<Map<String, dynamic>>.from(res.data?['goals'] ?? []));
+          break;
+        case 6:
+          final res = await _api.get('/api/hr/shifts', extraHeaders: headers);
+          if (res.isSuccess) setState(() => _shifts = List<Map<String, dynamic>>.from(res.data?['shifts'] ?? []));
+          break;
       }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
@@ -90,6 +100,8 @@ class _HRScreenState extends ConsumerState<HRScreen>
             Tab(text: 'Leave'),
             Tab(text: 'Payroll'),
             Tab(text: 'Departments'),
+            Tab(text: 'KPIs'),
+            Tab(text: 'Shifts'),
           ],
         ),
       ),
@@ -101,6 +113,8 @@ class _HRScreenState extends ConsumerState<HRScreen>
           _buildLeaveTab(),
           _buildPayrollTab(),
           _buildDepartmentsTab(),
+          _buildKPIsTab(),
+          _buildShiftsTab(),
         ],
       ),
     );
@@ -249,6 +263,106 @@ class _HRScreenState extends ConsumerState<HRScreen>
               ),
               title: Text(dept['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text('${dept['member_count'] ?? 0} members'),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildKPIsTab() {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_kpis.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.track_changes, size: 48, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('KPI Goals', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            SizedBox(height: 8),
+            Text('No KPI goals set yet', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () => _loadTabData(5),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _kpis.length,
+        itemBuilder: (context, i) {
+          final kpi = _kpis[i];
+          final progress = (kpi['current_value'] ?? 0) / (kpi['target_value'] ?? 1);
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: Text(kpi['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold))),
+                      Text('${(progress * 100).toStringAsFixed(0)}%', style: TextStyle(fontWeight: FontWeight.bold, color: progress >= 1 ? Colors.green : Colors.orange)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress.clamp(0.0, 1.0),
+                      minHeight: 8,
+                      backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                      color: progress >= 1 ? Colors.green : progress >= 0.5 ? Colors.orange : Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('${kpi['current_value'] ?? 0} / ${kpi['target_value'] ?? 0}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildShiftsTab() {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_shifts.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.schedule, size: 48, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('Shifts', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            SizedBox(height: 8),
+            Text('No shifts configured', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () => _loadTabData(6),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _shifts.length,
+        itemBuilder: (context, i) {
+          final shift = _shifts[i];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.indigo.withValues(alpha: 0.1),
+                child: const Icon(Icons.schedule, color: Colors.indigo),
+              ),
+              title: Text(shift['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('${shift['start_time'] ?? ''} - ${shift['end_time'] ?? ''}'),
+              trailing: Text('${shift['employee_count'] ?? 0} staff', style: const TextStyle(fontSize: 12, color: Colors.grey)),
             ),
           );
         },

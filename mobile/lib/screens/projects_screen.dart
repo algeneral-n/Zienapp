@@ -23,6 +23,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
   final _api = ApiClient.instance;
 
   List<Map<String, dynamic>> _projects = [];
+  List<Map<String, dynamic>> _tasks = [];
   Map<String, dynamic> _stats = {};
   bool _loading = true;
 
@@ -31,7 +32,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadProjects());
   }
 
@@ -66,6 +67,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
           controller: _tabController,
           tabs: const [
             Tab(text: 'All Projects'),
+            Tab(text: 'Tasks'),
             Tab(text: 'Board'),
             Tab(text: 'Timeline'),
           ],
@@ -75,6 +77,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
         controller: _tabController,
         children: [
           _buildProjectsList(),
+          _buildTasksTab(),
           _buildBoard(),
           _buildTimeline(),
         ],
@@ -178,6 +181,64 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
             Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTasksTab() {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    // Flatten tasks from all projects
+    final allTasks = <Map<String, dynamic>>[];
+    for (final p in _projects) {
+      final tasks = p['tasks'] as List? ?? [];
+      for (final t in tasks) {
+        allTasks.add({...Map<String, dynamic>.from(t as Map), 'project_name': p['name']});
+      }
+    }
+    // Also add standalone tasks
+    allTasks.addAll(_tasks);
+
+    if (allTasks.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.task_alt, size: 48, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('Tasks', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            SizedBox(height: 8),
+            Text('No tasks found. Create tasks within projects.', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _loadProjects,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: allTasks.length,
+        itemBuilder: (context, i) {
+          final task = allTasks[i];
+          final isDone = task['is_done'] == true || task['status'] == 'done';
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            child: ListTile(
+              leading: Icon(
+                isDone ? Icons.check_circle : Icons.radio_button_unchecked,
+                color: isDone ? Colors.green : Colors.grey,
+              ),
+              title: Text(
+                task['title'] ?? '',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  decoration: isDone ? TextDecoration.lineThrough : null,
+                ),
+              ),
+              subtitle: Text(task['project_name'] ?? '', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ),
+          );
+        },
       ),
     );
   }

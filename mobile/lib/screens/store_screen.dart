@@ -25,6 +25,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _orders = [];
   List<Map<String, dynamic>> _customers = [];
+  List<Map<String, dynamic>> _inventory = [];
   bool _loading = true;
 
   String? get _companyId => ref.read(companyNotifierProvider).active?.id;
@@ -32,7 +33,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) _loadTabData(_tabController.index);
     });
@@ -64,6 +65,10 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
           if (res.isSuccess) setState(() => _customers = List<Map<String, dynamic>>.from(res.data?['customers'] ?? []));
           break;
         case 3:
+          final res = await _api.get('/api/store/inventory', extraHeaders: headers);
+          if (res.isSuccess) setState(() => _inventory = List<Map<String, dynamic>>.from(res.data?['items'] ?? []));
+          break;
+        case 4:
           break;
       }
     } catch (_) {}
@@ -81,6 +86,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             Tab(text: 'Products'),
             Tab(text: 'Orders'),
             Tab(text: 'Customers'),
+            Tab(text: 'Inventory'),
             Tab(text: 'Analytics'),
           ],
         ),
@@ -91,6 +97,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
           _buildProductsTab(),
           _buildOrdersTab(),
           _buildCustomersTab(),
+          _buildInventoryTab(),
           _buildAnalyticsTab(),
         ],
       ),
@@ -227,6 +234,59 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
           SizedBox(height: 8),
           Text('Revenue, sales trends, and top products', style: TextStyle(color: Colors.grey)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInventoryTab() {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_inventory.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('Inventory', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            SizedBox(height: 8),
+            Text('Track stock levels and low-stock alerts', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () => _loadTabData(3),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _inventory.length,
+        itemBuilder: (context, i) {
+          final item = _inventory[i];
+          final stock = item['stock_quantity'] ?? 0;
+          final lowStock = stock < 10;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ListTile(
+              leading: Icon(
+                lowStock ? Icons.warning_amber : Icons.inventory,
+                color: lowStock ? Colors.red : Colors.green,
+              ),
+              title: Text(item['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('SKU: ${item['sku'] ?? '-'}'),
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: lowStock ? Colors.red.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$stock units',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: lowStock ? Colors.red : Colors.green),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
