@@ -567,12 +567,22 @@ class _ModulesTab extends ConsumerWidget {
                       ),
                       onTap: () {
                         final code = mod.moduleCode ?? '';
-                        if (code == 'projects') {
-                          context.push(Routes.tasks);
-                        } else if (code == 'accounting') {
-                          context.push(Routes.accounting);
-                        } else if (code == 'hr') {
-                          context.push(Routes.employeePortal);
+                        final route = switch (code) {
+                          'projects' => Routes.tasks,
+                          'accounting' => Routes.accounting,
+                          'hr' => Routes.hr,
+                          'crm' => Routes.crm,
+                          'logistics' => Routes.logistics,
+                          'store' || 'pos' || 'ecommerce' => Routes.store,
+                          'meetings' => Routes.meetings,
+                          'academy' => Routes.academy,
+                          'ai_agents' => Routes.rareAi,
+                          'billing' => Routes.billing,
+                          'chat' => Routes.chat,
+                          _ => null,
+                        };
+                        if (route != null) {
+                          context.push(route);
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('${mod.moduleCode} module')),

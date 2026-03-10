@@ -38,7 +38,6 @@ class _AccountingScreenState extends ConsumerState<AccountingScreen>
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(translatorProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(

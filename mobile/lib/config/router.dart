@@ -13,6 +13,15 @@ import '../screens/accounting_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/tasks_screen.dart';
+import '../screens/hr_screen.dart';
+import '../screens/crm_screen.dart';
+import '../screens/projects_screen.dart';
+import '../screens/logistics_screen.dart';
+import '../screens/store_screen.dart';
+import '../screens/meetings_screen.dart';
+import '../screens/settings_screen.dart';
+import '../screens/academy_screen.dart';
+import '../screens/rare_screen.dart';
 import '../services/auth_providers.dart';
 
 // ─── Route names ─────────────────────────────────────────────────────────────
@@ -32,6 +41,13 @@ class Routes {
   static const chat = '/chat';
   static const register = '/register';
   static const tasks = '/tasks';
+  static const hr = '/hr';
+  static const crm = '/crm';
+  static const projects = '/projects';
+  static const logistics = '/logistics';
+  static const store = '/store';
+  static const meetings = '/meetings';
+  static const academy = '/academy';
 }
 
 // ─── Router provider ─────────────────────────────────────────────────────────
@@ -87,6 +103,42 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.tasks,
         builder: (context, state) => const TasksScreen(),
+      ),
+      GoRoute(
+        path: Routes.hr,
+        builder: (context, state) => const HRScreen(),
+      ),
+      GoRoute(
+        path: Routes.crm,
+        builder: (context, state) => const CRMScreen(),
+      ),
+      GoRoute(
+        path: Routes.projects,
+        builder: (context, state) => const ProjectsScreen(),
+      ),
+      GoRoute(
+        path: Routes.logistics,
+        builder: (context, state) => const LogisticsScreen(),
+      ),
+      GoRoute(
+        path: Routes.store,
+        builder: (context, state) => const StoreScreen(),
+      ),
+      GoRoute(
+        path: Routes.meetings,
+        builder: (context, state) => const MeetingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.settings,
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.academy,
+        builder: (context, state) => const AcademyScreen(),
+      ),
+      GoRoute(
+        path: Routes.rareAi,
+        builder: (context, state) => const RareScreen(),
       ),
     ],
   );

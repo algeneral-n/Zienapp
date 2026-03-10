@@ -239,8 +239,8 @@ export default function SettingsPage() {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-tight transition-colors border-b-2 -mb-px ${activeTab === tab.id
-                                ? 'border-blue-600 text-blue-600'
-                                : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                            ? 'border-blue-600 text-blue-600'
+                            : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                             }`}
                     >
                         <tab.icon size={16} />
@@ -278,8 +278,8 @@ export default function SettingsPage() {
                                     key={opt}
                                     onClick={() => setTheme(opt)}
                                     className={`px-5 py-2.5 rounded-xl text-sm font-bold uppercase tracking-tight transition-all ${theme === opt
-                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                                         }`}
                                 >
                                     {t(`theme_${opt}`, opt.charAt(0).toUpperCase() + opt.slice(1))}

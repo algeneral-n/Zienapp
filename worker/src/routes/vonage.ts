@@ -128,32 +128,56 @@ async function sendSMS(env: VonageEnv, to: string, text: string, from: string = 
     return res.json();
 }
 
-/* ─── Voice Helper ────────────────────────────────────────────────────────── */
+/* ─── JWT Helper (RS256 via Web Crypto) ───────────────────────────────────── */
 
-async function initiateCall(env: VonageEnv, to: string, answerUrl: string, from?: string): Promise<any> {
+function base64url(data: ArrayBuffer | Uint8Array | string): string {
+    const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+    let binary = '';
+    for (const b of bytes) binary += String.fromCharCode(b);
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function importRSAPrivateKey(pem: string): Promise<CryptoKey> {
+    const lines = pem.split('\n').filter((l: string) => !l.startsWith('-----') && l.trim());
+    const binaryString = atob(lines.join(''));
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+    return crypto.subtle.importKey(
+        'pkcs8', bytes.buffer,
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+        false, ['sign'],
+    );
+}
+
+async function generateVonageJWT(env: VonageEnv): Promise<string> {
     const appId = env.VONAGE_APPLICATION_ID;
     const privateKey = env.VONAGE_PRIVATE_KEY;
     if (!appId || !privateKey) throw new Error('Vonage Application ID or Private Key not configured');
 
-    // For Vonage Voice API, we need JWT auth, not basic auth
-    // Generate a simple JWT (in production, use a proper JWT library)
-    const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+    const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
     const now = Math.floor(Date.now() / 1000);
-    const claims = btoa(JSON.stringify({
+    const payload = base64url(JSON.stringify({
         application_id: appId,
         iat: now,
         exp: now + 3600,
         jti: crypto.randomUUID(),
     }));
+    const signingInput = `${header}.${payload}`;
+    const key = await importRSAPrivateKey(privateKey);
+    const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(signingInput));
+    return `${signingInput}.${base64url(sig)}`;
+}
 
-    // Note: Full RS256 signing requires crypto.subtle with the private key.
-    // In a Cloudflare Worker, you'd import the key and sign properly.
-    // This is a simplified version — production should use proper JWT signing.
+/* ─── Voice Helper ────────────────────────────────────────────────────────── */
+
+async function initiateCall(env: VonageEnv, to: string, answerUrl: string, from?: string): Promise<any> {
+    const jwt = await generateVonageJWT(env);
+
     const res = await fetch('https://api.nexmo.com/v1/calls', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${header}.${claims}._signature_placeholder`,
+            'Authorization': `Bearer ${jwt}`,
         },
         body: JSON.stringify({
             to: [{ type: 'phone', number: to.replace(/[^0-9+]/g, '') }],
@@ -270,15 +294,36 @@ export async function handleVonage(request: Request, env: VonageEnv, path: strin
 
         // ──── POST /api/vonage/video/session ────
         if (path === '/api/vonage/video/session' && request.method === 'POST') {
-            // Vonage Video API (formerly OpenTok) session creation
             const appId = env.VONAGE_APPLICATION_ID;
-            if (!appId) return errorResponse('Vonage Application ID not configured', 500, request);
+            const pk = env.VONAGE_PRIVATE_KEY;
+            if (!appId || !pk) return errorResponse('Vonage Application ID or Private Key not configured', 500, request);
 
-            // For now, return a placeholder - full implementation requires proper JWT signing
+            const jwt = await generateVonageJWT(env);
+            const body = await request.json().catch(() => ({})) as { mediaMode?: string };
+            const mediaMode = body.mediaMode === 'relayed' ? 'relayed' : 'routed';
+
+            const res = await fetch('https://video.api.vonage.com/session/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': `Bearer ${jwt}`,
+                },
+                body: `p2p.preference=${mediaMode === 'relayed' ? 'enabled' : 'disabled'}`,
+            });
+
+            if (!res.ok) {
+                const err = await res.text().catch(() => 'Unknown error');
+                return errorResponse(`Vonage Video API error: ${err}`, res.status, request);
+            }
+
+            const sessions = await res.json() as Array<{ session_id: string }>;
+            const sessionId = sessions?.[0]?.session_id;
+            if (!sessionId) return errorResponse('Failed to create video session', 500, request);
+
             return jsonResponse({
                 status: 'created',
-                session_id: `session_${crypto.randomUUID()}`,
-                message: 'Video session created (placeholder — wire to Vonage Video API)',
+                session_id: sessionId,
+                media_mode: mediaMode,
             }, 200, request);
         }
 
