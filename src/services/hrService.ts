@@ -62,6 +62,15 @@ async function apiPatch<T>(path: string, body: unknown): Promise<T> {
     return res.json() as Promise<T>;
 }
 
+async function apiDelete(path: string): Promise<void> {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_URL}${path}`, { method: 'DELETE', headers });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error((err as any).error || `API error ${res.status}`);
+    }
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface Employee {
@@ -153,6 +162,21 @@ export interface PaginatedResult<T> {
     total: number;
     page: number;
     limit: number;
+}
+
+export interface Delegation {
+    id: string;
+    company_id: string;
+    from_role: string;
+    to_user_id: string;
+    scope: Record<string, unknown>;
+    reason?: string;
+    is_active: boolean;
+    granted_by: string;
+    expires_at?: string;
+    created_at: string;
+    to_user?: { id: string; full_name: string; email: string; avatar_url?: string };
+    granter?: { id: string; full_name: string };
 }
 
 // ─── Service ────────────────────────────────────────────────────────────────
@@ -376,5 +400,36 @@ export const hrService = {
     }>): Promise<EmployeeGoal> {
         const result = await apiPatch<{ goal: EmployeeGoal }>(`/api/hr/goals/${id}`, data);
         return result.goal;
+    },
+
+    // ─── Delegations ────────────────────────────────────────────────────────
+
+    async listDelegations(status?: 'active' | 'expired' | 'all'): Promise<Delegation[]> {
+        const result = await apiGet<{ delegations: Delegation[] }>('/api/hr/delegations', {
+            status: status || 'all',
+        });
+        return result.delegations;
+    },
+
+    async createDelegation(data: {
+        fromRole: string;
+        toUserId: string;
+        scope?: Record<string, unknown>;
+        reason?: string;
+        expiresAt?: string;
+    }): Promise<Delegation> {
+        const result = await apiPost<{ delegation: Delegation }>('/api/hr/delegations', data);
+        return result.delegation;
+    },
+
+    async revokeDelegation(id: string): Promise<Delegation> {
+        const result = await apiPatch<{ delegation: Delegation }>(`/api/hr/delegations/${id}`, {
+            isActive: false,
+        });
+        return result.delegation;
+    },
+
+    async deleteDelegation(id: string): Promise<void> {
+        await apiDelete(`/api/hr/delegations/${id}`);
     },
 };

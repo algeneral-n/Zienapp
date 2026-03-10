@@ -68,9 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (mounted) context.go(Routes.home);
       } else {
         // Confirmation email pending
-        setState(
-          () => _success = 'Check your email to confirm your account.',
-        );
+        setState(() => _success = 'Check your email to confirm your account.');
       }
     } on AuthException catch (e) {
       setState(() => _error = e.message);
@@ -202,13 +200,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _register,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Create Account'),
+                    child:
+                        _isLoading
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Text('Create Account'),
                   ),
                 ),
 

@@ -357,6 +357,9 @@ export type RAREAgentType =
 
 export type RAREMode = 'help' | 'analyze' | 'act' | 'report' | 'approve' | 'delete' | 'transfer' | 'payroll_run' | 'terminate';
 
+/** 4 Floating AI context modes per spec */
+export type AIContextMode = 'public' | 'client' | 'tenant' | 'realtime';
+
 export interface AIReport {
   id: string;
   companyId: string;

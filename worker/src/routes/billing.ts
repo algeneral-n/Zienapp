@@ -441,6 +441,13 @@ async function handleWebhook(request: Request, env: Env): Promise<Response> {
                     })
                     .eq('company_id', companyId);
 
+                // ── Update company status from pending_payment → active ─────
+                await adminSupabase
+                    .from('companies')
+                    .update({ status: 'active' })
+                    .eq('id', companyId)
+                    .in('status', ['pending_payment', 'pending_review']);
+
                 // ── Post-payment: activate plan modules ─────────────────────
                 await activateCompanyModulesAfterPayment(adminSupabase, companyId);
             }
@@ -978,6 +985,13 @@ async function handleNetworkIntlWebhook(request: Request, env: Env): Promise<Res
                 })
                 .eq('company_id', companyId);
 
+            // ── Update company status from pending_payment → active ─────
+            await adminSupabase
+                .from('companies')
+                .update({ status: 'active' })
+                .eq('id', companyId)
+                .in('status', ['pending_payment', 'pending_review']);
+
             // ── Post-payment: activate plan modules ─────────────────────
             await activateCompanyModulesAfterPayment(adminSupabase, companyId);
         }
@@ -1048,6 +1062,13 @@ async function handleTilrWebhook(request: Request, env: Env): Promise<Response> 
                     last_payment_at: new Date().toISOString(),
                 })
                 .eq('company_id', companyId);
+
+            // ── Update company status from pending_payment → active ─────
+            await adminSupabase
+                .from('companies')
+                .update({ status: 'active' })
+                .eq('id', companyId)
+                .in('status', ['pending_payment', 'pending_review']);
 
             // ── Post-payment: activate plan modules ─────────────────────
             await activateCompanyModulesAfterPayment(adminSupabase, companyId);

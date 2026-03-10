@@ -563,10 +563,13 @@ async function applySeedPack(
     kind: string,
     payload: Record<string, unknown>,
 ): Promise<void> {
+    const p = payload as any;
+
     switch (kind) {
+        // ─── Legacy: roles (departments as flat array) ──────────────────────
         case 'roles':
-            if ((payload as any).departments) {
-                for (const name of (payload as any).departments) {
+            if (p.departments) {
+                for (const name of p.departments) {
                     await adminClient.from('departments').upsert(
                         { company_id: companyId, name, is_active: true },
                         { onConflict: 'company_id,name' },
@@ -575,9 +578,200 @@ async function applySeedPack(
             }
             break;
 
+        // ─── V2: departments (structured with codes, names, hierarchy) ──────
+        case 'departments':
+            if (p.departments) {
+                for (const dept of p.departments) {
+                    await adminClient.from('departments').upsert(
+                        {
+                            company_id: companyId,
+                            code: dept.code,
+                            name: dept.name_en,
+                            name_ar: dept.name_ar,
+                            parent_code: dept.parent_code,
+                            sort_order: dept.sort_order ?? 0,
+                            is_active: true,
+                        },
+                        { onConflict: 'company_id,code' },
+                    );
+                }
+            }
+            break;
+
+        // ─── V2: channels (auto-create chat channels per taxonomy) ──────────
+        case 'channels':
+            if (p.channels) {
+                for (const ch of p.channels) {
+                    // Find department_id if department_code is specified
+                    let departmentId = null;
+                    if (ch.department_code) {
+                        const { data: dept } = await adminClient
+                            .from('departments')
+                            .select('id')
+                            .eq('company_id', companyId)
+                            .eq('code', ch.department_code)
+                            .single();
+                        departmentId = dept?.id ?? null;
+                    }
+
+                    // Get the GM's company_member ID for created_by
+                    const { data: gmMember } = await adminClient
+                        .from('company_members')
+                        .select('id, user_id')
+                        .eq('company_id', companyId)
+                        .eq('is_primary', true)
+                        .single();
+
+                    const { data: channel } = await adminClient.from('chat_channels').upsert(
+                        {
+                            company_id: companyId,
+                            name: ch.name_en,
+                            description: ch.description_en,
+                            channel_type: ch.channel_type || 'group',
+                            department_id: departmentId,
+                            department_code: ch.department_code,
+                            auto_join_roles: ch.auto_join_roles,
+                            write_roles: ch.write_roles,
+                            is_readonly: ch.is_readonly ?? false,
+                            created_by: gmMember?.user_id,
+                        },
+                        { onConflict: 'company_id,name' },
+                    ).select('id').single();
+
+                    // Auto-add GM to channel
+                    if (channel?.id && gmMember?.id) {
+                        await adminClient.from('chat_channel_members').upsert(
+                            { channel_id: channel.id, member_id: gmMember.id, role: 'admin' },
+                            { onConflict: 'channel_id,member_id' },
+                        );
+                    }
+                }
+            }
+            break;
+
+        // ─── V2: workflows (approval chains with steps) ─────────────────────
+        case 'workflows':
+            if (p.workflows) {
+                for (const wf of p.workflows) {
+                    // Insert workflow
+                    const { data: workflow } = await adminClient.from('approval_workflows').upsert(
+                        {
+                            company_id: companyId,
+                            module_code: wf.module_code,
+                            trigger_event: wf.trigger_event,
+                            name: wf.name_en,
+                            description: wf.name_ar,
+                            is_active: true,
+                            auto_approve_if: wf.auto_approve_if,
+                        },
+                        { onConflict: 'company_id,module_code,trigger_event' },
+                    ).select('id').single();
+
+                    if (workflow?.id && wf.steps) {
+                        // Delete old steps and recreate
+                        await adminClient.from('approval_steps')
+                            .delete()
+                            .eq('workflow_id', workflow.id);
+
+                        for (const step of wf.steps) {
+                            await adminClient.from('approval_steps').insert({
+                                workflow_id: workflow.id,
+                                step_order: step.step_order,
+                                approver_role: step.approver_role,
+                                timeout_hours: step.sla_hours ?? 48,
+                                sla_hours: step.sla_hours ?? 48,
+                                auto_action: step.auto_action,
+                                is_required: true,
+                            });
+                        }
+                    }
+                }
+            }
+            break;
+
+        // ─── V2: tasks (first-7-days onboarding tasks) ─────────────────────
+        case 'tasks':
+            if (p.tasks) {
+                const now = new Date();
+                for (const task of p.tasks) {
+                    const dueDate = new Date(now);
+                    dueDate.setDate(dueDate.getDate() + (task.day || 1));
+
+                    await adminClient.from('tasks').insert({
+                        company_id: companyId,
+                        title: task.title_en,
+                        description: task.description_en,
+                        priority: task.priority || 'medium',
+                        status: 'todo',
+                        due_date: dueDate.toISOString(),
+                        visibility_scope: 'company',
+                        tags: [task.category, 'onboarding', `day-${task.day}`],
+                    });
+                }
+            }
+            break;
+
+        // ─── V2: ai_policies (AI config per company) ────────────────────────
+        case 'ai_policies':
+            if (p.policies) {
+                await adminClient.from('company_settings').upsert(
+                    {
+                        company_id: companyId,
+                        key: 'ai_policies',
+                        value: p.policies,
+                    },
+                    { onConflict: 'company_id,key' },
+                );
+            }
+            if (p.agents) {
+                await adminClient.from('company_settings').upsert(
+                    {
+                        company_id: companyId,
+                        key: 'ai_agents',
+                        value: p.agents,
+                    },
+                    { onConflict: 'company_id,key' },
+                );
+            }
+            if (p.rate_limits) {
+                await adminClient.from('company_settings').upsert(
+                    {
+                        company_id: companyId,
+                        key: 'ai_rate_limits',
+                        value: p.rate_limits,
+                    },
+                    { onConflict: 'company_id,key' },
+                );
+            }
+            break;
+
+        // ─── V2: notifications (notification rules) ─────────────────────────
+        case 'notifications':
+            if (p.rules) {
+                for (const rule of p.rules) {
+                    await adminClient.from('notification_rules').upsert(
+                        {
+                            company_id: companyId,
+                            event_type: rule.event_type,
+                            module_code: rule.module_code,
+                            target_scope: rule.target_scope,
+                            target_value: rule.target_value,
+                            delivery_channels: rule.delivery_channels,
+                            message_template_en: rule.message_template_en,
+                            message_template_ar: rule.message_template_ar,
+                            priority: rule.priority,
+                            is_active: true,
+                        },
+                        { onConflict: 'company_id,event_type,target_scope,target_value' },
+                    );
+                }
+            }
+            break;
+
+        // ─── Existing: tax_config ───────────────────────────────────────────
         case 'tax_config':
-            if ((payload as any).taxes) {
-                for (const tax of (payload as any).taxes) {
+            if (p.taxes) {
+                for (const tax of p.taxes) {
                     await adminClient.from('tax_settings').insert({
                         company_id: companyId,
                         country_code: tax.country_code,
@@ -589,9 +783,10 @@ async function applySeedPack(
             }
             break;
 
+        // ─── Existing: chart_of_accounts ────────────────────────────────────
         case 'chart_of_accounts':
-            if ((payload as any).accounts) {
-                for (const acc of (payload as any).accounts) {
+            if (p.accounts) {
+                for (const acc of p.accounts) {
                     await adminClient.from('chart_of_accounts').insert({
                         company_id: companyId,
                         account_code: acc.code,
@@ -604,9 +799,10 @@ async function applySeedPack(
             }
             break;
 
+        // ─── Existing: inventory_categories ─────────────────────────────────
         case 'inventory_categories':
-            if ((payload as any).categories) {
-                for (const cat of (payload as any).categories) {
+            if (p.categories) {
+                for (const cat of p.categories) {
                     await adminClient.from('product_categories').insert({
                         company_id: companyId,
                         name: cat.name,

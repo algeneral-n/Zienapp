@@ -72,7 +72,11 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     }
   }
 
-  Future<void> _createTask(String title, String? description, String priority) async {
+  Future<void> _createTask(
+    String title,
+    String? description,
+    String priority,
+  ) async {
     final companyState = ref.read(companyNotifierProvider);
     final companyId = companyState.active?.id;
     if (companyId == null) return;
@@ -139,65 +143,80 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('New Task'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Title *',
-                    prefixIcon: Icon(Icons.title),
+      builder:
+          (ctx) => StatefulBuilder(
+            builder:
+                (ctx, setDialogState) => AlertDialog(
+                  title: const Text('New Task'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: titleCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Title *',
+                            prefixIcon: Icon(Icons.title),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: descCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Description',
+                            prefixIcon: Icon(Icons.notes),
+                          ),
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: priority,
+                          decoration: const InputDecoration(
+                            labelText: 'Priority',
+                            prefixIcon: Icon(Icons.flag),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'low', child: Text('Low')),
+                            DropdownMenuItem(
+                              value: 'medium',
+                              child: Text('Medium'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'high',
+                              child: Text('High'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'urgent',
+                              child: Text('Urgent'),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) setDialogState(() => priority = v);
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: descCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    prefixIcon: Icon(Icons.notes),
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: priority,
-                  decoration: const InputDecoration(
-                    labelText: 'Priority',
-                    prefixIcon: Icon(Icons.flag),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'low', child: Text('Low')),
-                    DropdownMenuItem(value: 'medium', child: Text('Medium')),
-                    DropdownMenuItem(value: 'high', child: Text('High')),
-                    DropdownMenuItem(value: 'urgent', child: Text('Urgent')),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (titleCtrl.text.trim().isEmpty) return;
+                        Navigator.pop(ctx);
+                        _createTask(
+                          titleCtrl.text.trim(),
+                          descCtrl.text.trim(),
+                          priority,
+                        );
+                      },
+                      child: const Text('Create'),
+                    ),
                   ],
-                  onChanged: (v) {
-                    if (v != null) setDialogState(() => priority = v);
-                  },
                 ),
-              ],
-            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (titleCtrl.text.trim().isEmpty) return;
-                Navigator.pop(ctx);
-                _createTask(titleCtrl.text.trim(), descCtrl.text.trim(), priority);
-              },
-              child: const Text('Create'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -215,12 +234,16 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
               setState(() => _filter = v);
               _loadTasks();
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'all', child: Text('All')),
-              PopupMenuItem(value: 'pending', child: Text('Pending')),
-              PopupMenuItem(value: 'in_progress', child: Text('In Progress')),
-              PopupMenuItem(value: 'completed', child: Text('Completed')),
-            ],
+            itemBuilder:
+                (_) => const [
+                  PopupMenuItem(value: 'all', child: Text('All')),
+                  PopupMenuItem(value: 'pending', child: Text('Pending')),
+                  PopupMenuItem(
+                    value: 'in_progress',
+                    child: Text('In Progress'),
+                  ),
+                  PopupMenuItem(value: 'completed', child: Text('Completed')),
+                ],
           ),
         ],
       ),
@@ -228,63 +251,74 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         onPressed: _showCreateDialog,
         child: const Icon(Icons.add),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
+      body:
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
               ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.error_outline,
-                          size: 48, color: Colors.grey.shade400),
-                      const SizedBox(height: 12),
-                      Text(_error!,
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(color: Colors.grey)),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: _loadTasks,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : _tasks.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.task_alt,
-                              size: 64, color: Colors.grey.shade400),
-                          const SizedBox(height: 16),
-                          Text('No tasks yet',
-                              style: theme.textTheme.titleMedium
-                                  ?.copyWith(color: Colors.grey)),
-                          const SizedBox(height: 8),
-                          Text('Tap + to create your first task',
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(color: Colors.grey)),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadTasks,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _tasks.length,
-                        itemBuilder: (context, index) {
-                          final task = _tasks[index];
-                          return _TaskCard(
-                            task: task,
-                            onStatusChange: (status) => _updateTaskStatus(
-                              task['id'].toString(),
-                              status,
-                            ),
-                            onDelete: () => _deleteTask(task['id'].toString()),
-                          );
-                        },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _error!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: _loadTasks,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+              : _tasks.isEmpty
+              ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.task_alt, size: 64, color: Colors.grey.shade400),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No tasks yet',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap + to create your first task',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              : RefreshIndicator(
+                onRefresh: _loadTasks,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _tasks.length,
+                  itemBuilder: (context, index) {
+                    final task = _tasks[index];
+                    return _TaskCard(
+                      task: task,
+                      onStatusChange:
+                          (status) =>
+                              _updateTaskStatus(task['id'].toString(), status),
+                      onDelete: () => _deleteTask(task['id'].toString()),
+                    );
+                  },
+                ),
+              ),
     );
   }
 }
@@ -324,9 +358,10 @@ class _TaskCard extends StatelessWidget {
                     task['title']?.toString() ?? 'Untitled',
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      decoration: status == 'completed'
-                          ? TextDecoration.lineThrough
-                          : null,
+                      decoration:
+                          status == 'completed'
+                              ? TextDecoration.lineThrough
+                              : null,
                     ),
                   ),
                 ),
@@ -339,24 +374,32 @@ class _TaskCard extends StatelessWidget {
                       onStatusChange(v);
                     }
                   },
-                  itemBuilder: (_) => [
-                    if (status != 'pending')
-                      const PopupMenuItem(
-                          value: 'pending', child: Text('Mark Pending')),
-                    if (status != 'in_progress')
-                      const PopupMenuItem(
-                          value: 'in_progress',
-                          child: Text('Mark In Progress')),
-                    if (status != 'completed')
-                      const PopupMenuItem(
-                          value: 'completed', child: Text('Mark Completed')),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child:
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
+                  itemBuilder:
+                      (_) => [
+                        if (status != 'pending')
+                          const PopupMenuItem(
+                            value: 'pending',
+                            child: Text('Mark Pending'),
+                          ),
+                        if (status != 'in_progress')
+                          const PopupMenuItem(
+                            value: 'in_progress',
+                            child: Text('Mark In Progress'),
+                          ),
+                        if (status != 'completed')
+                          const PopupMenuItem(
+                            value: 'completed',
+                            child: Text('Mark Completed'),
+                          ),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
                 ),
               ],
             ),
@@ -367,8 +410,7 @@ class _TaskCard extends StatelessWidget {
                 task['description'].toString(),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style:
-                    theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
               ),
             ],
             const SizedBox(height: 8),
@@ -379,8 +421,9 @@ class _TaskCard extends StatelessWidget {
                 if (task['assignee_name'] != null)
                   Text(
                     task['assignee_name'].toString(),
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: Colors.grey),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
                   ),
               ],
             ),
@@ -421,7 +464,11 @@ class _TaskCard extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

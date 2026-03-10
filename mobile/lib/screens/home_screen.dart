@@ -164,9 +164,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const _NotificationsPage(),
-                ),
+                MaterialPageRoute(builder: (_) => const _NotificationsPage()),
               );
             },
           ),
@@ -1271,9 +1269,7 @@ class _SettingsTab extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const _ProfileSettingsPage(),
-                ),
+                MaterialPageRoute(builder: (_) => const _ProfileSettingsPage()),
               );
             },
           ),
@@ -1344,8 +1340,7 @@ class _NotificationsPage extends ConsumerStatefulWidget {
   const _NotificationsPage();
 
   @override
-  ConsumerState<_NotificationsPage> createState() =>
-      _NotificationsPageState();
+  ConsumerState<_NotificationsPage> createState() => _NotificationsPageState();
 }
 
 class _NotificationsPageState extends ConsumerState<_NotificationsPage> {
@@ -1380,7 +1375,8 @@ class _NotificationsPageState extends ConsumerState<_NotificationsPage> {
   Future<void> _markRead(String id) async {
     await Supabase.instance.client
         .from('notifications')
-        .update({'read': true}).eq('id', id);
+        .update({'read': true})
+        .eq('id', id);
     _load();
   }
 
@@ -1389,50 +1385,58 @@ class _NotificationsPageState extends ConsumerState<_NotificationsPage> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Notifications')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _items.isEmpty
+      body:
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _items.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.notifications_none,
-                          size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 16),
-                      Text('No notifications',
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(color: Colors.grey)),
-                    ],
-                  ),
-                )
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.notifications_none,
+                      size: 64,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No notifications',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              )
               : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView.separated(
-                    itemCount: _items.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final n = _items[index];
-                      final isRead = n['read'] == true;
-                      return ListTile(
-                        leading: Icon(
-                          _iconForType(n['type']),
-                          color: isRead ? Colors.grey : theme.colorScheme.primary,
+                onRefresh: _load,
+                child: ListView.separated(
+                  itemCount: _items.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final n = _items[index];
+                    final isRead = n['read'] == true;
+                    return ListTile(
+                      leading: Icon(
+                        _iconForType(n['type']),
+                        color: isRead ? Colors.grey : theme.colorScheme.primary,
+                      ),
+                      title: Text(
+                        n['title']?.toString() ?? 'Notification',
+                        style: TextStyle(
+                          fontWeight:
+                              isRead ? FontWeight.normal : FontWeight.bold,
                         ),
-                        title: Text(
-                          n['title']?.toString() ?? 'Notification',
-                          style: TextStyle(
-                            fontWeight:
-                                isRead ? FontWeight.normal : FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Text(
-                          n['body']?.toString() ?? '',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: isRead
-                            ? null
-                            : Container(
+                      ),
+                      subtitle: Text(
+                        n['body']?.toString() ?? '',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing:
+                          isRead
+                              ? null
+                              : Container(
                                 width: 8,
                                 height: 8,
                                 decoration: BoxDecoration(
@@ -1440,13 +1444,13 @@ class _NotificationsPageState extends ConsumerState<_NotificationsPage> {
                                   shape: BoxShape.circle,
                                 ),
                               ),
-                        onTap: () {
-                          if (!isRead) _markRead(n['id'].toString());
-                        },
-                      );
-                    },
-                  ),
+                      onTap: () {
+                        if (!isRead) _markRead(n['id'].toString());
+                      },
+                    );
+                  },
                 ),
+              ),
     );
   }
 
@@ -1486,27 +1490,32 @@ class _LanguagePicker extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               'Select Language',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
-          ...AppLanguage.values.map((lang) => ListTile(
-                leading: lang.isRtl
-                    ? const Icon(Icons.format_textdirection_r_to_l)
-                    : const Icon(Icons.language),
-                title: Text(lang.label),
-                subtitle: Text(lang.code),
-                trailing: lang == current
-                    ? Icon(Icons.check,
-                        color: Theme.of(context).colorScheme.primary)
-                    : null,
-                onTap: () {
-                  ref.read(i18nProvider.notifier).setLanguage(lang);
-                  Navigator.pop(context);
-                },
-              )),
+          ...AppLanguage.values.map(
+            (lang) => ListTile(
+              leading:
+                  lang.isRtl
+                      ? const Icon(Icons.format_textdirection_r_to_l)
+                      : const Icon(Icons.language),
+              title: Text(lang.label),
+              subtitle: Text(lang.code),
+              trailing:
+                  lang == current
+                      ? Icon(
+                        Icons.check,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                      : null,
+              onTap: () {
+                ref.read(i18nProvider.notifier).setLanguage(lang);
+                Navigator.pop(context);
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -1588,13 +1597,14 @@ class _ProfileSettingsPageState extends ConsumerState<_ProfileSettingsPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Save'),
+                child:
+                    _saving
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Text('Save'),
               ),
             ),
             if (_message != null) ...[
@@ -1602,9 +1612,8 @@ class _ProfileSettingsPageState extends ConsumerState<_ProfileSettingsPage> {
               Text(
                 _message!,
                 style: TextStyle(
-                  color: _message == 'Profile saved'
-                      ? Colors.green
-                      : Colors.red,
+                  color:
+                      _message == 'Profile saved' ? Colors.green : Colors.red,
                 ),
               ),
             ],

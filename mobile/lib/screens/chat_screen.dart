@@ -97,11 +97,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         .stream(primaryKey: ['id'])
         .eq('channel_id', channelId)
         .listen((data) {
-      setState(() {
-        _messages = List<Map<String, dynamic>>.from(data);
-      });
-      _scrollToBottom();
-    });
+          setState(() {
+            _messages = List<Map<String, dynamic>>.from(data);
+          });
+          _scrollToBottom();
+        });
   }
 
   Future<void> _sendMessage() async {
@@ -136,8 +136,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final currentUserId =
-        Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
 
     if (_activeChannel != null) {
       return _buildChatView(theme, currentUserId);
@@ -154,64 +153,73 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: _loadingChannels
-          ? const Center(child: CircularProgressIndicator())
-          : _channels.isEmpty
+      body:
+          _loadingChannels
+              ? const Center(child: CircularProgressIndicator())
+              : _channels.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.chat_bubble_outline,
-                          size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 16),
-                      Text('No channels yet',
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(color: Colors.grey)),
-                      const SizedBox(height: 8),
-                      Text('Channels will appear when your company has team chat enabled',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey)),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadChannels,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _channels.length,
-                    itemBuilder: (context, index) {
-                      final ch = _channels[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                theme.colorScheme.primaryContainer,
-                            child: Icon(
-                              ch['type'] == 'dm'
-                                  ? Icons.person
-                                  : Icons.group,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          title: Text(
-                            ch['name']?.toString() ?? 'Channel',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            ch['last_message']?.toString() ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: Icon(Icons.chevron_right,
-                              color: Colors.grey.shade400),
-                          onTap: () => _selectChannel(ch),
-                        ),
-                      );
-                    },
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 64,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No channels yet',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Channels will appear when your company has team chat enabled',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
+              )
+              : RefreshIndicator(
+                onRefresh: _loadChannels,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _channels.length,
+                  itemBuilder: (context, index) {
+                    final ch = _channels[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: theme.colorScheme.primaryContainer,
+                          child: Icon(
+                            ch['type'] == 'dm' ? Icons.person : Icons.group,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        title: Text(
+                          ch['name']?.toString() ?? 'Channel',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          ch['last_message']?.toString() ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          color: Colors.grey.shade400,
+                        ),
+                        onTap: () => _selectChannel(ch),
+                      ),
+                    );
+                  },
+                ),
+              ),
     );
   }
 
@@ -228,39 +236,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         children: [
           // Messages
           Expanded(
-            child: _loadingMessages
-                ? const Center(child: CircularProgressIndicator())
-                : _messages.isEmpty
+            child:
+                _loadingMessages
+                    ? const Center(child: CircularProgressIndicator())
+                    : _messages.isEmpty
                     ? Center(
-                        child: Text('No messages yet',
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(color: Colors.grey)),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final msg = _messages[index];
-                          final isMe =
-                              msg['user_id']?.toString() == currentUserId;
-                          return _MessageBubble(
-                            message: msg,
-                            isMe: isMe,
-                            theme: theme,
-                          );
-                        },
+                      child: Text(
+                        'No messages yet',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey,
+                        ),
                       ),
+                    )
+                    : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = _messages[index];
+                        final isMe =
+                            msg['user_id']?.toString() == currentUserId;
+                        return _MessageBubble(
+                          message: msg,
+                          isMe: isMe,
+                          theme: theme,
+                        );
+                      },
+                    ),
           ),
           // Input
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
-              border: Border(
-                top: BorderSide(color: theme.dividerColor),
-              ),
+              border: Border(top: BorderSide(color: theme.dividerColor)),
             ),
             child: SafeArea(
               child: Row(
@@ -275,10 +287,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor:
-                            theme.colorScheme.surfaceContainerHighest,
+                        fillColor: theme.colorScheme.surfaceContainerHighest,
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                       ),
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _sendMessage(),
@@ -287,14 +300,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   const SizedBox(width: 8),
                   IconButton(
                     onPressed: _sending ? null : _sendMessage,
-                    icon: _sending
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(Icons.send,
-                            color: theme.colorScheme.primary),
+                    icon:
+                        _sending
+                            ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : Icon(
+                              Icons.send,
+                              color: theme.colorScheme.primary,
+                            ),
                   ),
                 ],
               ),
@@ -326,7 +342,8 @@ class _MessageBubble extends StatelessWidget {
     if (createdAt.isNotEmpty) {
       try {
         final dt = DateTime.parse(createdAt).toLocal();
-        timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+        timeStr =
+            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
       } catch (_) {}
     }
 
@@ -344,19 +361,21 @@ class _MessageBubble extends StatelessWidget {
               child: Text(
                 senderName.isNotEmpty ? senderName[0].toUpperCase() : '?',
                 style: TextStyle(
-                    fontSize: 12, color: theme.colorScheme.primary),
+                  fontSize: 12,
+                  color: theme.colorScheme.primary,
+                ),
               ),
             ),
             const SizedBox(width: 6),
           ],
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isMe
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.surfaceContainerHighest,
+                color:
+                    isMe
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -373,9 +392,10 @@ class _MessageBubble extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: isMe
-                            ? Colors.white.withValues(alpha: 0.8)
-                            : theme.colorScheme.primary,
+                        color:
+                            isMe
+                                ? Colors.white.withValues(alpha: 0.8)
+                                : theme.colorScheme.primary,
                       ),
                     ),
                   Text(
@@ -391,9 +411,10 @@ class _MessageBubble extends StatelessWidget {
                         timeStr,
                         style: TextStyle(
                           fontSize: 10,
-                          color: isMe
-                              ? Colors.white.withValues(alpha: 0.6)
-                              : Colors.grey,
+                          color:
+                              isMe
+                                  ? Colors.white.withValues(alpha: 0.6)
+                                  : Colors.grey,
                         ),
                       ),
                     ),

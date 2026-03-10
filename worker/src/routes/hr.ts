@@ -748,6 +748,106 @@ export async function handleHR(
         return jsonResponse({ goal: data });
     }
 
+    // ─── Delegations ──────────────────────────────────────────────────────
+
+    // GET /api/hr/delegations — list active & expired delegations
+    if (path === '/api/hr/delegations' && request.method === 'GET') {
+        const url = new URL(request.url);
+        const status = url.searchParams.get('status') || 'all'; // 'active', 'expired', 'all'
+
+        let query = adminClient
+            .from('role_delegations')
+            .select('*, to_user:profiles!to_user_id(id, full_name, email, avatar_url), granter:profiles!granted_by(id, full_name)')
+            .eq('company_id', companyId)
+            .order('created_at', { ascending: false });
+
+        if (status === 'active') {
+            query = query
+                .eq('is_active', true)
+                .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+        } else if (status === 'expired') {
+            query = query.or('is_active.eq.false,expires_at.lt.' + new Date().toISOString());
+        }
+
+        const { data, error } = await query;
+        if (error) return errorResponse(error.message, 500);
+        return jsonResponse({ delegations: data || [] });
+    }
+
+    // POST /api/hr/delegations — create a delegation
+    if (path === '/api/hr/delegations' && request.method === 'POST') {
+        if (!isDelegationAdmin(userRole)) return errorResponse('Only GM or platform admin can create delegations', 403);
+
+        const body = (await request.json()) as {
+            fromRole: string;
+            toUserId: string;
+            scope?: Record<string, unknown>;
+            reason?: string;
+            expiresAt?: string;
+        };
+        if (!body.fromRole || !body.toUserId) return errorResponse('fromRole and toUserId are required', 400);
+
+        const { data, error } = await adminClient
+            .from('role_delegations')
+            .insert({
+                company_id: companyId,
+                from_role: body.fromRole,
+                to_user_id: body.toUserId,
+                scope: body.scope || {},
+                reason: body.reason || null,
+                granted_by: userId,
+                is_active: true,
+                expires_at: body.expiresAt || null,
+            })
+            .select()
+            .single();
+
+        if (error) return errorResponse(error.message, 500);
+        return jsonResponse({ delegation: data }, 201);
+    }
+
+    // PATCH /api/hr/delegations/:id — revoke / update
+    const delegationMatch = path.match(/^\/api\/hr\/delegations\/([0-9a-f-]+)$/);
+    if (delegationMatch && request.method === 'PATCH') {
+        if (!isDelegationAdmin(userRole)) return errorResponse('Only GM or platform admin can manage delegations', 403);
+
+        const body = (await request.json()) as Partial<{
+            isActive: boolean;
+            expiresAt: string | null;
+            reason: string;
+        }>;
+
+        const updates: Record<string, unknown> = {};
+        if (body.isActive !== undefined) updates.is_active = body.isActive;
+        if (body.expiresAt !== undefined) updates.expires_at = body.expiresAt;
+        if (body.reason !== undefined) updates.reason = body.reason;
+
+        const { data, error } = await adminClient
+            .from('role_delegations')
+            .update(updates)
+            .eq('id', delegationMatch[1])
+            .eq('company_id', companyId)
+            .select()
+            .single();
+
+        if (error) return errorResponse(error.message, 500);
+        return jsonResponse({ delegation: data });
+    }
+
+    // DELETE /api/hr/delegations/:id — permanently remove
+    if (delegationMatch && request.method === 'DELETE') {
+        if (!isDelegationAdmin(userRole)) return errorResponse('Only GM or platform admin can delete delegations', 403);
+
+        const { error } = await adminClient
+            .from('role_delegations')
+            .delete()
+            .eq('id', delegationMatch[1])
+            .eq('company_id', companyId);
+
+        if (error) return errorResponse(error.message, 500);
+        return jsonResponse({ success: true });
+    }
+
     return errorResponse('Not found', 404);
 }
 
@@ -759,4 +859,8 @@ function hasWriteAccess(role: string): boolean {
         'hr_manager', 'hr_admin',
     ];
     return writeRoles.includes(role);
+}
+
+function isDelegationAdmin(role: string): boolean {
+    return ['company_gm', 'assistant_gm'].includes(role);
 }
