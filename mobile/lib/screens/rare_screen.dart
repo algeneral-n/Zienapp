@@ -5,8 +5,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../services/api_client.dart';
+import '../services/auth_providers.dart';
 import '../services/company_providers.dart';
+import '../models/enums.dart';
 import '../theme/app_theme.dart';
 
 class RareScreen extends ConsumerStatefulWidget {
@@ -26,6 +29,11 @@ class _RareScreenState extends ConsumerState<RareScreen> {
   String _mode = 'assistant'; // assistant | architect | analyst | operator
 
   String? get _companyId => ref.read(companyNotifierProvider).active?.id;
+
+  bool get _isFounder {
+    final profile = ref.read(profileProvider).valueOrNull;
+    return profile?.platformRole == PlatformRole.founder;
+  }
 
   static const Map<String, Map<String, dynamic>> _modes = {
     'assistant': {'label': 'Assistant', 'icon': Icons.smart_toy, 'color': Colors.blue},
@@ -58,17 +66,17 @@ class _RareScreenState extends ConsumerState<RareScreen> {
         'mode': _mode,
       }, extraHeaders: {'X-Company-Id': _companyId!});
 
-      if (res.ok) {
+      if (res.isSuccess) {
         setState(() {
           _messages.add({
             'role': 'assistant',
-            'content': res.data['reply'] ?? res.data['message'] ?? 'No response',
+            'content': res.data?['reply'] ?? res.data?['message'] ?? 'No response',
             'mode': _mode,
           });
         });
       } else {
         setState(() {
-          _messages.add({'role': 'system', 'content': 'Error: ${res.error ?? 'Unknown error'}'});
+          _messages.add({'role': 'system', 'content': 'Error: ${res.errorMessage ?? 'Unknown error'}'});
         });
       }
     } catch (e) {
@@ -99,6 +107,13 @@ class _RareScreenState extends ConsumerState<RareScreen> {
       appBar: AppBar(
         title: const Text('RARE AI', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5)),
         actions: [
+          // Supreme Access button — only for founder
+          if (_isFounder)
+            IconButton(
+              icon: const Icon(Icons.shield_moon, color: Colors.amber),
+              tooltip: 'Supreme Access',
+              onPressed: () => context.push('/supreme'),
+            ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () => setState(() => _messages.clear()),
@@ -153,7 +168,7 @@ class _RareScreenState extends ConsumerState<RareScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.psychology, size: 64, color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+            Icon(Icons.psychology, size: 64, color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             const Text('RARE AI Agent', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
             const SizedBox(height: 8),
@@ -203,7 +218,7 @@ class _RareScreenState extends ConsumerState<RareScreen> {
             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
             decoration: BoxDecoration(
               color: isUser
-                  ? AppTheme.primaryColor
+                  ? AppTheme.primaryBlue
                   : isSystem
                       ? Colors.red.withValues(alpha: 0.1)
                       : Colors.grey.withValues(alpha: 0.1),
@@ -278,7 +293,7 @@ class _RareScreenState extends ConsumerState<RareScreen> {
             ),
             const SizedBox(width: 8),
             CircleAvatar(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: AppTheme.primaryBlue,
               child: IconButton(
                 icon: const Icon(Icons.send, color: Colors.white, size: 20),
                 onPressed: _loading ? null : _sendMessage,

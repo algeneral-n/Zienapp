@@ -25,6 +25,7 @@ import { handleGuest } from './routes/guest';
 import { handleMarketing } from './routes/marketing';
 import { handleVoice } from './routes/voice';
 import { handleNotifications } from './routes/notifications';
+import { handleSupreme } from './routes/supreme';
 import { corsHeaders, handleCors, getAllowedOrigin } from './cors';
 
 export interface Env {
@@ -161,6 +162,10 @@ export default {
 
       if (path.startsWith('/api/notifications/')) {
         return handleNotifications(request, env, path);
+      }
+
+      if (path.startsWith('/api/supreme/')) {
+        return handleSupreme(request, env, path);
       }
 
       // 404

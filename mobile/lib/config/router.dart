@@ -22,6 +22,7 @@ import '../screens/meetings_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/academy_screen.dart';
 import '../screens/rare_screen.dart';
+import '../screens/supreme_access_screen.dart';
 import '../services/auth_providers.dart';
 
 // ─── Route names ─────────────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ class Routes {
   static const store = '/store';
   static const meetings = '/meetings';
   static const academy = '/academy';
+  static const supreme = '/supreme';
 }
 
 // ─── Router provider ─────────────────────────────────────────────────────────
@@ -139,6 +141,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.rareAi,
         builder: (context, state) => const RareScreen(),
+      ),
+      GoRoute(
+        path: Routes.supreme,
+        builder: (context, state) => const SupremeAccessScreen(),
       ),
     ],
   );
