@@ -12,8 +12,8 @@ import { useAuth } from '../../contexts/AuthContext';
 interface HelpArticle {
     id: string;
     title: string;
-    body: string;
-    category_id: string | null;
+    content: string;
+    category: string | null;
     tags: string[];
     is_published: boolean;
     view_count: number;
@@ -22,8 +22,9 @@ interface HelpArticle {
 
 interface HelpCategory {
     id: string;
-    name: string;
-    description: string;
+    code: string;
+    name_en: string;
+    name_ar: string;
     icon: string;
     sort_order: number;
 }
@@ -48,7 +49,7 @@ export default function HelpCenter() {
             try {
                 const [{ data: arts }, { data: cats }, { data: tix }] = await Promise.all([
                     supabase.from('help_articles').select('*').eq('is_published', true).order('created_at', { ascending: false }),
-                    supabase.from('help_categories').select('*').order('sort_order'),
+                    supabase.from('help_categories').select('*').eq('is_active', true).order('sort_order'),
                     user?.id ? supabase.from('support_tickets').select('*').eq('submitted_by', user.id).order('created_at', { ascending: false }).limit(20) : Promise.resolve({ data: [] }),
                 ]);
                 setArticles(arts || []);
@@ -77,8 +78,8 @@ export default function HelpCenter() {
     };
 
     const filtered = articles.filter(a => {
-        const matchSearch = !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.body?.toLowerCase().includes(search.toLowerCase());
-        const matchCat = !activeCat || a.category_id === activeCat;
+        const matchSearch = !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.content?.toLowerCase().includes(search.toLowerCase());
+        const matchCat = !activeCat || a.category === activeCat;
         return matchSearch && matchCat;
     });
 
@@ -142,10 +143,10 @@ export default function HelpCenter() {
                         {categories.map(cat => (
                             <button
                                 key={cat.id}
-                                onClick={() => setActiveCat(cat.id)}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeCat === cat.id ? 'bg-blue-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200'}`}
+                                onClick={() => setActiveCat(cat.code)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeCat === cat.code ? 'bg-blue-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200'}`}
                             >
-                                {cat.name}
+                                {language === 'ar' ? cat.name_ar : cat.name_en}
                             </button>
                         ))}
                     </div>
@@ -186,7 +187,7 @@ export default function HelpCenter() {
                                         className="overflow-hidden"
                                     >
                                         <div className="px-5 pb-5 pt-0 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
-                                            {article.body}
+                                            {article.content}
                                             {article.tags?.length > 0 && (
                                                 <div className="flex gap-2 mt-4">
                                                     {article.tags.map(tag => (

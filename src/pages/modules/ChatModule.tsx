@@ -7,6 +7,7 @@ import {
 import { useCompany } from '../../contexts/CompanyContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabase';
+import { useTheme } from '../../components/ThemeProvider';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 
@@ -50,6 +51,8 @@ async function apiRequest(path: string, method = 'GET', body?: unknown) {
 export default function ChatModule() {
     const { company } = useCompany();
     const { user, profile } = useAuth();
+    const { language } = useTheme();
+    const isAr = language === 'ar';
 
     const [channels, setChannels] = useState<Channel[]>([]);
     const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
@@ -72,14 +75,17 @@ export default function ChatModule() {
 
     // Load channels
     const loadChannels = useCallback(async () => {
-        const res = await apiRequest('/api/chat/channels');
-        if (res.channels) {
-            setChannels(res.channels);
-            if (res.channels.length > 0 && !selectedChannel) {
-                setSelectedChannel(res.channels[0]);
+        try {
+            const res = await apiRequest('/api/chat/channels');
+            if (res.channels) {
+                setChannels(res.channels);
+                if (res.channels.length > 0 && !selectedChannel) {
+                    setSelectedChannel(res.channels[0]);
+                }
             }
+        } catch { /* API error — show empty */ } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, [selectedChannel]);
 
     useEffect(() => {
@@ -251,14 +257,14 @@ export default function ChatModule() {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight">Chat</h1>
-                    <p className="text-zinc-500 mt-1 text-sm">Team communication and messaging</p>
+                    <h1 className="text-3xl font-black tracking-tight">{isAr ? 'المحادثات' : 'Chat'}</h1>
+                    <p className="text-zinc-500 mt-1 text-sm">{isAr ? 'التواصل والمراسلة مع الفريق' : 'Team communication and messaging'}</p>
                 </div>
                 <button
                     onClick={() => setShowNewChannel(true)}
                     className="bg-blue-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all"
                 >
-                    <Plus size={14} /> New Channel
+                    <Plus size={14} /> {isAr ? 'قناة جديدة' : 'New Channel'}
                 </button>
             </div>
 
@@ -266,12 +272,12 @@ export default function ChatModule() {
             {showNewChannel && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full max-w-md shadow-2xl">
-                        <h3 className="text-lg font-bold mb-4">Create Channel</h3>
+                        <h3 className="text-lg font-bold mb-4">{isAr ? 'إنشاء قناة' : 'Create Channel'}</h3>
                         <input
                             type="text"
                             value={newChannelName}
                             onChange={e => setNewChannelName(e.target.value)}
-                            placeholder="Channel name"
+                            placeholder={isAr ? 'اسم القناة' : 'Channel name'}
                             className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-transparent text-sm mb-3"
                             autoFocus
                         />
@@ -294,13 +300,13 @@ export default function ChatModule() {
                                 onClick={() => setShowNewChannel(false)}
                                 className="flex-1 px-4 py-2.5 rounded-xl text-xs font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
                             >
-                                Cancel
+                                {isAr ? 'إلغاء' : 'Cancel'}
                             </button>
                             <button
                                 onClick={createChannel}
                                 className="flex-1 px-4 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700"
                             >
-                                Create
+                                {isAr ? 'إنشاء' : 'Create'}
                             </button>
                         </div>
                     </div>
@@ -323,7 +329,7 @@ export default function ChatModule() {
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                placeholder="Search channels..."
+                                placeholder={isAr ? 'بحث في القنوات...' : 'Search channels...'}
                                 className="w-full pl-9 pr-3 py-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm border-0 focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
@@ -332,7 +338,7 @@ export default function ChatModule() {
                     {/* Channel List */}
                     <div className="flex-1 overflow-y-auto">
                         {filteredChannels.length === 0 ? (
-                            <div className="text-center text-zinc-400 text-sm py-12">No channels yet</div>
+                            <div className="text-center text-zinc-400 text-sm py-12">{isAr ? 'لا توجد قنوات بعد' : 'No channels yet'}</div>
                         ) : (
                             filteredChannels.map(ch => (
                                 <button
@@ -376,7 +382,7 @@ export default function ChatModule() {
                         <div className="flex-1 flex items-center justify-center text-zinc-400">
                             <div className="text-center">
                                 <MessageSquare size={48} className="mx-auto mb-4 opacity-30" />
-                                <p className="text-sm">Select a channel to start chatting</p>
+                                <p className="text-sm">{isAr ? 'اختر قناة لبدء المحادثة' : 'Select a channel to start chatting'}</p>
                             </div>
                         </div>
                     ) : (
@@ -418,7 +424,7 @@ export default function ChatModule() {
                                     </div>
                                 ) : messages.length === 0 ? (
                                     <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
-                                        No messages yet. Say hello!
+                                        {isAr ? 'لا توجد رسائل بعد. قل مرحباً!' : 'No messages yet. Say hello!'}
                                     </div>
                                 ) : (
                                     messages.map((msg, idx) => {
@@ -489,7 +495,7 @@ export default function ChatModule() {
                                         value={message}
                                         onChange={e => { setMessage(e.target.value); broadcastTyping(); }}
                                         onKeyDown={handleKeyDown}
-                                        placeholder="Type a message..."
+                                        placeholder={isAr ? 'اكتب رسالة...' : 'Type a message...'}
                                         className="flex-1 bg-transparent border-0 text-sm focus:outline-none focus:ring-0"
                                     />
                                     <button className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700">

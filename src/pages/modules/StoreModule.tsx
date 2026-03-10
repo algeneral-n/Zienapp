@@ -59,13 +59,13 @@ export default function StoreModule() {
 
 function ProductsTab({ companyId, language }: { companyId?: string; language: string }) {
   const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!companyId);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', sku: '', price: '', stock_quantity: '', category: '' });
 
   const fetchProducts = useCallback(async () => {
-    if (!companyId) return;
+    if (!companyId) { setLoading(false); return; }
     setLoading(true);
     const { data } = await supabase.from('products').select('*').eq('company_id', companyId).order('created_at', { ascending: false });
     setProducts(data || []);
@@ -166,10 +166,10 @@ function ProductsTab({ companyId, language }: { companyId?: string; language: st
 
 function OrdersTab({ companyId, language }: { companyId?: string; language: string }) {
   const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!companyId);
 
   const fetchOrders = useCallback(async () => {
-    if (!companyId) return;
+    if (!companyId) { setLoading(false); return; }
     setLoading(true);
     const { data } = await supabase
       .from('orders')
@@ -243,10 +243,10 @@ function OrdersTab({ companyId, language }: { companyId?: string; language: stri
 
 function CustomersTab({ companyId, language }: { companyId?: string; language: string }) {
   const [customers, setCustomers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!companyId);
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) { setLoading(false); return; }
     (async () => {
       const { data } = await supabase
         .from('store_customers')
@@ -295,12 +295,12 @@ function CustomersTab({ companyId, language }: { companyId?: string; language: s
 
 function InventoryTab({ companyId, language }: { companyId?: string; language: string }) {
   const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!companyId);
   const [adjusting, setAdjusting] = useState<string | null>(null);
   const [adjustQty, setAdjustQty] = useState('');
 
   const fetchProducts = useCallback(async () => {
-    if (!companyId) return;
+    if (!companyId) { setLoading(false); return; }
     setLoading(true);
     const { data } = await supabase.from('products').select('*').eq('company_id', companyId).order('stock_quantity', { ascending: true });
     setProducts(data || []);
@@ -390,10 +390,10 @@ function InventoryTab({ companyId, language }: { companyId?: string; language: s
 
 function AnalyticsTab({ companyId, language }: { companyId?: string; language: string }) {
   const [stats, setStats] = useState({ totalProducts: 0, totalOrders: 0, totalRevenue: 0, totalCustomers: 0 });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!companyId);
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) { setLoading(false); return; }
     (async () => {
       const [products, orders, customers] = await Promise.all([
         supabase.from('products').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
