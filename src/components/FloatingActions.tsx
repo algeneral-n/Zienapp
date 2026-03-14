@@ -705,16 +705,30 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                       }`}>
                       <div className="markdown-body"><Markdown>{msg.text}</Markdown></div>
                       {msg.role === 'ai' && (
-                        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-zinc-700 flex items-center justify-between text-[10px] opacity-50 font-bold uppercase tracking-wider">
-                          <span className="flex items-center gap-1">
+                        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-zinc-700 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
+                          <span className="flex items-center gap-1 opacity-40">
                             <ModeIcon className="w-3 h-3" />
                             RARE v3 • {getModeLabel()}
                           </span>
-                          <div className="flex gap-2">
-                            <button onClick={() => speakResponse(msg.text)} className={`hover:text-brand ${isSpeaking ? 'text-brand animate-pulse' : ''}`}>
-                              <Volume2 className="w-3 h-3" />
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => speakResponse(msg.text)}
+                              className={`p-1.5 rounded-lg transition-all ${isSpeaking ? 'bg-brand/10 text-brand animate-pulse' : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-brand'}`}
+                              title={language === 'ar' ? 'استمع' : 'Listen'}
+                            >
+                              <Volume2 className="w-3.5 h-3.5" />
                             </button>
-                            <button onClick={() => navigator.clipboard.writeText(msg.text)} className="hover:text-brand">Copy</button>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(msg.text);
+                                const btn = document.getElementById(`copy-${msg.id}`);
+                                if (btn) { btn.textContent = language === 'ar' ? '✓' : '✓'; setTimeout(() => { btn.textContent = language === 'ar' ? 'نسخ' : 'Copy'; }, 1500); }
+                              }}
+                              className="p-1.5 px-2.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-brand transition-all"
+                              title={language === 'ar' ? 'نسخ' : 'Copy'}
+                            >
+                              <span id={`copy-${msg.id}`}>{language === 'ar' ? 'نسخ' : 'Copy'}</span>
+                            </button>
                           </div>
                         </div>
                       )}
