@@ -15,7 +15,9 @@
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
-    "types": ["vite/client"],
+    "types": [
+      "vite/client"
+    ],
     "paths": {
       "@/*": [
         "./*"
@@ -23,5 +25,16 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "worker",
+    "supabase",
+    "_archive",
+    "node_modules",
+    "flutter",
+    "mobile"
+  ]
 }

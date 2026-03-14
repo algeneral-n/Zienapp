@@ -119,7 +119,7 @@ export default function Overview() {
         <div>
           <h1 className="text-3xl font-black uppercase tracking-tighter mb-1">Business Overview</h1>
           <p className="text-sm text-zinc-500 font-medium">
-            Welcome back, {profile?.full_name?.split(' ')[0] || role || 'User'}. Here's what's happening today.
+            Welcome back, {profile?.fullName?.split(' ')[0] || role || 'User'}. Here's what's happening today.
           </p>
         </div>
         <div className="flex items-center gap-3">

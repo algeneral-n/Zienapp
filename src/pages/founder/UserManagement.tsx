@@ -30,7 +30,7 @@ const UserManagement = () => {
           setCompanies(tenants || []);
           const allMembers: any[] = [];
           for (const tenant of tenants.slice(0, 20)) {
-            allMembers.push(...(tenant.members || []).map((m: any) => ({ ...m, companyName: tenant.name, companyId: tenant.id })));
+            allMembers.push(...((tenant as any).members || []).map((m: any) => ({ ...m, companyName: tenant.name, companyId: tenant.id })));
           }
           setUsers(allMembers);
         } catch {

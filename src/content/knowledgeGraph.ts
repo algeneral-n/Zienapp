@@ -3,7 +3,7 @@
 // Maps: Module → Features → Screens → Workflows → Roles → Permissions
 // ============================================================================
 
-import type { ModuleNode } from './types';
+import type { ModuleNode, WorkflowNode } from './types';
 
 export const KNOWLEDGE_GRAPH: ModuleNode[] = [
   // ─── 1. Onboarding ──────────────────────────────────────────────────────

@@ -1,7 +1,10 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
-import { requireAuth, checkMembership } from '../supabase';
+import { requireAuth, checkMembership, createAdminClient } from '../supabase';
 import { getRoleLevel, AGENT_MIN_LEVEL } from '../permissions';
+import { emitDomainEvent } from '../utils/domainEvents';
+import { consumeEntitlement } from '../utils/entitlements';
+import { preflightAICheck, requireApproval } from '../utils/aiPolicyEngine';
 
 // ─── Action Classification ──────────────────────────────────────────────
 type ActionLevel = 'read_only' | 'suggest' | 'modify' | 'sensitive';
@@ -206,12 +209,56 @@ async function handleRARE(
   // Build system prompt based on agent type and mode
   const systemPrompt = buildSystemPrompt(body.agentType, body.mode, membershipRole, body.language);
 
+  // ─── AI Policy Engine Pre-flight ─────────────────────────────────────
+  const admin = createAdminClient(env);
+  let resolvedModel = 'gpt-4o-mini';
+
+  if (body.companyId) {
+    // Policy + budget + model routing check
+    const policyDecision = await preflightAICheck(admin, {
+      companyId: body.companyId,
+      agentType: body.agentType,
+      actionMode: body.mode,
+      roleLevel: getRoleLevel(membershipRole),
+    });
+
+    if (!policyDecision.allowed) {
+      return errorResponse(policyDecision.reason ?? 'AI policy denied this action', 403);
+    }
+
+    // Handle require_approval tier
+    if (policyDecision.tier === 'require_approval') {
+      try {
+        await requireApproval(admin, {
+          companyId: body.companyId,
+          agentType: body.agentType,
+          actionMode: body.mode,
+          prompt: body.prompt,
+          model: policyDecision.model,
+        });
+      } catch (e: any) {
+        return errorResponse(e?.message ?? 'Approval required', 403);
+      }
+    }
+
+    resolvedModel = policyDecision.model;
+
+    // Entitlement check (ai_tokens meter)
+    try {
+      await consumeEntitlement(admin, body.companyId, 'ai_tokens');
+    } catch (e: any) {
+      if (e?.code === 'FORBIDDEN') {
+        return errorResponse('AI token quota exceeded. Upgrade your plan.', 403);
+      }
+    }
+  }
+
   // Determine if web search should be enabled
   const isSearchMode = body.mode === 'search' || body.prompt.match(/\b(search|find|look up|بحث|ابحث|دور|جوجل|google)\b/i);
 
   // Build OpenAI request body
   const openaiBody: Record<string, unknown> = {
-    model: isSearchMode ? 'gpt-4o-mini' : 'gpt-4o-mini',
+    model: resolvedModel,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: body.prompt },
@@ -308,7 +355,7 @@ async function handleRARE(
         Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: resolvedModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: body.prompt },
@@ -339,13 +386,21 @@ async function handleRARE(
     agent_type: body.agentType,
     mode: body.mode,
     module_code: body.moduleCode,
-    model_name: 'gpt-4o-mini',
+    model_name: resolvedModel,
     tokens_in: openaiData.usage?.prompt_tokens ?? 0,
     tokens_out: openaiData.usage?.completion_tokens ?? 0,
     query_text: body.prompt.substring(0, 500),
     response_summary: responseText.substring(0, 500),
     action_level: permCheck.actionLevel,
     is_sensitive: permCheck.actionLevel === 'sensitive',
+  });
+
+  emitDomainEvent(env, {
+    eventName: 'ai.action.executed',
+    entityType: 'ai_usage_logs',
+    companyId: body.companyId,
+    actorUserId: userId,
+    payload: { agentType: body.agentType, mode: body.mode, actionLevel: permCheck.actionLevel },
   });
 
   return jsonResponse({
@@ -535,6 +590,14 @@ ${body.language && LANG_NAMES[body.language] ? `You MUST respond in ${LANG_NAMES
     query_text: body.prompt.substring(0, 500),
     response_summary: deliberation.substring(0, 500),
     is_sensitive: true,
+  });
+
+  emitDomainEvent(env, {
+    eventName: 'ai.action.executed',
+    entityType: 'ai_usage_logs',
+    companyId: body.companyId,
+    actorUserId: userId,
+    payload: { agentType: 'senate', mode: 'deliberate', topic: body.topic },
   });
 
   return jsonResponse({

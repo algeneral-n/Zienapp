@@ -6,12 +6,14 @@ import { ASSETS, IMAGE_PROPS } from '../constants/assets';
 import { Language, ThemeMode } from '../types';
 import { provisioningService, ProvisioningResult, ProvisioningStatus } from '../services/provisioningService';
 import { supabase } from '../services/supabase';
+import { INDUSTRY_SECTORS, MODULE_CATALOG } from '../data/industries';
 import {
   Globe, Moon, Sun, Layout, ShieldCheck, Zap,
   ArrowRight, Menu, X, CheckCircle2, Star,
   ChevronLeft, ChevronRight, Play, Users,
   BarChart3, Shield, Globe2, Upload, Loader2,
-  Building2, Users2, Briefcase, AlertCircle, Eye
+  Building2, Users2, Briefcase, AlertCircle, Eye,
+  Boxes, Factory, Layers,
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -323,24 +325,29 @@ export default function LandingPage() {
                       <Briefcase className="w-4 h-4" /> {translate('requested_services')}
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {['Accounting', 'HR', 'CRM', 'Logistics', 'AI Assistant'].map(service => (
-                        <button
-                          key={service}
-                          type="button"
-                          onClick={() => {
-                            const services = demoForm.services.includes(service)
-                              ? demoForm.services.filter(s => s !== service)
-                              : [...demoForm.services, service];
-                            setDemoForm({ ...demoForm, services });
-                          }}
-                          className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${demoForm.services.includes(service)
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-black/5 border-[var(--border-soft)] hover:border-blue-400'
-                            }`}
-                        >
-                          {service}
-                        </button>
-                      ))}
+                      {INDUSTRY_SECTORS.slice(0, 8).map(sector => {
+                        const SIcon = sector.icon;
+                        const label = language === 'ar' ? sector.nameAr : sector.nameEn;
+                        return (
+                          <button
+                            key={sector.code}
+                            type="button"
+                            onClick={() => {
+                              const services = demoForm.services.includes(sector.code)
+                                ? demoForm.services.filter(s => s !== sector.code)
+                                : [...demoForm.services, sector.code];
+                              setDemoForm({ ...demoForm, services });
+                            }}
+                            className={`px-3 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 ${demoForm.services.includes(sector.code)
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'bg-black/5 border-[var(--border-soft)] hover:border-blue-400'
+                              }`}
+                          >
+                            <SIcon className="w-3.5 h-3.5" />
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -457,22 +464,22 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                title: translate('accounting'),
+                title: language === 'ar' ? 'المحاسبة والمالية' : 'Accounting & Finance',
                 desc: translate('accounting_desc'),
                 icon: BarChart3
               },
               {
-                title: translate('crm_sales'),
+                title: language === 'ar' ? 'إدارة العملاء والمبيعات' : 'CRM & Sales',
                 desc: translate('crm_sales_desc'),
                 icon: Users
               },
               {
-                title: translate('hr'),
+                title: language === 'ar' ? 'الموارد البشرية' : 'HR & Payroll',
                 desc: translate('hr_desc'),
                 icon: Shield
               },
               {
-                title: translate('logistics'),
+                title: language === 'ar' ? 'اللوجستيات والأسطول' : 'Logistics & Fleet',
                 desc: translate('logistics_desc'),
                 icon: Globe2
               },
@@ -482,9 +489,9 @@ export default function LandingPage() {
                 icon: Zap
               },
               {
-                title: translate('security'),
-                desc: translate('security_desc'),
-                icon: ShieldCheck
+                title: language === 'ar' ? '13+ قطاع صناعي' : '13+ Industry Sectors',
+                desc: language === 'ar' ? 'منظومة متكاملة لجميع القطاعات من التجارة والصناعة إلى المقاولات والعقارات والنقل والتأمين والمزيد.' : 'Unified platform for all sectors — from commercial and industrial to construction, real estate, transport, insurance, and more.',
+                icon: Boxes
               }
             ].map((feature, i) => (
               <motion.div

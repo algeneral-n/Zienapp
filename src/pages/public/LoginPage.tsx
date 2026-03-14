@@ -11,11 +11,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
 
 type AuthView = 'login' | 'forgot' | 'register' | 'set-password';
+type LoginMode = 'team' | 'client';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { language, t: translate } = useTheme();
   const [view, setView] = useState<AuthView>('login');
+  const [loginMode, setLoginMode] = useState<LoginMode>('team');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -38,7 +40,7 @@ export default function LoginPage() {
 
       if (authError) throw authError;
       if (data.user) {
-        navigate('/dashboard');
+        navigate(loginMode === 'client' ? '/client' : '/dashboard');
       }
     } catch (err: any) {
       setError(err.message || 'Invalid credentials');
@@ -201,6 +203,38 @@ export default function LoginPage() {
               <p className="text-[10px] text-brand font-black uppercase tracking-[0.2em]">{t.tagline}</p>
             </div>
 
+            {/* Login Mode Tabs — Team vs Client */}
+            <div className="flex rounded-xl bg-[var(--surface-2)] p-1 mb-2">
+              <button
+                type="button"
+                onClick={() => setLoginMode('team')}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${loginMode === 'team'
+                    ? 'bg-brand text-white shadow-md'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
+              >
+                {language === 'ar' ? 'فريق العمل' : 'Team Member'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMode('client')}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${loginMode === 'client'
+                    ? 'bg-cyan-600 text-white shadow-md'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
+              >
+                {language === 'ar' ? 'بوابة العملاء' : 'Client Portal'}
+              </button>
+            </div>
+
+            {loginMode === 'client' && (
+              <p className="text-[10px] text-cyan-600 font-bold text-center">
+                {language === 'ar'
+                  ? 'سجل دخول بالبريد المسجل لدى الشركة المتعاملة'
+                  : 'Sign in with the email registered by your service provider'}
+              </p>
+            )}
+
             <div>
               <label className="block text-sm font-medium mb-2">{t.emailPhone}</label>
               <div className="relative">
@@ -245,7 +279,7 @@ export default function LoginPage() {
               {loading ? '...' : t.login}
               <ArrowRight className="w-5 h-5" />
             </button>
-          </motion.form>
+          </motion.form >
         );
 
       case 'forgot':

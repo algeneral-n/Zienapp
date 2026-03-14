@@ -1,161 +1,251 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeProvider';
-import { ASSETS, IMAGE_PROPS } from '../../constants/assets';
-import { CheckCircle2, Zap, Shield, BarChart3, Users, Globe, MessageSquare, ShoppingBag, Briefcase, ArrowRight } from 'lucide-react';
+import { INDUSTRY_SECTORS, MODULE_CATALOG, getSectorModules, type ModuleDef } from '../../data/industries';
+import {
+  CheckCircle2, Zap, ArrowRight, Boxes,
+  Layers, Users, BarChart3, Shield, Globe, MessageSquare,
+  ShoppingBag, Briefcase, FileText, Truck, Warehouse,
+  GraduationCap, Wrench, Banknote,
+} from 'lucide-react';
+
+// Feature detail bullets per module (for the detailed view)
+const MODULE_BULLETS: Record<string, { en: string[]; ar: string[] }> = {
+  hr: {
+    en: ['Employee records & contracts', 'Attendance & time tracking', 'Leave management & approvals', 'Payroll processing & payslips', 'Performance reviews'],
+    ar: ['سجلات الموظفين والعقود', 'الحضور وتتبع الوقت', 'إدارة الإجازات والموافقات', 'معالجة الرواتب وكشوف المرتبات', 'تقييم الأداء'],
+  },
+  accounting: {
+    en: ['General ledger & chart of accounts', 'Automated invoicing & billing', 'Tax calculation (VAT/GST)', 'Financial reports & statements', 'Multi-currency support'],
+    ar: ['دفتر الأستاذ وشجرة الحسابات', 'الفوترة الآلية والفواتير', 'حساب الضرائب (ضريبة القيمة المضافة)', 'التقارير والقوائم المالية', 'دعم العملات المتعددة'],
+  },
+  crm: {
+    en: ['Sales pipeline management', 'Lead tracking & scoring', 'Contact & deal management', 'Email & activity tracking', 'Sales forecasting'],
+    ar: ['إدارة خط المبيعات', 'تتبع العملاء المحتملين', 'إدارة جهات الاتصال والصفقات', 'تتبع البريد والنشاطات', 'التنبؤ بالمبيعات'],
+  },
+  projects: {
+    en: ['Task boards & Gantt charts', 'Milestone tracking', 'Team collaboration', 'Time tracking & logging', 'Document sharing'],
+    ar: ['لوحات المهام ومخططات جانت', 'تتبع المعالم', 'التعاون الجماعي', 'تتبع الوقت والتسجيل', 'مشاركة المستندات'],
+  },
+  store: {
+    en: ['Product catalog & categories', 'Point of sale (POS)', 'E-commerce storefront', 'Order management', 'Promotions & discounts'],
+    ar: ['كتالوج المنتجات والفئات', 'نقاط البيع (POS)', 'واجهة المتجر الإلكتروني', 'إدارة الطلبات', 'العروض والخصومات'],
+  },
+  inventory: {
+    en: ['Stock tracking & levels', 'Warehouse management', 'Transfer & adjustments', 'Barcode scanning', 'Low stock alerts'],
+    ar: ['تتبع المخزون والمستويات', 'إدارة المستودعات', 'التحويلات والتعديلات', 'مسح الباركود', 'تنبيهات نفاد المخزون'],
+  },
+  logistics: {
+    en: ['Fleet GPS tracking', 'Route optimization', 'Delivery management', 'Driver assignment', 'Fuel & maintenance logs'],
+    ar: ['تتبع الأسطول بالـ GPS', 'تحسين المسارات', 'إدارة التوصيل', 'تعيين السائقين', 'سجلات الوقود والصيانة'],
+  },
+  rare: {
+    en: ['24 specialized AI agents', 'Department-specific assistance', 'Data analysis & insights', 'Automated recommendations', 'Multi-language support'],
+    ar: ['24 وكيل ذكاء اصطناعي متخصص', 'مساعدة حسب القسم', 'تحليل البيانات والرؤى', 'توصيات آلية', 'دعم متعدد اللغات'],
+  },
+  control_room: {
+    en: ['Real-time operations dashboard', 'KPI monitoring', 'Alert management', 'Live activity feed', 'Custom widgets'],
+    ar: ['لوحة العمليات الحية', 'مراقبة مؤشرات الأداء', 'إدارة التنبيهات', 'بث النشاطات المباشر', 'أدوات مخصصة'],
+  },
+  automation: {
+    en: ['Custom workflow builder', 'Trigger-based actions', 'Approval chains', 'Scheduled tasks', 'Integration webhooks'],
+    ar: ['منشئ سير العمل المخصص', 'إجراءات بناءً على المشغلات', 'سلاسل الموافقات', 'المهام المجدولة', 'ربط API وWebhooks'],
+  },
+  analytics: {
+    en: ['BI dashboards', 'Custom report builder', 'Predictive insights', 'Data export & visualization', 'Trend analysis'],
+    ar: ['لوحات ذكاء الأعمال', 'منشئ التقارير المخصصة', 'رؤى تنبؤية', 'تصدير البيانات والرسوم', 'تحليل الاتجاهات'],
+  },
+  documents: {
+    en: ['Document management', 'Template library', 'Version control', 'Digital signatures', 'Approval workflows'],
+    ar: ['إدارة المستندات', 'مكتبة القوالب', 'التحكم بالإصدارات', 'التوقيعات الرقمية', 'سير عمل الموافقات'],
+  },
+  recruitment: {
+    en: ['Job posting management', 'Applicant tracking', 'Interview scheduling', 'Hiring pipeline', 'Onboarding automation'],
+    ar: ['إدارة الإعلانات الوظيفية', 'تتبع المتقدمين', 'جدولة المقابلات', 'خط التوظيف', 'أتمتة الإلحاق'],
+  },
+  training: {
+    en: ['Course management (LMS)', 'Certifications tracking', 'Skill assessments', 'Learning paths', 'Progress reports'],
+    ar: ['إدارة الدورات (LMS)', 'تتبع الشهادات', 'تقييم المهارات', 'مسارات التعلم', 'تقارير التقدم'],
+  },
+  client_portal: {
+    en: ['Customer self-service', 'Ticket management', 'Invoice viewing', 'Project updates', 'Knowledge base'],
+    ar: ['الخدمة الذاتية للعملاء', 'إدارة التذاكر', 'عرض الفواتير', 'تحديثات المشاريع', 'قاعدة المعرفة'],
+  },
+  integrations: {
+    en: ['API gateway', 'Third-party connectors', 'Webhook management', 'Data sync', 'Custom integrations'],
+    ar: ['بوابة API', 'موصلات الطرف الثالث', 'إدارة Webhooks', 'مزامنة البيانات', 'تكاملات مخصصة'],
+  },
+};
 
 export default function FeaturesPage() {
   const { language, t: translate } = useTheme();
   const navigate = useNavigate();
+  const isAr = language === 'ar';
 
-  const mainFeatures = [
-    {
-      icon: BarChart3,
-      slug: 'accounting',
-      title: language === 'ar' ? "المحاسبة والمالية" : "Accounting & Finance",
-      desc: language === 'ar' ? "الفواتير الآلية، تتبع الضرائب، والتقارير المالية." : "Automated invoicing, tax tracking, and financial reporting.",
-      image: "https://lh3.googleusercontent.com/p/AF1QipM4Z8Hvn9cMYSRqtQNgp3ZlnnyHqSRIDaSQAKDN=s1360-w1360-h1020-rw",
-      bullets: ['accounting_bullet_1', 'accounting_bullet_2', 'accounting_bullet_3'],
-    },
-    {
-      icon: Users,
-      slug: 'crm',
-      title: language === 'ar' ? "إدارة علاقات العملاء والمبيعات" : "CRM & Sales",
-      desc: language === 'ar' ? "إدارة خطوط الأنابيب، تتبع العملاء المحتملين، وبوابة العملاء." : "Pipeline management, lead tracking, and client portal.",
-      image: "https://lh3.googleusercontent.com/p/AF1QipOxcyDh5pI5H6Es3o-98m8D9fynSp8fBCvvrW_g=s1360-w1360-h1020-rw",
-      bullets: ['crm_bullet_1', 'crm_bullet_2', 'crm_bullet_3'],
-    },
-    {
-      icon: Shield,
-      slug: 'hr',
-      title: language === 'ar' ? "الموارد البشرية والرواتب" : "HR & Payroll",
-      desc: language === 'ar' ? "الحضور، إدارة الإجازات، ومعالجة الرواتب الآمنة." : "Attendance, leave management, and secure payroll processing.",
-      image: "https://lh3.googleusercontent.com/p/AF1QipO9w_lR54InzNIU6W8D9AH8XRFzLL6SUwVPdJcN=s1360-w1360-h1020-rw",
-      bullets: ['hr_bullet_1', 'hr_bullet_2', 'hr_bullet_3'],
-    },
-    {
-      icon: Zap,
-      slug: 'rare-ai',
-      title: language === 'ar' ? "وكلاء RARE AI" : "RARE AI Agents",
-      desc: language === 'ar' ? "مساعدون أذكياء لكل قسم." : "Intelligent assistants for every department.",
-      image: "https://www.cyberark.com/wp-content/uploads/2025/03/ai-agents-collaborative-intelligence1.jpg",
-      bullets: ['rare_bullet_1', 'rare_bullet_2', 'rare_bullet_3'],
-    },
-    {
-      icon: Globe,
-      slug: 'logistics',
-      title: language === 'ar' ? "الخدمات اللوجستية والأسطول" : "Logistics & Fleet",
-      desc: language === 'ar' ? "تتبع في الوقت الفعلي وإرسال المهام للعمليات الميدانية." : "Real-time tracking and task dispatching for field operations.",
-      image: "https://lh3.googleusercontent.com/p/AF1QipOO2HzMRuorxrjfQkOsJ_3ZfKUVWT5x718CeF6s=s1360-w1360-h1020-rw",
-      bullets: ['logistics_bullet_1', 'logistics_bullet_2', 'logistics_bullet_3'],
-    },
-  ];
+  const [selectedSector, setSelectedSector] = useState<string | null>(null);
 
-  const secondaryFeatures = [
-    {
-      icon: Briefcase,
-      slug: 'project-management',
-      title: language === 'ar' ? "إدارة المشاريع" : "Project Management",
-      desc: language === 'ar' ? "تتبع المهام، الموافقات، والتعاون الجماعي." : "Task tracking, approvals, and team collaboration.",
-      image: "https://lh3.googleusercontent.com/p/AF1QipPwN6JEeKaXorclLqLX6pWvPluB__YEcTvMo6Ef=s1360-w1360-h1020-rw",
-      bullets: ['pm_bullet_1', 'pm_bullet_2', 'pm_bullet_3'],
-    },
-    {
-      icon: ShoppingBag,
-      slug: 'global-store',
-      title: language === 'ar' ? "المتجر العالمي" : "Global Store",
-      desc: language === 'ar' ? "تكامل التجارة الإلكترونية المرتبط بمخزونك." : "E-commerce integration linked to your inventory.",
-      image: "https://lh3.googleusercontent.com/p/AF1QipMPZljVEc-2ZIfQBXj4-jbm2U-Lwng67FH5wfDL=s1360-w1360-h1020-rw",
-      bullets: ['store_bullet_1', 'store_bullet_2', 'store_bullet_3'],
-    },
-    {
-      icon: MessageSquare,
-      slug: 'meetings-chat',
-      title: language === 'ar' ? "الاجتماعات والدردشة" : "Meetings & Chat",
-      desc: language === 'ar' ? "اتصالات موحدة مع ملخصات مدعومة بالذكاء الاصطناعي." : "Unified communication with AI-powered summaries.",
-      image: "https://lh3.googleusercontent.com/p/AF1QipPGjbkIguKi4eV3p_wr4Js4-O_Hv-AkhlGWz88-=s1360-w1360-h1020-rw",
-      bullets: ['meetings_bullet_1', 'meetings_bullet_2', 'meetings_bullet_3'],
-    },
-  ];
+  // Group modules by category
+  const coreModules = MODULE_CATALOG.filter(m => m.category === 'core');
+  const addonModules = MODULE_CATALOG.filter(m => m.category === 'addon');
+  const premiumModules = MODULE_CATALOG.filter(m => m.category === 'premium');
 
-  const renderFeature = (f: any, i: number) => (
-    <div key={i} className={`flex flex-col ${i % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-16 items-center`}>
+  const renderModuleCard = (mod: ModuleDef, i: number, highlighted = false) => {
+    const bullets = MODULE_BULLETS[mod.code];
+    const Icon = mod.icon;
+    return (
       <motion.div
-        initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }}
-        whileInView={{ opacity: 1, x: 0 }}
+        key={mod.code}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="flex-1 space-y-8"
+        transition={{ delay: i * 0.05 }}
+        className={`glass-card p-6 rounded-[24px] hover:shadow-lg transition-all group ${highlighted ? 'border-blue-500/30 ring-2 ring-blue-500/20' : ''}`}
       >
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-400 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-          <f.icon className="w-8 h-8" />
+        <div className="w-12 h-12 bg-blue-600/10 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <Icon className="w-6 h-6" />
         </div>
-        <h2 className="text-4xl font-bold tracking-tight">{f.title}</h2>
-        <p className="text-xl text-[var(--text-secondary)] leading-relaxed">
-          {f.desc}
-        </p>
-        <ul className="space-y-4">
-          {f.bullets.map((bulletKey: string, idx: number) => (
-            <li key={idx} className="flex items-center gap-3 font-medium">
-              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              {translate(bulletKey)}
-            </li>
-          ))}
-        </ul>
-        <button
-          onClick={() => navigate(`/features/${f.slug}`)}
-          className="flex items-center gap-2 text-blue-600 font-bold hover:gap-3 transition-all"
-        >
-          {translate('learn_more_about')} {f.title} <ArrowRight className="w-5 h-5" />
-        </button>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        className="flex-1 w-full"
-      >
-        <div className="glass-card p-4 rounded-[2.5rem] shadow-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
-          <img
-            src={f.image}
-            alt={f.title}
-            className="w-full aspect-video object-cover rounded-[2rem] shadow-lg border border-[var(--border-soft)]"
-            referrerPolicy="no-referrer"
-          />
+        <h3 className="text-lg font-bold mb-2">{isAr ? mod.nameAr : mod.nameEn}</h3>
+        <p className="text-sm text-[var(--text-secondary)] mb-4">{isAr ? mod.descAr : mod.descEn}</p>
+        {bullets && (
+          <ul className="space-y-2">
+            {(isAr ? bullets.ar : bullets.en).map((b, idx) => (
+              <li key={idx} className="flex items-center gap-2 text-xs">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-3 pt-3 border-t border-[var(--border-soft)]">
+          <span className={`text-[10px] font-bold uppercase tracking-widest ${mod.category === 'premium' ? 'text-amber-600' : mod.category === 'addon' ? 'text-violet-600' : 'text-emerald-600'}`}>
+            {mod.category === 'premium' ? (isAr ? 'متقدم' : 'Premium') : mod.category === 'addon' ? (isAr ? 'إضافي' : 'Add-on') : (isAr ? 'أساسي' : 'Core')}
+          </span>
         </div>
       </motion.div>
-    </div>
-  );
+    );
+  };
+
+  // If a sector is selected, show its specific modules
+  const sectorObj = INDUSTRY_SECTORS.find(s => s.code === selectedSector);
+  const sectorModules = sectorObj ? getSectorModules(sectorObj.code) : [];
 
   return (
     <div className="pt-32 pb-20 px-6 bg-[var(--bg-primary)] min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-20">
+        {/* Hero */}
+        <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-bold mb-6">
             <Zap className="w-4 h-4 fill-current" />
             {translate('enterprise_grade')}
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 tracking-tight">
-            {translate('everything_to_scale')}
+            {isAr ? 'كل ما تحتاجه لإدارة أعمالك' : 'Everything You Need to Run Your Business'}
           </h1>
           <p className="text-xl text-[var(--text-secondary)] max-w-3xl mx-auto leading-relaxed">
-            {translate('features_hero_desc')}
+            {isAr
+              ? '18+ وحدة متكاملة تعمل معاً داخل منظومة واحدة. تحكم واحد، تكامل كامل، لجميع القطاعات.'
+              : '18+ integrated modules working together in one unified system. One control, full integration, for all industries.'}
           </p>
         </div>
 
-        {/* Main Feature Sections */}
-        <div className="space-y-32">
-          {mainFeatures.map((f, i) => renderFeature(f, i))}
+        {/* Sector Filter */}
+        <div className="mb-12">
+          <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-4 text-center">
+            {isAr ? 'فلتر حسب القطاع' : 'Filter by Industry'}
+          </h3>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => setSelectedSector(null)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${!selectedSector ? 'bg-blue-600 text-white shadow-lg' : 'glass-card hover:border-blue-400'}`}
+            >
+              {isAr ? 'الكل' : 'All Modules'}
+            </button>
+            {INDUSTRY_SECTORS.map(sector => {
+              const SIcon = sector.icon;
+              return (
+                <button
+                  key={sector.code}
+                  onClick={() => setSelectedSector(sector.code)}
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${selectedSector === sector.code ? 'bg-blue-600 text-white shadow-lg' : 'glass-card hover:border-blue-400'}`}
+                >
+                  <SIcon className="w-3.5 h-3.5" />
+                  {isAr ? sector.nameAr : sector.nameEn}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Secondary Feature Sections */}
-        <div className="mt-40 space-y-32">
-          <div className="text-center">
-            <h2 className="text-4xl font-bold mb-6">{translate('more_solutions')}</h2>
-            <div className="w-24 h-1 bg-blue-600 mx-auto rounded-full"></div>
+        {/* Sector-specific info */}
+        {sectorObj && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12 p-6 rounded-[24px] bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-700/30">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <sectorObj.icon className="w-6 h-6 text-blue-600" />
+              <h2 className="text-2xl font-bold">{isAr ? sectorObj.nameAr : sectorObj.nameEn}</h2>
+            </div>
+            <p className="text-sm text-[var(--text-secondary)]">{isAr ? sectorObj.descAr : sectorObj.descEn}</p>
+            <p className="text-xs font-bold text-blue-600 mt-2">{sectorModules.length} {isAr ? 'وحدة موصى بها لهذا القطاع' : 'modules recommended for this sector'}</p>
+          </motion.div>
+        )}
+
+        {/* Modules Grid */}
+        {selectedSector ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
+            {sectorModules.map((mod, i) => renderModuleCard(mod, i, true))}
           </div>
-          {secondaryFeatures.map((f, i) => renderFeature(f, i + mainFeatures.length))}
+        ) : (
+          <>
+            {/* Core Modules */}
+            <div className="mb-16">
+              <div className="flex items-center gap-3 mb-8">
+                <Layers className="w-6 h-6 text-emerald-600" />
+                <h2 className="text-2xl font-bold">{isAr ? 'الوحدات الأساسية' : 'Core Modules'}</h2>
+                <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">{isAr ? 'مضمنة في كل خطة' : 'Included in every plan'}</span>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {coreModules.map((mod, i) => renderModuleCard(mod, i))}
+              </div>
+            </div>
+
+            {/* Add-on Modules */}
+            <div className="mb-16">
+              <div className="flex items-center gap-3 mb-8">
+                <Boxes className="w-6 h-6 text-violet-600" />
+                <h2 className="text-2xl font-bold">{isAr ? 'الوحدات الإضافية' : 'Add-on Modules'}</h2>
+                <span className="text-xs font-bold bg-violet-100 text-violet-700 px-3 py-1 rounded-full">{isAr ? 'حسب الحاجة' : 'As needed'}</span>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {addonModules.map((mod, i) => renderModuleCard(mod, i))}
+              </div>
+            </div>
+
+            {/* Premium Modules */}
+            <div className="mb-16">
+              <div className="flex items-center gap-3 mb-8">
+                <Zap className="w-6 h-6 text-amber-600" />
+                <h2 className="text-2xl font-bold">{isAr ? 'الوحدات المتقدمة' : 'Premium Modules'}</h2>
+                <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full">{isAr ? 'للمؤسسات' : 'Enterprise'}</span>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {premiumModules.map((mod, i) => renderModuleCard(mod, i))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* CTA */}
+        <div className="text-center py-16">
+          <h2 className="text-3xl font-bold mb-4">{isAr ? 'جاهز للبدء؟' : 'Ready to Get Started?'}</h2>
+          <p className="text-[var(--text-secondary)] mb-8 max-w-lg mx-auto">
+            {isAr ? 'سجّل شركتك الآن واحصل على كل الوحدات المناسبة لقطاعك.' : 'Register your company now and get all modules tailored to your industry.'}
+          </p>
+          <button
+            onClick={() => navigate('/register')}
+            className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 inline-flex items-center gap-2"
+          >
+            {isAr ? 'سجّل شركتك' : 'Register Your Company'} <ArrowRight className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>

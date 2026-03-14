@@ -33,41 +33,43 @@ vi.mock('stripe', () => {
 });
 
 describe('StripeEngine', () => {
+    const engine = new StripeEngine('sk_test_fake');
+
     it('creates a customer', async () => {
-        const id = await StripeEngine.createCustomer('tenant1', 'test@example.com');
+        const id = await engine.createCustomer('tenant1', 'test@example.com');
         expect(id).toBe('cus_test');
     });
 
     it('creates a checkout session', async () => {
-        const session = await StripeEngine.createCheckoutSession('plan1', 'cus_test', 'success', 'cancel');
+        const session = await engine.createCheckoutSession('plan1', 'cus_test', 'success', 'cancel');
         expect(session.id).toBe('sess_test');
         expect(session.url).toBe('https://stripe.test/checkout');
     });
 
     it('creates a billing portal session', async () => {
-        const session = await StripeEngine.createBillingPortal('cus_test', 'return');
+        const session = await engine.createBillingPortal('cus_test', 'return');
         expect(session.url).toBe('https://stripe.test/portal');
     });
 
     it('attaches a payment method', async () => {
-        await StripeEngine.attachPaymentMethod('cus_test', 'pm_test');
+        await engine.attachPaymentMethod('cus_test', 'pm_test');
         expect(true).toBe(true); // No error thrown
     });
 
     it('retrieves a subscription', async () => {
-        const sub = await StripeEngine.getSubscription('sub_test');
+        const sub = await engine.getSubscription('sub_test');
         expect(sub.id).toBe('sub_test');
         expect(sub.status).toBe('active');
     });
 
     it('cancels a subscription', async () => {
-        const sub = await StripeEngine.cancelSubscription('sub_test');
+        const sub = await engine.cancelSubscription('sub_test');
         expect(sub.id).toBe('sub_test');
         expect(sub.status).toBe('canceled');
     });
 
     it('reports usage', async () => {
-        const usage = await StripeEngine.reportUsage('item_test', 5);
+        const usage = await engine.reportUsage('item_test', 5);
         expect(usage.id).toBe('usage_test');
     });
 });

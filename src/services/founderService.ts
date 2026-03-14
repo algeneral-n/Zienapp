@@ -52,6 +52,18 @@ async function apiPatch<T>(path: string, body: unknown): Promise<T> {
     return res.json() as Promise<T>;
 }
 
+async function apiDelete<T>(path: string): Promise<T> {
+    const res = await fetch(`${API}${path}`, {
+        method: 'DELETE',
+        headers: await authHeaders(),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as { error?: string }).error || res.statusText);
+    }
+    return res.json() as Promise<T>;
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface Tenant {
@@ -202,6 +214,109 @@ export interface PlatformConfigItem {
     updated_at: string;
 }
 
+// ─── NEW: Layer types ────────────────────────────────────────────────────────
+
+export interface WorkerStatus {
+    id: string;
+    name: string;
+    status: 'running' | 'stopped' | 'error';
+    version: string;
+    region: string;
+    last_deploy: string;
+    uptime_seconds: number;
+}
+
+export interface IntegrationHealth {
+    id: string;
+    name: string;
+    category: 'payment' | 'communication' | 'maps' | 'storage' | 'ai';
+    status: 'connected' | 'degraded' | 'disconnected' | 'error';
+    latency_ms?: number;
+    last_check: string;
+    auto_retry: boolean;
+    retry_count: number;
+    last_error?: string;
+}
+
+export interface PlanDefinition {
+    id: string;
+    plan_code: string;
+    display_name: string;
+    display_name_ar?: string;
+    monthly_price: number;
+    annual_price: number;
+    currency: string;
+    max_users: number;
+    max_ai_queries: number;
+    modules_included: string[];
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Invoice {
+    id: string;
+    company_id: string;
+    company_name?: string;
+    amount: number;
+    currency: string;
+    status: 'paid' | 'pending' | 'overdue' | 'cancelled';
+    invoice_type: string;
+    due_date?: string;
+    paid_at?: string;
+    created_at: string;
+}
+
+export interface UIConfig {
+    tenant_id: string;
+    theme: {
+        primary: string;
+        secondary: string;
+        accent: string;
+        background: string;
+        font: string;
+        border_radius: string;
+        dark_mode: boolean;
+    };
+    navigation: Array<{ key: string; label: string; icon: string; visible: boolean; order: number }>;
+    layout: string;
+    components: Array<{ key: string; label: string; visible: boolean; order: number }>;
+}
+
+export interface TenantModule {
+    module_code: string;
+    is_active: boolean;
+    activated_at?: string;
+}
+
+export interface MarketingAudience {
+    id: string;
+    name: string;
+    filters: Record<string, unknown>;
+    tenant_count: number;
+    created_at: string;
+}
+
+export interface SelfHealEntry {
+    id: string;
+    component: string;
+    action: string;
+    status: 'success' | 'failed';
+    details?: string;
+    created_at: string;
+}
+
+export interface RecoveryItem {
+    id: string;
+    type: 'provisioning' | 'billing' | 'integration';
+    target_id: string;
+    target_name?: string;
+    error: string;
+    retry_count: number;
+    status: 'pending' | 'retrying' | 'escalated' | 'skipped';
+    created_at: string;
+}
+
 // ─── Tenant Management ───────────────────────────────────────────────────────
 
 export async function listTenants(
@@ -346,4 +461,276 @@ export async function updatePlatformConfig(
     description?: string,
 ): Promise<{ updated: boolean }> {
     return apiPost('/api/founder/config', { key, value, description });
+}
+
+// ─── Supreme Access — Force Operations ───────────────────────────────────────
+
+export async function restartWorkers(): Promise<{ restarted: boolean }> {
+    return apiPost('/api/founder/workers/restart', {});
+}
+
+export async function forceProvisioning(tenantId: string): Promise<{ triggered: boolean }> {
+    return apiPost(`/api/founder/tenants/${tenantId}/force-provision`, {});
+}
+
+export async function forceBilling(tenantId: string): Promise<{ triggered: boolean }> {
+    return apiPost(`/api/founder/tenants/${tenantId}/force-billing`, {});
+}
+
+export async function forceIntegrationReconnect(integrationId: string): Promise<{ reconnected: boolean }> {
+    return apiPost(`/api/founder/integrations/${integrationId}/reconnect`, {});
+}
+
+export async function overrideRLS(tenantId: string, durationMinutes: number): Promise<{ overridden: boolean; expires_at: string }> {
+    return apiPost(`/api/founder/tenants/${tenantId}/override-rls`, { duration_minutes: durationMinutes });
+}
+
+// ─── Tenant Control — Extended Actions ───────────────────────────────────────
+
+export async function deleteTenant(tenantId: string): Promise<{ deleted: boolean }> {
+    return apiPost(`/api/founder/tenants/${tenantId}/delete`, {});
+}
+
+export async function resetTenant(tenantId: string): Promise<{ reset: boolean }> {
+    return apiPost(`/api/founder/tenants/${tenantId}/reset`, {});
+}
+
+export async function rerunProvisioning(tenantId: string): Promise<{ triggered: boolean }> {
+    return apiPost(`/api/founder/tenants/${tenantId}/rerun-provision`, {});
+}
+
+export async function addModule(tenantId: string, moduleCode: string): Promise<{ added: boolean }> {
+    return apiPost(`/api/founder/tenants/${tenantId}/modules`, { module_code: moduleCode });
+}
+
+export async function removeModule(tenantId: string, moduleCode: string): Promise<{ removed: boolean }> {
+    return apiDelete(`/api/founder/tenants/${tenantId}/modules/${moduleCode}`);
+}
+
+export async function getTenantAuditLog(tenantId: string, page = 1, limit = 20): Promise<{ entries: AuditEntry[]; pagination: Pagination }> {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    return apiGet(`/api/founder/tenants/${tenantId}/audit-log?${params}`);
+}
+
+export async function getTenantIncidents(tenantId: string): Promise<{ incidents: Array<{ id: string; severity: string; status: string; title: string; created_at: string }> }> {
+    return apiGet(`/api/founder/tenants/${tenantId}/incidents`);
+}
+
+export async function getTenantUsage(tenantId: string): Promise<{ ai_queries: number; storage_mb: number; api_calls: number; period_days: number }> {
+    return apiGet(`/api/founder/tenants/${tenantId}/usage`);
+}
+
+export async function sendInternalOffer(tenantId: string, offer: { title: string; body: string; offer_type: string }): Promise<{ sent: boolean }> {
+    return apiPost(`/api/founder/tenants/${tenantId}/internal-offer`, offer);
+}
+
+// ─── Integrations Hub ────────────────────────────────────────────────────────
+
+export async function getIntegrationHealth(): Promise<{ integrations: IntegrationHealth[] }> {
+    return apiGet('/api/founder/integrations/health');
+}
+
+export async function connectIntegration(tenantId: string, integrationId: string): Promise<{ connected: boolean }> {
+    return apiPost(`/api/founder/integrations/${integrationId}/connect`, { tenant_id: tenantId });
+}
+
+export async function disconnectIntegration(tenantId: string, integrationId: string): Promise<{ disconnected: boolean }> {
+    return apiPost(`/api/founder/integrations/${integrationId}/disconnect`, { tenant_id: tenantId });
+}
+
+export async function healthcheckIntegration(integrationId: string): Promise<{ status: string; latency_ms: number }> {
+    return apiGet(`/api/founder/integrations/${integrationId}/healthcheck`);
+}
+
+export async function autofixIntegration(integrationId: string): Promise<{ fixed: boolean; action_taken: string }> {
+    return apiPost(`/api/founder/integrations/${integrationId}/autofix`, {});
+}
+
+// ─── Plans & Billing ─────────────────────────────────────────────────────────
+
+export async function listPlans(): Promise<{ plans: PlanDefinition[] }> {
+    return apiGet('/api/founder/plans');
+}
+
+export async function createPlan(plan: Omit<PlanDefinition, 'id' | 'created_at' | 'updated_at'>): Promise<{ plan: PlanDefinition }> {
+    return apiPost('/api/founder/plans', plan);
+}
+
+export async function updatePlan(planId: string, updates: Partial<PlanDefinition>): Promise<{ updated: boolean }> {
+    return apiPatch(`/api/founder/plans/${planId}`, updates);
+}
+
+export async function listInvoices(
+    page = 1,
+    limit = 20,
+    options?: { tenant_id?: string; status?: string },
+): Promise<{ invoices: Invoice[]; pagination: Pagination }> {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (options?.tenant_id) params.set('tenant_id', options.tenant_id);
+    if (options?.status) params.set('status', options.status);
+    return apiGet(`/api/founder/invoices?${params}`);
+}
+
+export async function markInvoicePaid(invoiceId: string): Promise<{ updated: boolean }> {
+    return apiPost(`/api/founder/invoices/${invoiceId}/mark-paid`, {});
+}
+
+export async function sendInvoiceReminder(invoiceId: string): Promise<{ sent: boolean }> {
+    return apiPost(`/api/founder/invoices/${invoiceId}/remind`, {});
+}
+
+export async function suggestPricing(planCode: string): Promise<{ suggestion: { recommended_price: number; reasoning: string } }> {
+    return apiPost('/api/founder/plans/suggest-pricing', { plan_code: planCode });
+}
+
+// ─── UI Builder ──────────────────────────────────────────────────────────────
+
+export async function getUIConfig(tenantId: string): Promise<{ config: UIConfig }> {
+    return apiGet(`/api/founder/ui-config/${tenantId}`);
+}
+
+export async function updateUIConfig(tenantId: string, config: Partial<UIConfig>): Promise<{ updated: boolean }> {
+    return apiPost(`/api/founder/ui-config/${tenantId}`, config);
+}
+
+export async function getPlatformUIConfig(): Promise<{ config: UIConfig }> {
+    return apiGet('/api/founder/ui-config/platform');
+}
+
+// ─── Marketing — Audiences & Retargeting ─────────────────────────────────────
+
+export async function getMarketingAudiences(): Promise<{ audiences: MarketingAudience[] }> {
+    return apiGet('/api/founder/marketing/audiences');
+}
+
+export async function createMarketingAudience(audience: { name: string; filters: Record<string, unknown> }): Promise<{ audience: MarketingAudience }> {
+    return apiPost('/api/founder/marketing/audiences', audience);
+}
+
+export async function getRetargetingCampaigns(): Promise<{ campaigns: Array<{ id: string; name: string; type: string; status: string; reach: number; conversions: number; created_at: string }> }> {
+    return apiGet('/api/founder/marketing/retargeting');
+}
+
+// ─── System Health — Self-Healing ────────────────────────────────────────────
+
+export async function runAllHealthChecks(): Promise<{ results: Array<{ component: string; status: string; latency_ms: number; details?: string }> }> {
+    return apiPost('/api/founder/health/check-all', {});
+}
+
+export async function triggerSelfHeal(component: string): Promise<{ triggered: boolean; action: string }> {
+    return apiPost('/api/founder/health/self-heal', { component });
+}
+
+export async function getSelfHealLog(page = 1, limit = 50): Promise<{ entries: SelfHealEntry[]; pagination: Pagination }> {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    return apiGet(`/api/founder/health/self-heal-log?${params}`);
+}
+
+export async function getRecoveryQueue(): Promise<{ items: RecoveryItem[] }> {
+    return apiGet('/api/founder/health/recovery-queue');
+}
+
+export async function retryRecoveryItem(itemId: string): Promise<{ retried: boolean }> {
+    return apiPost(`/api/founder/health/recovery-queue/${itemId}/retry`, {});
+}
+
+export async function skipRecoveryItem(itemId: string): Promise<{ skipped: boolean }> {
+    return apiPost(`/api/founder/health/recovery-queue/${itemId}/skip`, {});
+}
+
+export async function escalateRecoveryItem(itemId: string): Promise<{ escalated: boolean }> {
+    return apiPost(`/api/founder/health/recovery-queue/${itemId}/escalate`, {});
+}
+
+// ─── Registration Applications ───────────────────────────────────────────────
+
+export async function listApplications(
+    page = 1,
+    limit = 20,
+    options?: { status?: string; search?: string },
+): Promise<{ applications: RegistrationApplication[]; total: number; page: number; limit: number }> {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (options?.status) params.set('status', options.status);
+    if (options?.search) params.set('search', options.search);
+    return apiGet(`/api/founder/applications?${params}`);
+}
+
+export async function getApplication(appId: string): Promise<{ application: RegistrationApplication }> {
+    return apiGet(`/api/founder/applications/${appId}`);
+}
+
+export async function approveApplication(appId: string, notes?: string): Promise<{ approved: boolean; companyId: string; userId: string }> {
+    return apiPost(`/api/founder/applications/${appId}/approve`, { notes });
+}
+
+export async function rejectApplication(appId: string, reason: string): Promise<{ rejected: boolean }> {
+    return apiPost(`/api/founder/applications/${appId}/reject`, { reason });
+}
+
+export interface RegistrationApplication {
+    id: string;
+    company_name: string | null;
+    company_name_ar: string | null;
+    industry_code: string | null;
+    country: string | null;
+    city: string | null;
+    employee_count: string | null;
+    cr_number: string | null;
+    gm_name: string | null;
+    gm_email: string | null;
+    gm_phone: string | null;
+    selected_modules: string[];
+    plan_code: string | null;
+    billing_cycle: string;
+    license_file_url: string | null;
+    id_file_url: string | null;
+    license_verified: boolean;
+    id_verified: boolean;
+    license_verification_result: Record<string, unknown>;
+    id_verification_result: Record<string, unknown>;
+    status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'provisioning' | 'active';
+    step_completed: number;
+    reviewed_by: string | null;
+    review_notes: string | null;
+    reviewed_at: string | null;
+    company_id: string | null;
+    user_id: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+// ─── Integration Catalog CRUD ────────────────────────────────────────────────
+
+export async function getCatalogAdmin(): Promise<{ catalog: CatalogItem[] }> {
+    return apiGet('/api/founder/integrations/catalog');
+}
+
+export async function createCatalogItem(item: Omit<CatalogItem, 'id'>): Promise<{ created: boolean; item: { id: string; code: string; name: string } }> {
+    return apiPost('/api/founder/integrations/catalog', item);
+}
+
+export async function updateCatalogItem(itemId: string, updates: Partial<CatalogItem>): Promise<{ updated: boolean }> {
+    return apiPatch(`/api/founder/integrations/catalog/${itemId}`, updates);
+}
+
+export async function deleteCatalogItem(itemId: string): Promise<{ deleted: boolean }> {
+    return apiDelete(`/api/founder/integrations/catalog/${itemId}`);
+}
+
+export interface CatalogItem {
+    id: string;
+    code: string;
+    name: string;
+    category: string;
+    description: string | null;
+    provider: string;
+    pricing_model: string;
+    setup_mode: string;
+    required_secrets: unknown[];
+    required_plan: string | null;
+    region_availability: string[];
+    webhook_support: boolean;
+    commission_rate: number | null;
+    tiered_pricing: Record<string, unknown> | null;
+    is_active: boolean;
 }

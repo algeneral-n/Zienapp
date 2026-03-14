@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  DollarSign, TrendingUp, CreditCard, AlertTriangle, Clock, RefreshCw, Bell, X, Zap, Activity,
+  DollarSign, TrendingUp, CreditCard, AlertTriangle, Clock, RefreshCw, Bell, X, Zap, Activity, Users,
 } from 'lucide-react';
 import {
   getRevenueAnalytics, listTenants, updateTenant, suspendTenant, getSystemHealth, getAIUsagePlatform,
@@ -215,7 +215,7 @@ const SubscriptionManager = () => {
                             onClick={async () => {
                               if (confirm(`Cancel subscription for ${tenant.name}?`)) {
                                 try {
-                                  await suspendTenant(tenant.id, 'Subscription cancelled by founder');
+                                  await suspendTenant(tenant.id);
                                   setTenants(prev => prev.map(t2 => t2.id === tenant.id ? { ...t2, subscription: { ...t2.subscription, status: 'cancelled' } } : t2));
                                 } catch (err: any) { alert(err.message); }
                               }

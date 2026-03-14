@@ -176,7 +176,7 @@ export default function FAQPage() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/10 text-blue-600 rounded-full text-sm font-bold mb-6">
             <HelpCircle className="w-4 h-4" />
-            {isAr ? `${faqCategories.length} أقسام • ${faqCategories.reduce((a, c) => a + c.faqs.length, 0)} سؤال` : `${faqCategories.length} Categories • ${faqCategories.reduce((a, c) => a + c.faqs.length, 0)} Questions`}
+            {isAr ? `${CATEGORIES.length - 1} أقسام • ${FAQ_DATA.length} سؤال` : `${CATEGORIES.length - 1} Categories • ${FAQ_DATA.length} Questions`}
           </div>
           <h1 className="text-5xl font-bold mb-4">
             {isAr ? 'الأسئلة الشائعة' : 'Frequently Asked Questions'}

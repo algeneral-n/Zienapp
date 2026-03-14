@@ -1,9 +1,10 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
 import { requireAuth, createAdminClient, checkMembership } from '../supabase';
+import { emitDomainEvent } from '../utils/domainEvents';
+import { autoRestrict, autoSuspend } from '../utils/tenantLifecycle';
 import { StripeEngine } from './StripeEngine';
 import type StripeType from 'stripe';
-import type { Request, Response } from '@cloudflare/workers-types';
 
 // ─── Payment Gateway Types ──────────────────────────────────────────────
 type GatewayType = 'stripe' | 'network_international' | 'tilr';
@@ -104,41 +105,15 @@ export async function trackUsage(
     companyId: string,
     usageType: 'ai_query' | 'storage_mb' | 'api_call' | 'seat',
     quantity: number = 1,
-    metadata?: Record<string, unknown>,
+    _metadata?: Record<string, unknown>,
 ): Promise<void> {
     try {
-        // Upsert usage counter for current billing period
-        const now = new Date();
-        const periodKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-        await adminSupabase.from('subscription_usage_counters').upsert({
-            company_id: companyId,
-            usage_type: usageType,
-            period_key: periodKey,
-            count: quantity,
-            last_updated: now.toISOString(),
-        }, {
-            onConflict: 'company_id,usage_type,period_key',
-            // Increment existing count
+        // Use atomic DB function for reliable counting
+        await adminSupabase.rpc('meter_usage', {
+            _company_id: companyId,
+            _counter_type: usageType,
+            _amount: quantity,
         });
-
-        // Also update: SELECT count + quantity and SET
-        const { data: existing } = await adminSupabase
-            .from('subscription_usage_counters')
-            .select('count')
-            .eq('company_id', companyId)
-            .eq('usage_type', usageType)
-            .eq('period_key', periodKey)
-            .maybeSingle();
-
-        if (existing) {
-            await adminSupabase
-                .from('subscription_usage_counters')
-                .update({ count: (existing.count || 0) + quantity, last_updated: now.toISOString() })
-                .eq('company_id', companyId)
-                .eq('usage_type', usageType)
-                .eq('period_key', periodKey);
-        }
     } catch {
         // Non-blocking — usage tracking failures shouldn't break the main flow
     }
@@ -236,6 +211,16 @@ export async function handleBilling(
     // Integration pricing
     if (path === '/api/billing/integration-pricing' && request.method === 'GET') {
         return getIntegrationPricing(env, supabase);
+    }
+
+    // Create subscription with payment method (after setup intent)
+    if (path === '/api/billing/create-subscription' && request.method === 'POST') {
+        return createSubscriptionHandler(request, env, userId, supabase);
+    }
+
+    // Store billing breakdown after quote acceptance
+    if (path === '/api/billing/store-breakdown' && request.method === 'POST') {
+        return storeBreakdownHandler(request, env, userId, supabase);
     }
 
     if (path.startsWith('/api/billing/subscription/') && request.method === 'GET') {
@@ -411,7 +396,7 @@ async function handleWebhook(request: Request, env: Env): Promise<Response> {
     const rawBody = await request.text();
     // StripeEngine does not handle webhooks directly, so keep this logic as is for now
     const Stripe = (await import('stripe')).default as typeof StripeType;
-    const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' });
 
     let event: StripeType.Event;
     try {
@@ -472,8 +457,79 @@ async function handleWebhook(request: Request, env: Env): Promise<Response> {
             const sub = event.data.object as StripeType.Subscription;
             await adminSupabase
                 .from('company_subscriptions')
-                .update({ status: 'canceled' })
+                .update({ status: 'canceled', dunning_stage: 'none' })
                 .eq('stripe_subscription_id', sub.id);
+            break;
+        }
+
+        case 'invoice.payment_failed': {
+            const invoice = event.data.object as StripeType.Invoice;
+            const subId = invoice.subscription as string | null;
+            if (!subId) break;
+
+            // Find company by stripe_subscription_id
+            const { data: failedSub } = await adminSupabase
+                .from('company_subscriptions')
+                .select('company_id, dunning_stage')
+                .eq('stripe_subscription_id', subId)
+                .maybeSingle();
+
+            if (!failedSub?.company_id) break;
+
+            const companyId = failedSub.company_id;
+            const currentStage = failedSub.dunning_stage || 'none';
+
+            // Dunning escalation: none → grace → past_due → restricted → suspended
+            const DUNNING_LADDER: Record<string, { next: string; subStatus: string; action?: 'restrict' | 'suspend' }> = {
+                none: { next: 'grace', subStatus: 'past_due' },
+                grace: { next: 'past_due', subStatus: 'past_due' },
+                past_due: { next: 'restricted', subStatus: 'past_due', action: 'restrict' },
+                restricted: { next: 'suspended', subStatus: 'canceled', action: 'suspend' },
+            };
+
+            const step = DUNNING_LADDER[currentStage] || DUNNING_LADDER['restricted'];
+
+            // Update subscription record
+            await adminSupabase
+                .from('company_subscriptions')
+                .update({ status: step.subStatus, dunning_stage: step.next })
+                .eq('stripe_subscription_id', subId);
+
+            // Trigger tenant lifecycle actions
+            if (step.action === 'restrict') {
+                await autoRestrict(adminSupabase, env, companyId, 'Repeated payment failure');
+            } else if (step.action === 'suspend') {
+                await autoSuspend(adminSupabase, env, companyId, 'Payment failure — account suspended');
+            }
+
+            // Emit domain event
+            emitDomainEvent(env, {
+                eventName: 'billing.dunning.escalated',
+                entityType: 'subscriptions',
+                companyId,
+                payload: { fromStage: currentStage, toStage: step.next, invoiceId: invoice.id },
+            });
+
+            // Log billing event
+            await adminSupabase.from('billing_events').insert({
+                company_id: companyId,
+                event_type: 'dunning_escalation',
+                payload: { fromStage: currentStage, toStage: step.next, invoiceId: invoice.id },
+            });
+
+            break;
+        }
+
+        case 'invoice.paid': {
+            // Payment recovered — reset dunning
+            const invoice = event.data.object as StripeType.Invoice;
+            const subId = invoice.subscription as string | null;
+            if (!subId) break;
+
+            await adminSupabase
+                .from('company_subscriptions')
+                .update({ status: 'active', dunning_stage: 'none' })
+                .eq('stripe_subscription_id', subId);
             break;
         }
     }
@@ -560,6 +616,14 @@ async function orchestratePayment(
                 body.cancelUrl ?? 'https://www.zien-ai.app/portal?billing=cancelled',
                 { companyId: body.companyId }
             );
+
+            emitDomainEvent(env, {
+                eventName: 'payment.checkout.started',
+                entityType: 'subscriptions',
+                companyId: body.companyId,
+                actorUserId: userId,
+                payload: { gateway: 'stripe', planCode: body.planCode },
+            });
 
             return jsonResponse({
                 gateway: 'stripe',
@@ -1110,13 +1174,34 @@ async function cancelSubscriptionHandler(
 
     const { data: sub } = await supabase
         .from('company_subscriptions')
-        .select('gateway_subscription_id, gateway')
+        .select('stripe_subscription_id, gateway, current_period_end')
         .eq('company_id', body.companyId)
         .maybeSingle();
 
-    if (sub?.gateway_subscription_id && sub.gateway === 'stripe') {
+    if (sub?.stripe_subscription_id && (!sub.gateway || sub.gateway === 'stripe')) {
         const stripeEngine = new StripeEngine(env.STRIPE_SECRET_KEY);
-        await stripeEngine.cancelSubscription(sub.gateway_subscription_id);
+        await stripeEngine.cancelSubscription(sub.stripe_subscription_id, !!body.immediate);
+    }
+
+    // If not immediate, mark as canceling at period end instead of cancelled now
+    if (!body.immediate) {
+        await supabase
+            .from('company_subscriptions')
+            .update({
+                cancel_at: sub?.current_period_end || new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
+            .eq('company_id', body.companyId);
+
+        emitDomainEvent(env, {
+            eventName: 'billing.subscription.cancel_scheduled',
+            entityType: 'subscriptions',
+            companyId: body.companyId,
+            actorUserId: userId,
+            payload: { cancelAt: sub?.current_period_end },
+        });
+
+        return jsonResponse({ success: true, message: 'Subscription will cancel at period end' });
     }
 
     await supabase
@@ -1157,6 +1242,31 @@ async function upgradeSubscriptionHandler(
         return errorResponse('Only the company owner can upgrade', 403);
     }
 
+    // Get current subscription to update Stripe if connected
+    const { data: existingSub } = await supabase
+        .from('company_subscriptions')
+        .select('stripe_subscription_id, gateway')
+        .eq('company_id', body.companyId)
+        .maybeSingle();
+
+    // Get the Stripe price ID from the new plan
+    const adminSupabase = createAdminClient(env);
+    const { data: newPlan } = await adminSupabase
+        .from('subscription_plans')
+        .select('stripe_price_id')
+        .eq('code', body.newPlanCode)
+        .maybeSingle();
+
+    // If plan has Stripe price and sub has active Stripe subscription, update in Stripe
+    if (
+        existingSub?.stripe_subscription_id &&
+        (!existingSub.gateway || existingSub.gateway === 'stripe') &&
+        newPlan?.stripe_price_id
+    ) {
+        const stripeEngine = new StripeEngine(env.STRIPE_SECRET_KEY);
+        await stripeEngine.updateSubscription(existingSub.stripe_subscription_id, newPlan.stripe_price_id);
+    }
+
     await supabase
         .from('company_subscriptions')
         .update({
@@ -1165,8 +1275,15 @@ async function upgradeSubscriptionHandler(
         })
         .eq('company_id', body.companyId);
 
-    const adminSupabase = createAdminClient(env);
     await activateCompanyModulesAfterPayment(adminSupabase, body.companyId);
+
+    emitDomainEvent(env, {
+        eventName: 'billing.subscription.upgraded',
+        entityType: 'subscriptions',
+        companyId: body.companyId,
+        actorUserId: userId,
+        payload: { newPlanCode: body.newPlanCode },
+    });
 
     return jsonResponse({ success: true, message: 'Subscription upgraded' });
 }
@@ -1200,4 +1317,149 @@ async function getIntegrationPricing(
         .order('integration_code');
 
     return jsonResponse({ rules: rules || [] });
+}
+
+// ─── Create Subscription (after SetupIntent) ────────────────────────────
+
+async function createSubscriptionHandler(
+    request: Request,
+    env: Env,
+    userId: string,
+    supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+    const body = (await request.json()) as {
+        companyId: string;
+        planCode: string;
+        paymentMethodId: string;
+        billingInterval?: 'monthly' | 'yearly';
+    };
+    if (!body.companyId || !body.planCode || !body.paymentMethodId) {
+        return errorResponse('Missing companyId, planCode, or paymentMethodId');
+    }
+
+    // Verify ownership
+    const { data: company } = await supabase
+        .from('companies')
+        .select('id, owner_user_id')
+        .eq('id', body.companyId)
+        .single();
+    if (!company || company.owner_user_id !== userId) {
+        return errorResponse('Only the company owner can manage billing', 403);
+    }
+
+    // Get or verify Stripe customer
+    const { data: sub } = await supabase
+        .from('company_subscriptions')
+        .select('stripe_customer_id')
+        .eq('company_id', body.companyId)
+        .maybeSingle();
+    if (!sub?.stripe_customer_id) {
+        return errorResponse('No Stripe customer found. Create a checkout session first.', 400);
+    }
+
+    // Get plan's Stripe price ID
+    const adminSupabase = createAdminClient(env);
+    const { data: plan } = await adminSupabase
+        .from('subscription_plans')
+        .select('stripe_price_id, price_monthly, price_yearly, included_modules, max_users, features')
+        .eq('code', body.planCode)
+        .maybeSingle();
+    if (!plan?.stripe_price_id) {
+        return errorResponse('Plan not found or missing Stripe price', 404);
+    }
+
+    // Attach payment method + create subscription in Stripe
+    const stripeEngine = new StripeEngine(env.STRIPE_SECRET_KEY);
+    await stripeEngine.attachPaymentMethod(sub.stripe_customer_id, body.paymentMethodId);
+
+    const stripeSub = await stripeEngine.createSubscription(
+        sub.stripe_customer_id,
+        plan.stripe_price_id,
+        body.paymentMethodId,
+        { companyId: body.companyId, planCode: body.planCode },
+    );
+
+    // Build billing breakdown
+    const isYearly = body.billingInterval === 'yearly';
+    const breakdown = {
+        plan_code: body.planCode,
+        interval: body.billingInterval || 'monthly',
+        base_amount: isYearly ? (plan.price_yearly ?? plan.price_monthly * 10) : plan.price_monthly,
+        components: [{ type: 'base_fee', amount: isYearly ? (plan.price_yearly ?? plan.price_monthly * 10) : plan.price_monthly }],
+        computed_at: new Date().toISOString(),
+    };
+
+    // Update subscription record
+    await supabase.from('company_subscriptions').upsert({
+        company_id: body.companyId,
+        stripe_customer_id: sub.stripe_customer_id,
+        stripe_subscription_id: stripeSub.id,
+        plan_code: body.planCode,
+        status: stripeSub.status === 'active' ? 'active' : 'incomplete',
+        current_period_start: new Date(stripeSub.current_period_start * 1000).toISOString(),
+        current_period_end: new Date(stripeSub.current_period_end * 1000).toISOString(),
+        billing_breakdown: breakdown,
+        dunning_stage: 'none',
+    });
+
+    // Activate modules if immediately active
+    if (stripeSub.status === 'active') {
+        await activateCompanyModulesAfterPayment(adminSupabase, body.companyId);
+        await adminSupabase
+            .from('companies')
+            .update({ status: 'active' })
+            .eq('id', body.companyId)
+            .in('status', ['pending_payment', 'pending_review']);
+    }
+
+    emitDomainEvent(env, {
+        eventName: 'billing.subscription.created',
+        entityType: 'subscriptions',
+        companyId: body.companyId,
+        actorUserId: userId,
+        payload: { planCode: body.planCode, stripeSubId: stripeSub.id },
+    });
+
+    return jsonResponse({
+        subscriptionId: stripeSub.id,
+        status: stripeSub.status,
+        clientSecret: (stripeSub.latest_invoice as any)?.payment_intent?.client_secret || null,
+    });
+}
+
+// ─── Store Billing Breakdown ────────────────────────────────────────────
+
+async function storeBreakdownHandler(
+    request: Request,
+    env: Env,
+    userId: string,
+    supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+    const body = (await request.json()) as {
+        companyId: string;
+        breakdown: Record<string, unknown>;
+    };
+    if (!body.companyId || !body.breakdown) {
+        return errorResponse('Missing companyId or breakdown');
+    }
+
+    // Verify ownership
+    const { data: company } = await supabase
+        .from('companies')
+        .select('id, owner_user_id')
+        .eq('id', body.companyId)
+        .single();
+    if (!company || company.owner_user_id !== userId) {
+        return errorResponse('Only the company owner can update billing', 403);
+    }
+
+    await supabase
+        .from('company_subscriptions')
+        .update({
+            billing_breakdown: body.breakdown,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('company_id', body.companyId);
+
+    return jsonResponse({ success: true });
 }

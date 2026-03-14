@@ -2,6 +2,8 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompany } from '../contexts/CompanyContext';
+import { VisitorProvider } from '../contexts/VisitorContext';
+import VisitorBanner from './VisitorBanner';
 import { PlatformRole, type CompanyRole } from '../types';
 
 interface ProtectedRouteProps {
@@ -18,6 +20,8 @@ interface ProtectedRouteProps {
     loginPath?: string;
     /** Skip the tenant membership check (for platform-level pages) */
     skipMembershipCheck?: boolean;
+    /** Allow unauthenticated visitors to browse in read-only mode */
+    allowVisitor?: boolean;
 }
 
 /** Platform-level roles that bypass tenant membership requirements */
@@ -35,6 +39,7 @@ export default function ProtectedRoute({
     loader,
     loginPath = '/login',
     skipMembershipCheck = false,
+    allowVisitor = false,
 }: ProtectedRouteProps) {
     const { user, profile, isLoading: authLoading } = useAuth();
     const { membership, company, companies, hasModule, isLoading: companyLoading } = useCompany();
@@ -52,8 +57,16 @@ export default function ProtectedRoute({
         );
     }
 
-    // Not authenticated
+    // Not authenticated — visitor mode or redirect
     if (!user) {
+        if (allowVisitor) {
+            return (
+                <VisitorProvider isVisitor={true}>
+                    <VisitorBanner />
+                    {children}
+                </VisitorProvider>
+            );
+        }
         return <Navigate to={loginPath} replace state={{ denyReason: 'unauthenticated' }} />;
     }
 
@@ -89,5 +102,5 @@ export default function ProtectedRoute({
         return <Navigate to="/no-access" replace state={{ denyReason: 'module_denied', detail: requireModule }} />;
     }
 
-    return <>{children}</>;
+    return <VisitorProvider isVisitor={false}>{children}</VisitorProvider>;
 }

@@ -12,3 +12,4 @@ worker/dist/
 *.DELETED
 scripts/
 signup.json
+flutter/

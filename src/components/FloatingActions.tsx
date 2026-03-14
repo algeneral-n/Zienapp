@@ -284,7 +284,7 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
     if (role === 'company_gm' || role === 'assistant_gm') return 'gm';
     if (role === 'executive_secretary') return 'secretary';
     if (role === 'accountant') return 'accounting';
-    if (role === 'hr_manager' || role === 'hr_officer') return 'hr';
+    if (role === 'department_manager' || role === 'hr_officer') return 'hr';
     return 'secretary';
   };
 
@@ -700,8 +700,8 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${msg.role === 'user'
-                        ? `${modeConfig.bgClass} text-white rounded-tr-none shadow-lg`
-                        : 'bg-[var(--surface-1)] border border-[var(--border-soft)] rounded-tl-none shadow-md text-[var(--text-primary)]'
+                      ? `${modeConfig.bgClass} text-white rounded-tr-none shadow-lg`
+                      : 'bg-[var(--surface-1)] border border-[var(--border-soft)] rounded-tl-none shadow-md text-[var(--text-primary)]'
                       }`}>
                       <div className="markdown-body"><Markdown>{msg.text}</Markdown></div>
                       {msg.role === 'ai' && (
@@ -799,9 +799,9 @@ export default function FloatingActions({ user, pageContext }: FloatingActionsPr
 
                 {/* Status Bar */}
                 <div className={`mt-3 flex items-center justify-between p-2.5 rounded-lg border ${aiContextMode === 'public' ? 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800' :
-                    aiContextMode === 'client' ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800' :
-                      aiContextMode === 'realtime' ? 'bg-orange-50 border-orange-200 dark:bg-orange-950 dark:border-orange-800' :
-                        'bg-brand-light border-brand-muted'
+                  aiContextMode === 'client' ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800' :
+                    aiContextMode === 'realtime' ? 'bg-orange-50 border-orange-200 dark:bg-orange-950 dark:border-orange-800' :
+                      'bg-brand-light border-brand-muted'
                   }`}>
                   <div className="flex items-center gap-2">
                     <ModeIcon className={`w-4 h-4 ${modeConfig.colorClass}`} />

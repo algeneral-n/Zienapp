@@ -1,6 +1,7 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
 import { requireAuth, createAdminClient, checkMembership } from '../supabase';
+import { emitDomainEvent } from '../utils/domainEvents';
 
 /**
  * Integration routes:
@@ -8,6 +9,7 @@ import { requireAuth, createAdminClient, checkMembership } from '../supabase';
  *   GET  /api/integrations/company/:companyId   — list company's active integrations
  *   POST /api/integrations/connect              — activate an integration
  *   POST /api/integrations/disconnect           — deactivate an integration
+ *   POST /api/integrations/purchase             — initiate payment for paid integration
  *   POST /api/integrations/webhook/:code        — handle provider webhooks
  *   GET  /api/integrations/health/:companyId    — integration health status
  */
@@ -40,6 +42,10 @@ export async function handleIntegrations(
 
   if (path === '/api/integrations/disconnect' && request.method === 'POST') {
     return disconnectIntegration(request, env, userId, supabase);
+  }
+
+  if (path === '/api/integrations/purchase' && request.method === 'POST') {
+    return purchaseIntegration(request, env, userId, supabase);
   }
 
   const healthMatch = path.match(/^\/api\/integrations\/health\/([0-9a-f-]+)$/);
@@ -113,6 +119,7 @@ async function connectIntegration(
     companyId: string;
     integrationCode: string;
     config?: Record<string, unknown>;
+    paymentIntentId?: string;
   };
 
   if (!body.companyId || !body.integrationCode) {
@@ -131,15 +138,60 @@ async function connectIntegration(
 
   const adminClient = createAdminClient(env);
 
-  // Get integration from catalog
+  // Get integration from catalog with pricing details
   const { data: integration } = await adminClient
     .from('integrations_catalog')
-    .select('id, code, name, is_active')
+    .select('id, code, name, is_active, pricing_model, commission_rate, tiered_pricing, required_plan')
     .eq('code', body.integrationCode)
     .eq('is_active', true)
     .maybeSingle();
 
   if (!integration) return errorResponse('Integration not found or inactive', 404);
+
+  // Check plan requirement
+  if (integration.required_plan) {
+    const { data: subscription } = await adminClient
+      .from('company_subscriptions')
+      .select('plan_code, status')
+      .eq('company_id', body.companyId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (!subscription || subscription.plan_code !== integration.required_plan) {
+      return errorResponse(`This integration requires the "${integration.required_plan}" plan`, 403);
+    }
+  }
+
+  // Check if this is a paid integration that requires payment
+  const isPaid = integration.pricing_model === 'fixed' ||
+    (integration.tiered_pricing && Object.keys(integration.tiered_pricing).length > 0);
+
+  if (isPaid && !body.paymentIntentId) {
+    // Return pricing info so the client can initiate payment first
+    return jsonResponse({
+      requiresPayment: true,
+      integrationCode: body.integrationCode,
+      pricingModel: integration.pricing_model,
+      tieredPricing: integration.tiered_pricing,
+      commissionRate: integration.commission_rate,
+      message: 'This integration requires payment. Use POST /api/integrations/purchase first.',
+    }, 402);
+  }
+
+  // If payment was provided, verify it
+  if (body.paymentIntentId) {
+    const { data: payment } = await adminClient
+      .from('integration_payments')
+      .select('id, status')
+      .eq('id', body.paymentIntentId)
+      .eq('company_id', body.companyId)
+      .eq('integration_code', body.integrationCode)
+      .maybeSingle();
+
+    if (!payment || payment.status !== 'paid') {
+      return errorResponse('Payment not found or not completed', 402);
+    }
+  }
 
   // Upsert tenant integration
   const { data: tenantIntg, error } = await adminClient
@@ -166,7 +218,16 @@ async function connectIntegration(
     action: 'integration.connect',
     entity_type: 'tenant_integrations',
     entity_id: tenantIntg.id,
-    new_value: { integrationCode: body.integrationCode },
+    new_value: { integrationCode: body.integrationCode, paymentIntentId: body.paymentIntentId || null },
+  });
+
+  emitDomainEvent(env, {
+    eventName: 'integration.connected',
+    entityType: 'tenant_integrations',
+    entityId: tenantIntg.id,
+    companyId: body.companyId,
+    actorUserId: userId,
+    payload: { integrationCode: body.integrationCode },
   });
 
   return jsonResponse({
@@ -174,6 +235,167 @@ async function connectIntegration(
     integrationCode: body.integrationCode,
     status: 'active',
     enabledAt: new Date().toISOString(),
+  });
+}
+
+// ─── POST /api/integrations/purchase ─────────────────────────────────────────
+
+async function purchaseIntegration(
+  request: Request,
+  env: Env,
+  userId: string,
+  supabase: import('@supabase/supabase-js').SupabaseClient,
+): Promise<Response> {
+  const body = (await request.json()) as {
+    companyId: string;
+    integrationCode: string;
+    pricingTier?: string;
+  };
+
+  if (!body.companyId || !body.integrationCode) {
+    return errorResponse('Missing companyId or integrationCode');
+  }
+
+  const member = await checkMembership(env, userId, body.companyId);
+  if (!member) return errorResponse('Not a member of this company', 403);
+
+  const allowedRoles = ['company_gm', 'executive_secretary', 'accountant'];
+  if (!allowedRoles.includes(member.role)) {
+    return errorResponse('Insufficient role to purchase integrations', 403);
+  }
+
+  const adminClient = createAdminClient(env);
+
+  // Get integration pricing
+  const { data: integration } = await adminClient
+    .from('integrations_catalog')
+    .select('id, code, name, pricing_model, tiered_pricing, commission_rate, is_active')
+    .eq('code', body.integrationCode)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (!integration) return errorResponse('Integration not found or inactive', 404);
+
+  // Determine price
+  let amount = 0;
+  let currency = 'AED';
+  const tieredPricing = integration.tiered_pricing as Record<string, { price: number; currency?: string }> | null;
+
+  if (tieredPricing && body.pricingTier && tieredPricing[body.pricingTier]) {
+    amount = tieredPricing[body.pricingTier].price;
+    currency = tieredPricing[body.pricingTier].currency || 'AED';
+  } else if (tieredPricing) {
+    // Default to first tier
+    const firstTier = Object.values(tieredPricing)[0];
+    if (firstTier) {
+      amount = firstTier.price;
+      currency = firstTier.currency || 'AED';
+    }
+  }
+
+  // For usage-based or commission: record activation, billing is metered separately
+  if (integration.pricing_model === 'usage' || integration.pricing_model === 'commission') {
+    const { data: payment, error } = await adminClient
+      .from('integration_payments')
+      .insert({
+        company_id: body.companyId,
+        integration_code: body.integrationCode,
+        integration_id: integration.id,
+        amount: 0,
+        currency,
+        pricing_model: integration.pricing_model,
+        pricing_tier: body.pricingTier || null,
+        status: 'paid', // Usage/commission = pay as you use
+      })
+      .select('id')
+      .single();
+
+    if (error) return errorResponse(error.message, 500);
+
+    return jsonResponse({
+      paymentIntentId: payment.id,
+      status: 'paid',
+      amount: 0,
+      currency,
+      pricingModel: integration.pricing_model,
+      message: 'Usage/commission-based — no upfront payment. Billed based on usage.',
+    });
+  }
+
+  // Fixed pricing — create a Stripe PaymentIntent (or record manually)
+  if (amount > 0 && env.STRIPE_SECRET_KEY) {
+    const stripeResponse = await fetch('https://api.stripe.com/v1/payment_intents', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        amount: String(Math.round(amount * 100)),
+        currency: currency.toLowerCase(),
+        'metadata[company_id]': body.companyId,
+        'metadata[integration_code]': body.integrationCode,
+        'metadata[user_id]': userId,
+      }).toString(),
+    });
+
+    const stripeData = (await stripeResponse.json()) as { id?: string; client_secret?: string; error?: { message: string } };
+
+    if (!stripeResponse.ok || stripeData.error) {
+      return errorResponse(stripeData.error?.message || 'Payment provider error', 502);
+    }
+
+    // Record the pending payment
+    const { data: payment, error } = await adminClient
+      .from('integration_payments')
+      .insert({
+        company_id: body.companyId,
+        integration_code: body.integrationCode,
+        integration_id: integration.id,
+        amount,
+        currency,
+        pricing_model: integration.pricing_model,
+        pricing_tier: body.pricingTier || null,
+        stripe_payment_intent_id: stripeData.id,
+        status: 'pending',
+      })
+      .select('id')
+      .single();
+
+    if (error) return errorResponse(error.message, 500);
+
+    return jsonResponse({
+      paymentIntentId: payment.id,
+      stripeClientSecret: stripeData.client_secret,
+      status: 'pending',
+      amount,
+      currency,
+    });
+  }
+
+  // No Stripe key or free integration — auto-approve
+  const { data: payment, error } = await adminClient
+    .from('integration_payments')
+    .insert({
+      company_id: body.companyId,
+      integration_code: body.integrationCode,
+      integration_id: integration.id,
+      amount: 0,
+      currency,
+      pricing_model: integration.pricing_model || 'free',
+      status: 'paid',
+    })
+    .select('id')
+    .single();
+
+  if (error) return errorResponse(error.message, 500);
+
+  return jsonResponse({
+    paymentIntentId: payment.id,
+    status: 'paid',
+    amount: 0,
+    currency,
+    message: 'Free integration — no payment required.',
   });
 }
 
@@ -227,6 +449,14 @@ async function disconnectIntegration(
     action: 'integration.disconnect',
     entity_type: 'tenant_integrations',
     new_value: { integrationCode: body.integrationCode },
+  });
+
+  emitDomainEvent(env, {
+    eventName: 'integration.disconnected',
+    entityType: 'tenant_integrations',
+    companyId: body.companyId,
+    actorUserId: userId,
+    payload: { integrationCode: body.integrationCode },
   });
 
   return jsonResponse({ integrationCode: body.integrationCode, status: 'inactive' });

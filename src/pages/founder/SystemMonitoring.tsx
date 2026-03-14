@@ -2,19 +2,24 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Settings, Zap, Globe, Server, Activity, Users, Building2, AlertTriangle, Lock, Shield, RefreshCw, Wrench,
+  Unplug, HeartPulse, WrenchIcon,
 } from 'lucide-react';
 import {
   getSystemHealth, getAIUsagePlatform, getPlatformAuditLog, listAnnouncements, type AuditEntry,
+  getIntegrationHealth, connectIntegration, disconnectIntegration, healthcheckIntegration, autofixIntegration,
 } from '../../services/founderService';
 import { supabase } from '../../services/supabase';
-import { LoadingState, ErrorState, UnavailableState } from './shared';
+import { LoadingState, ErrorState, UnavailableState, SectionHeader, StatusBadge, TabBar } from './shared';
 
 const IntegrationControl = () => {
   const { t } = useTranslation();
   const [catalog, setCatalog] = useState<any[]>([]);
   const [tenantIntegrations, setTenantIntegrations] = useState<any[]>([]);
+  const [healthMap, setHealthMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [opLoading, setOpLoading] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'catalog' | 'connections' | 'health'>('catalog');
 
   useEffect(() => {
     (async () => {
@@ -27,6 +32,13 @@ const IntegrationControl = () => {
         if (e2) throw e2;
         setCatalog(cat || []);
         setTenantIntegrations(ti || []);
+        // load health for all integrations at once
+        const hMap: Record<string, any> = {};
+        try {
+          const { integrations: healthList } = await getIntegrationHealth();
+          for (const h of healthList) { hMap[h.id] = h; }
+        } catch { /* non-critical */ }
+        setHealthMap(hMap);
       } catch (e: any) { setError(e.message); } finally { setLoading(false); }
     })();
   }, []);
@@ -43,7 +55,7 @@ const IntegrationControl = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-black uppercase tracking-tighter">{t('integration_control')}</h2>
+      <SectionHeader title={t('integration_control')} subtitle="Catalog, connections, health" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
@@ -61,28 +73,44 @@ const IntegrationControl = () => {
         ))}
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
-        <h3 className="font-black uppercase tracking-tight mb-4 text-sm">{t('integration_catalog_desc')}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {catalog.map(item => (
-            <div key={item.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl">
-              <div>
-                <p className="text-sm font-bold">{item.name}</p>
-                <p className="text-[10px] text-zinc-500">{item.category} — {item.price_monthly > 0 ? `${item.price_monthly} AED/mo` : 'Free'}</p>
-              </div>
-              <button
-                onClick={() => toggleCatalogItem(item.id, item.is_active)}
-                className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase transition-all ${item.is_active ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 hover:bg-red-50 hover:text-red-600' : 'bg-zinc-200 text-zinc-500 dark:bg-zinc-700 hover:bg-emerald-50 hover:text-emerald-600'}`}
-              >
-                {item.is_active ? t('active') : t('disabled')}
-              </button>
-            </div>
-          ))}
-          {catalog.length === 0 && <p className="text-sm text-zinc-400 col-span-2 text-center py-4">{t('no_catalog_items')}</p>}
-        </div>
-      </div>
+      <TabBar
+        tabs={[
+          { key: 'catalog', label: t('catalog') || 'Catalog' },
+          { key: 'connections', label: t('connections') || 'Connections' },
+          { key: 'health', label: t('health') || 'Health' },
+        ]}
+        active={activeView}
+        onChange={(k) => setActiveView(k as any)}
+      />
 
-      {tenantIntegrations.length > 0 && (
+      {/* Catalog View */}
+      {activeView === 'catalog' && (
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+          <h3 className="font-black uppercase tracking-tight mb-4 text-sm">{t('integration_catalog_desc')}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {catalog.map(item => (
+              <div key={item.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl">
+                <div>
+                  <p className="text-sm font-bold">{item.name}</p>
+                  <p className="text-[10px] text-zinc-500">{item.category} — {item.price_monthly > 0 ? `${item.price_monthly} AED/mo` : 'Free'}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleCatalogItem(item.id, item.is_active)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase transition-all ${item.is_active ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 hover:bg-red-50 hover:text-red-600' : 'bg-zinc-200 text-zinc-500 dark:bg-zinc-700 hover:bg-emerald-50 hover:text-emerald-600'}`}
+                  >
+                    {item.is_active ? t('active') : t('disabled')}
+                  </button>
+                </div>
+              </div>
+            ))}
+            {catalog.length === 0 && <p className="text-sm text-zinc-400 col-span-2 text-center py-4">{t('no_catalog_items')}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Connections View */}
+      {activeView === 'connections' && tenantIntegrations.length > 0 && (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -91,6 +119,7 @@ const IntegrationControl = () => {
                 <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('integration')}</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('status')}</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('connected')}</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -100,10 +129,65 @@ const IntegrationControl = () => {
                   <td className="px-6 py-4 text-xs font-medium">{ti.provider}</td>
                   <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${ti.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-200/50 text-zinc-500'}`}>{ti.status}</span></td>
                   <td className="px-6 py-4 text-xs text-zinc-400">{new Date(ti.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-1">
+                      <button
+                        onClick={async () => { setOpLoading(ti.id); try { await disconnectIntegration(ti.company_id, ti.id); setTenantIntegrations(prev => prev.map(x => x.id === ti.id ? { ...x, status: 'disconnected' } : x)); } catch { } setOpLoading(null); }}
+                        disabled={opLoading === ti.id || ti.status !== 'active'}
+                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 disabled:opacity-30" title="Disconnect"
+                      >
+                        <Unplug size={12} />
+                      </button>
+                      <button
+                        onClick={async () => { setOpLoading(ti.id + '_hc'); try { await healthcheckIntegration(ti.id); } catch { } setOpLoading(null); }}
+                        disabled={opLoading === ti.id + '_hc'}
+                        className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 disabled:opacity-30" title="Health Check"
+                      >
+                        <HeartPulse size={12} />
+                      </button>
+                      <button
+                        onClick={async () => { setOpLoading(ti.id + '_af'); try { await autofixIntegration(ti.id); } catch { } setOpLoading(null); }}
+                        disabled={opLoading === ti.id + '_af'}
+                        className="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-500 disabled:opacity-30" title="Auto-fix"
+                      >
+                        <WrenchIcon size={12} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {activeView === 'connections' && tenantIntegrations.length === 0 && (
+        <div className="text-center py-12"><Unplug size={28} className="mx-auto text-zinc-400 mb-3" /><p className="text-sm text-zinc-500">{t('no_connections')}</p></div>
+      )}
+
+      {/* Health View */}
+      {activeView === 'health' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {catalog.map(item => {
+            const h = healthMap[item.id];
+            return (
+              <div key={item.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[20px] p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-bold">{item.name}</p>
+                  <span className={`w-2.5 h-2.5 rounded-full ${h?.status === 'healthy' ? 'bg-emerald-500' : h?.status === 'degraded' ? 'bg-amber-500' : 'bg-zinc-400'}`} />
+                </div>
+                <div className="flex items-center gap-4 text-[10px] text-zinc-500 font-bold uppercase">
+                  <span>Status: {h?.status || 'unknown'}</span>
+                  {h?.latency_ms && <span>{h.latency_ms}ms</span>}
+                  {h?.uptime && <span>{h.uptime}% uptime</span>}
+                </div>
+                {h?.last_error && <p className="text-[10px] text-red-500 mt-1 truncate">{h.last_error}</p>}
+                <div className="flex gap-1 mt-3">
+                  <button onClick={async () => { try { const r = await healthcheckIntegration(item.id); setHealthMap(prev => ({ ...prev, [item.id]: r })); } catch { } }} className="px-2 py-1 text-[10px] font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg">Check</button>
+                  <button onClick={async () => { try { await autofixIntegration(item.id); } catch { } }} className="px-2 py-1 text-[10px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-lg">Auto-fix</button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

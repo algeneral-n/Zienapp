@@ -37,7 +37,7 @@ export default function Dashboard() {
   const { user, profile } = useAuth();
   const { company: activeCompany, role } = useCompany();
 
-  const displayName = profile?.full_name || profile?.display_name || user?.email?.split('@')[0] || t('user', 'User');
+  const displayName = profile?.fullName || profile?.displayName || user?.email?.split('@')[0] || t('user', 'User');
   const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
   const roleName = (role || 'member').replace(/_/g, ' ');
 

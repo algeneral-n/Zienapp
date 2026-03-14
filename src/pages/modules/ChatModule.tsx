@@ -150,14 +150,14 @@ export default function ChatModule() {
                 if (status === 'SUBSCRIBED') {
                     await presenceChannel.track({
                         status: 'online',
-                        name: profile?.full_name || 'User',
+                        name: profile?.fullName || 'User',
                         typing: false,
                     });
                 }
             });
 
         return () => { supabase.removeChannel(presenceChannel); };
-    }, [selectedChannel?.id, user?.id, profile?.full_name]);
+    }, [selectedChannel?.id, user?.id, profile?.fullName]);
 
     // Broadcast typing indicator
     const broadcastTyping = useCallback(() => {
@@ -165,18 +165,18 @@ export default function ChatModule() {
         const ch = supabase.channel(`presence-${selectedChannel.id}`);
         ch.track({
             status: 'online',
-            name: profile?.full_name || 'User',
+            name: profile?.fullName || 'User',
             typing: true,
         });
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = setTimeout(() => {
             ch.track({
                 status: 'online',
-                name: profile?.full_name || 'User',
+                name: profile?.fullName || 'User',
                 typing: false,
             });
         }, 2000);
-    }, [selectedChannel?.id, user?.id, profile?.full_name]);
+    }, [selectedChannel?.id, user?.id, profile?.fullName]);
 
     // Load presence
     useEffect(() => {
@@ -429,7 +429,7 @@ export default function ChatModule() {
                                 ) : (
                                     messages.map((msg, idx) => {
                                         const isMe = msg.sender_id === user?.id ||
-                                            msg.company_members?.profiles?.full_name === profile?.full_name;
+                                            msg.company_members?.profiles?.full_name === profile?.fullName;
                                         const showAvatar = idx === 0 ||
                                             messages[idx - 1]?.sender_id !== msg.sender_id;
                                         const senderName = msg.company_members?.profiles?.full_name || 'User';

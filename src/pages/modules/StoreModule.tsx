@@ -13,8 +13,8 @@ type Tab = 'products' | 'orders' | 'customers' | 'inventory' | 'analytics';
 
 export default function StoreModule() {
   const { language } = useTheme();
-  const { activeCompany } = useCompany();
-  const companyId = activeCompany?.id;
+  const { company } = useCompany();
+  const companyId = company?.id;
   const [activeTab, setActiveTab] = useState<Tab>('products');
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [

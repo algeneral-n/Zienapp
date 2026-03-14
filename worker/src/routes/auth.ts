@@ -1,6 +1,7 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
 import { requireAuth, createAdminClient, checkMembership } from '../supabase';
+import { emitDomainEvent } from '../utils/domainEvents';
 
 /**
  * ZIEN Auth Routes — Invite-Only System
@@ -335,15 +336,19 @@ async function registerCompany(request: Request, env: Env): Promise<Response> {
     name_ar: body.company_name_ar || '',
     slug: `${slug}-${Date.now().toString(36)}`,
     industry: body.industry || '',
-    company_type: body.company_type || 'startup',
-    company_size: body.company_size || 'small',
-    cr_number: body.cr_number || '',
-    tax_number: body.tax_number || '',
+    industry_code: body.industry || '',
+    business_size: body.company_size || 'small',
     address: body.address || '',
     city: body.city || '',
-    country: body.country || 'SA',
+    country_code: body.country || 'AE',
     owner_user_id: userId,
-    status: 'pending_payment',
+    status: 'pending_review',
+    provisioning_status: 'draft',
+    settings: JSON.stringify({
+      cr_number: body.cr_number || '',
+      tax_number: body.tax_number || '',
+      billing_cycle: body.billing_cycle || 'monthly',
+    }),
   }).select().single();
 
   if (companyErr) {
@@ -448,16 +453,18 @@ async function inviteUser(request: Request, env: Env): Promise<Response> {
   }
 
   // 4. Also create in company_invitations for the UI
-  await admin.from('company_invitations').upsert({
-    company_id: body.company_id,
-    email,
-    role,
-    invited_name: body.full_name || '',
-    token: invite.token,
-    status: 'pending',
-    invited_by: userId,
-    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  }, { onConflict: 'company_id,email' }).catch(() => { });
+  try {
+    await admin.from('company_invitations').upsert({
+      company_id: body.company_id,
+      email,
+      role,
+      invited_name: body.full_name || '',
+      token: invite.token,
+      status: 'pending',
+      invited_by: userId,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    }, { onConflict: 'company_id,email' });
+  } catch { /* best-effort */ }
 
   // 5. Get company name for the email
   const { data: companyData } = await admin
@@ -519,6 +526,15 @@ async function inviteUser(request: Request, env: Env): Promise<Response> {
       console.error('Email send error:', e);
     }
   }
+
+  emitDomainEvent(env, {
+    eventName: 'member.invited',
+    entityType: 'company_invitations',
+    entityId: invite.id,
+    companyId: body.company_id,
+    actorUserId: userId,
+    payload: { email, role: body.role },
+  });
 
   return jsonResponse({
     success: true,
@@ -628,10 +644,19 @@ async function acceptInvite(request: Request, env: Env): Promise<Response> {
   }).eq('id', invite.id);
 
   // Also update company_invitations
-  await admin.from('company_invitations')
-    .update({ status: 'accepted', accepted_at: new Date().toISOString() })
-    .eq('token', body.token)
-    .catch(() => { });
+  try {
+    await admin.from('company_invitations')
+      .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+      .eq('token', body.token);
+  } catch { /* best-effort */ }
+
+  emitDomainEvent(env, {
+    eventName: 'member.joined',
+    entityType: 'company_members',
+    companyId: invite.company_id,
+    actorUserId: userId,
+    payload: { email: invite.email },
+  });
 
   return jsonResponse({
     success: true,

@@ -22,6 +22,8 @@ interface CompanyContextValue {
     modules: CompanyModule[];
     /** Departments in the selected company */
     departments: Department[];
+    /** Granular permission codes for current user in selected company */
+    permissions: string[];
     /** Loading state */
     isLoading: boolean;
     /** Switch to a different company */
@@ -30,6 +32,8 @@ interface CompanyContextValue {
     role: CompanyRole | null;
     /** Check if a module is active for the selected company */
     hasModule: (moduleCode: string) => boolean;
+    /** Check if user has a specific permission code */
+    hasPermission: (permCode: string) => boolean;
 }
 
 const CompanyContext = createContext<CompanyContextValue | null>(null);
@@ -92,6 +96,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
     const [membership, setMembership] = useState<CompanyMember | null>(null);
     const [modules, setModules] = useState<CompanyModule[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
+    const [permissions, setPermissions] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // Load all companies the user belongs to
@@ -102,6 +107,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
             setMembership(null);
             setModules([]);
             setDepartments([]);
+            setPermissions([]);
             setIsLoading(false);
             return;
         }
@@ -223,6 +229,14 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
                         isActive: r.is_active as boolean,
                     })),
                 );
+
+                // Load user permissions via DB function
+                const { data: permRows } = await supabase
+                    .rpc('user_effective_permissions', {
+                        _user_id: user.id,
+                        _company_id: id,
+                    });
+                setPermissions((permRows ?? []).map((r: { code: string }) => r.code));
             }
 
             setIsLoading(false);
@@ -281,8 +295,8 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(true);
         await selectCompany(comp, user.id);
 
-        // Reload modules + departments
-        const [modRes, deptRes] = await Promise.all([
+        // Reload modules + departments + permissions
+        const [modRes, deptRes, permRes] = await Promise.all([
             supabase
                 .from('company_modules')
                 .select('*, modules_catalog(code)')
@@ -293,6 +307,11 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
                 .select('*')
                 .eq('company_id', companyId)
                 .eq('is_active', true),
+            supabase
+                .rpc('user_effective_permissions', {
+                    _user_id: user.id,
+                    _company_id: companyId,
+                }),
         ]);
 
         setModules(
@@ -318,6 +337,8 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
             })),
         );
 
+        setPermissions((permRes.data ?? []).map((r: { code: string }) => r.code));
+
         setIsLoading(false);
     };
 
@@ -325,6 +346,9 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
         (modules as (CompanyModule & { _code?: string })[]).some(
             (m) => m._code === moduleCode && m.isActive,
         );
+
+    const hasPermission = (permCode: string): boolean =>
+        permissions.includes(permCode);
 
     const role = membership?.role ?? null;
 
@@ -336,10 +360,12 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
                 companies,
                 modules,
                 departments,
+                permissions,
                 isLoading,
                 switchCompany,
                 role,
                 hasModule,
+                hasPermission,
             }}
         >
             {children}

@@ -239,9 +239,9 @@ export default function IntegrationsModule() {
   const { language } = useTheme();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { activeCompany } = useCompany();
+  const { company } = useCompany();
   const { user } = useAuth();
-  const companyId = activeCompany?.id;
+  const companyId = company?.id;
   const isPublicMode = !user || !companyId;
   const isAr = language === 'ar';
 

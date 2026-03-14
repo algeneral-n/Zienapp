@@ -41,10 +41,14 @@ export interface PermissionsAPI {
   canPerformAction: (actionMode: string) => boolean;
   /** Full AI permission check */
   checkAI: (agentType: string, actionMode: string) => { allowed: boolean; reason?: string };
+  /** Check if user has a specific granular permission code (e.g. 'hr.write') */
+  hasPermission: (permCode: string) => boolean;
+  /** All permission codes the user has in the current company */
+  permissions: string[];
 }
 
 export function usePermissions(): PermissionsAPI {
-  const { role, membership, hasModule, company } = useCompany();
+  const { role, membership, hasModule, company, hasPermission: ctxHasPermission, permissions } = useCompany();
   const { profile } = useAuth();
 
   // Determine effective role: company role takes precedence, then platform role
@@ -87,7 +91,9 @@ export function usePermissions(): PermissionsAPI {
       canAccessAgent: (agent: string) => canAccessAgent(effectiveRole, agent),
       canPerformAction: (action: string) => canPerformAction(effectiveRole, action),
       checkAI: (agent: string, action: string) => checkAIPermission(effectiveRole, agent, action),
+      hasPermission: (permCode: string) => ctxHasPermission(permCode),
+      permissions,
     }),
-    [effectiveRole, level, hasActiveSubscription, hasModule],
+    [effectiveRole, level, hasActiveSubscription, hasModule, permissions],
   );
 }

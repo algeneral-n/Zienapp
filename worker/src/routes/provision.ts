@@ -1,6 +1,9 @@
 import type { Env } from '../index';
 import { jsonResponse, errorResponse } from '../index';
 import { requireAuth, createAdminClient } from '../supabase';
+import { emitDomainEvent } from '../utils/domainEvents';
+import { transitionTenantStatus } from '../utils/tenantLifecycle';
+import { requireEntitlement } from '../utils/entitlements';
 import {
   matchBlueprint,
   composeProvisioningPlan,
@@ -72,6 +75,17 @@ export async function handleProvision(
   const statusMatch = path.match(/^\/api\/provision\/status\/([0-9a-f-]+)$/);
   if (statusMatch && request.method === 'GET') {
     return getProvisioningStatus(statusMatch[1], userId, supabase);
+  }
+
+  // POST /api/provision/rollback/<jobId> — admin rollback of a provisioning job
+  const rollbackMatch = path.match(/^\/api\/provision\/rollback\/([0-9a-f-]+)$/);
+  if (rollbackMatch && request.method === 'POST') {
+    return rollbackProvisioningJob(rollbackMatch[1], request, env, userId);
+  }
+
+  // POST /api/provision/transition — tenant lifecycle status transition
+  if (path === '/api/provision/transition' && request.method === 'POST') {
+    return handleTenantTransition(request, env, userId);
   }
 
   return errorResponse('Not found', 404);
@@ -617,6 +631,18 @@ async function startProvisioningV2(
   executeProvisioningV2(ctx, composition, adminClient, job.id).catch((err) =>
     console.error('Provisioning v2 failed:', err),
   );
+
+  emitDomainEvent(env, {
+    eventName: 'company.provisioning.started',
+    entityType: 'provisioning_jobs',
+    entityId: job.id,
+    companyId: ctx.companyId,
+    actorUserId: ctx.requestedBy,
+    payload: {
+      blueprintId: matchResult.blueprintId,
+      requiredModules: composition.requiredModules.map(m => m.moduleCode),
+    },
+  });
 
   return jsonResponse(
     {
@@ -1184,5 +1210,204 @@ function getHardcodedBasePlan(employeeCount: number): ResolvedPlan {
     includedModules: ['hr', 'accounting', 'crm', 'chat'],
     currency: 'AED',
   };
+}
+
+// ─── Rollback Endpoint ──────────────────────────────────────────────────────
+
+/**
+ * POST /api/provision/rollback/:jobId — rollback a completed/failed provisioning job.
+ * Only platform_admin or founder can trigger this.
+ */
+async function rollbackProvisioningJob(
+  jobId: string,
+  request: Request,
+  env: Env,
+  userId: string,
+): Promise<Response> {
+  const adminClient = createAdminClient(env);
+
+  // Verify platform admin
+  const { data: adminRow } = await adminClient
+    .from('platform_admins')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (!adminRow || !['super_admin', 'admin'].includes(adminRow.role)) {
+    return errorResponse('Only platform admins can rollback provisioning', 403);
+  }
+
+  // Get the job
+  const { data: job, error: jobErr } = await adminClient
+    .from('provisioning_jobs')
+    .select('id, company_id, status, snapshot')
+    .eq('id', jobId)
+    .single();
+
+  if (jobErr || !job) return errorResponse('Provisioning job not found', 404);
+
+  if (job.status === 'pending') {
+    return errorResponse('Job has not started yet — nothing to rollback', 400);
+  }
+
+  // Create a rollback record
+  const { data: rollback } = await adminClient
+    .from('provisioning_rollbacks')
+    .insert({
+      job_id: job.id,
+      step_code: 'full_rollback',
+      status: 'pending',
+    })
+    .select('id')
+    .single();
+
+  const rollbackId = rollback?.id;
+
+  // Perform rollback steps
+  const steps = ['company_modules', 'departments', 'feature_flags', 'company_status'];
+  const stepResults: Array<{ step: string; status: string; error?: string }> = [];
+
+  for (const step of steps) {
+    try {
+      switch (step) {
+        case 'company_modules':
+          await adminClient.from('company_modules').delete().eq('company_id', job.company_id);
+          break;
+        case 'departments':
+          await adminClient.from('departments').delete().eq('company_id', job.company_id);
+          break;
+        case 'feature_flags':
+          await adminClient.from('feature_flags').delete().eq('company_id', job.company_id);
+          break;
+        case 'company_status':
+          await adminClient
+            .from('companies')
+            .update({ status: 'pending_review' })
+            .eq('id', job.company_id);
+          break;
+      }
+
+      stepResults.push({ step, status: 'executed' });
+
+      if (rollbackId) {
+        await adminClient.from('provisioning_rollback_steps').insert({
+          rollback_id: rollbackId,
+          step_code: step,
+          step_type: 'reverse',
+          status: 'executed',
+          executed_at: new Date().toISOString(),
+        });
+      }
+    } catch (err: any) {
+      stepResults.push({ step, status: 'failed', error: err?.message });
+
+      if (rollbackId) {
+        await adminClient.from('provisioning_rollback_steps').insert({
+          rollback_id: rollbackId,
+          step_code: step,
+          step_type: 'reverse',
+          status: 'failed',
+          error: err?.message,
+        });
+      }
+    }
+  }
+
+  // Update rollback record status
+  const allOk = stepResults.every(s => s.status === 'executed');
+  if (rollbackId) {
+    await adminClient
+      .from('provisioning_rollbacks')
+      .update({ status: allOk ? 'executed' : 'failed', executed_at: new Date().toISOString() })
+      .eq('id', rollbackId);
+  }
+
+  // Update job status
+  await adminClient
+    .from('provisioning_jobs')
+    .update({ status: 'failed', error_message: 'Manual rollback by admin' })
+    .eq('id', jobId);
+
+  emitDomainEvent(env, {
+    eventName: 'provisioning.rollback',
+    entityType: 'provisioning_job',
+    entityId: jobId,
+    companyId: job.company_id,
+    actorUserId: userId,
+    payload: { steps: stepResults },
+  });
+
+  return jsonResponse({ rollbackId, steps: stepResults, success: allOk });
+}
+
+// ─── Tenant Lifecycle Transition ────────────────────────────────────────────
+
+/**
+ * POST /api/provision/transition — change a tenant's lifecycle status.
+ * Body: { companyId, toStatus, reason? }
+ */
+async function handleTenantTransition(
+  request: Request,
+  env: Env,
+  userId: string,
+): Promise<Response> {
+  const body = (await request.json()) as {
+    companyId: string;
+    toStatus: string;
+    reason?: string;
+  };
+
+  if (!body.companyId || !body.toStatus) {
+    return errorResponse('Missing companyId or toStatus');
+  }
+
+  const adminClient = createAdminClient(env);
+
+  // Determine actor role
+  const { data: adminRow } = await adminClient
+    .from('platform_admins')
+    .select('role')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  let actorRole = adminRow?.role || '';
+
+  // Check if company owner
+  if (!actorRole) {
+    const { data: company } = await adminClient
+      .from('companies')
+      .select('owner_user_id')
+      .eq('id', body.companyId)
+      .single();
+
+    if (company?.owner_user_id === userId) {
+      actorRole = 'company_gm';
+    }
+  }
+
+  // Map platform_admins roles to transition rule roles
+  if (adminRow?.role === 'super_admin') actorRole = 'founder';
+  else if (adminRow?.role === 'admin') actorRole = 'platform_admin';
+
+  if (!actorRole) {
+    return errorResponse('No permission to change tenant status', 403);
+  }
+
+  try {
+    const result = await transitionTenantStatus(adminClient, env, {
+      companyId: body.companyId,
+      toStatus: body.toStatus as any,
+      actorUserId: userId,
+      actorRole,
+      reason: body.reason,
+    });
+
+    return jsonResponse(result);
+  } catch (err: any) {
+    const status = err?.code === 'VALIDATION' || err?.code === 'CONFLICT' ? 400 : err?.code === 'FORBIDDEN' ? 403 : 500;
+    return errorResponse(err?.message || 'Transition failed', status);
+  }
 }
 

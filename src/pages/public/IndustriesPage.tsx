@@ -1,38 +1,121 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeProvider';
 import { ASSETS } from '../../constants/assets';
-import { Store, Briefcase, HardHat, UtensilsCrossed, Heart, GraduationCap, Monitor, Truck, Home, Factory, Video, PlayCircle } from 'lucide-react';
-
-const industries = [
-    { code: 'general_trading', nameEn: 'General Trading', nameAr: 'تجارة عامة', Icon: Store },
-    { code: 'professional_services', nameEn: 'Professional Services', nameAr: 'خدمات مهنية', Icon: Briefcase },
-    { code: 'construction', nameEn: 'Construction', nameAr: 'مقاولات', Icon: HardHat },
-    { code: 'food_beverage', nameEn: 'Food & Beverage', nameAr: 'أغذية ومشروبات', Icon: UtensilsCrossed },
-    { code: 'healthcare', nameEn: 'Healthcare', nameAr: 'رعاية صحية', Icon: Heart },
-    { code: 'education', nameEn: 'Education', nameAr: 'تعليم', Icon: GraduationCap },
-    { code: 'technology', nameEn: 'Technology', nameAr: 'تكنولوجيا', Icon: Monitor },
-    { code: 'logistics', nameEn: 'Logistics', nameAr: 'لوجستيات', Icon: Truck },
-    { code: 'real_estate', nameEn: 'Real Estate', nameAr: 'عقارات', Icon: Home },
-    { code: 'manufacturing', nameEn: 'Manufacturing', nameAr: 'تصنيع', Icon: Factory },
-];
+import { INDUSTRY_SECTORS, getSectorModules, type IndustrySector } from '../../data/industries';
+import { Video, PlayCircle, ChevronDown, ChevronUp, ArrowRight, Boxes, CheckCircle2 } from 'lucide-react';
 
 export default function IndustriesPage() {
     const { language } = useTheme();
+    const navigate = useNavigate();
     const isAr = language === 'ar';
     const videoSrc = isAr ? ASSETS.VIDEO_AR : ASSETS.VIDEO_EN;
+    const [expandedSector, setExpandedSector] = useState<string | null>(null);
+
+    const toggleSector = (code: string) => {
+        setExpandedSector(prev => prev === code ? null : code);
+    };
+
+    const renderSectorCard = (sector: IndustrySector, i: number) => {
+        const Icon = sector.icon;
+        const isExpanded = expandedSector === sector.code;
+        const modules = getSectorModules(sector.code);
+
+        return (
+            <motion.div
+                key={sector.code}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.04 }}
+                className={`border rounded-[24px] overflow-hidden transition-all duration-300 ${isExpanded ? `border-${sector.color}-500/50 shadow-xl shadow-${sector.color}-600/10 bg-white dark:bg-zinc-900` : 'border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-blue-500/30 bg-white dark:bg-zinc-900'}`}
+            >
+                {/* Header */}
+                <button onClick={() => toggleSector(sector.code)} className="w-full p-6 text-left flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-2xl bg-${sector.color}-100 dark:bg-${sector.color}-900/30 text-${sector.color}-600 flex items-center justify-center shrink-0`}>
+                        <Icon className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">{isAr ? sector.nameAr : sector.nameEn}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{isAr ? sector.descAr : sector.descEn}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">{sector.subActivities.length} {isAr ? 'نشاط' : 'activities'}</span>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">{sector.recommendedModules.length} {isAr ? 'وحدة' : 'modules'}</span>
+                        </div>
+                    </div>
+                    {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400 mt-1 shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 mt-1 shrink-0" />}
+                </button>
+
+                {/* Expandable Content */}
+                <AnimatePresence>
+                    {isExpanded && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="px-6 pb-6 space-y-5">
+                                {/* Sub-Activities */}
+                                <div>
+                                    <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">{isAr ? 'الأنشطة' : 'Activities'}</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {sector.subActivities.map(act => (
+                                            <span key={act.code} className={`px-3 py-1.5 rounded-full text-xs font-bold bg-${sector.color}-50 dark:bg-${sector.color}-900/20 text-${sector.color}-700 dark:text-${sector.color}-300 border border-${sector.color}-200/50 dark:border-${sector.color}-700/30`}>
+                                                {isAr ? act.nameAr : act.nameEn}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Recommended Modules */}
+                                <div>
+                                    <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                        <Boxes className="w-3.5 h-3.5" /> {isAr ? 'الوحدات المتاحة' : 'Available Modules'}
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {modules.map(mod => (
+                                            <div key={mod.code} className="flex items-center gap-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 text-xs">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                                <span className="font-medium">{isAr ? mod.nameAr : mod.nameEn}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* CTA */}
+                                <button
+                                    onClick={() => navigate('/register')}
+                                    className="w-full py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+                                >
+                                    {isAr ? 'ابدأ الآن' : 'Get Started'} <ArrowRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
+        );
+    };
 
     return (
         <div className="min-h-screen bg-[var(--bg-primary)] pt-28 px-4">
             <div className="max-w-6xl mx-auto">
-                {/* Page Title Card */}
+                {/* Page Title */}
                 <div className="flex flex-col items-center mb-12">
                     <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-600/20 mb-4">
-                        <Factory className="w-6 h-6" />
-                        <span className="text-xl font-bold">{isAr ? 'الصناعات المدعومة' : 'Supported Industries'}</span>
+                        <Boxes className="w-6 h-6" />
+                        <span className="text-xl font-bold">{isAr ? 'القطاعات والصناعات' : 'Industries & Sectors'}</span>
                     </div>
-                    <p className="text-center text-gray-500 dark:text-gray-400 max-w-lg">
-                        {isAr ? 'تتكيف ZIEN مع نوع عملك بوحدات وسير عمل مُعدة مسبقًا' : 'ZIEN adapts to your business type with pre-configured modules and workflows'}
+                    <h2 className="text-3xl md:text-4xl font-bold text-center mb-3">
+                        {isAr ? 'منظومة متكاملة لجميع القطاعات' : 'One Unified Platform for Every Industry'}
+                    </h2>
+                    <p className="text-center text-gray-500 dark:text-gray-400 max-w-2xl">
+                        {isAr
+                            ? 'ZIEN تدعم 13+ قطاع صناعي بأكثر من 90 نشاط فرعي. كل الخدمات مترابطة داخل منظومة واحدة وتحكم واحد.'
+                            : 'ZIEN supports 13+ industry sectors with 90+ sub-activities. All services fully integrated within one unified system.'}
                     </p>
                 </div>
 
@@ -63,21 +146,24 @@ export default function IndustriesPage() {
                     </div>
                 </motion.div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                    {industries.map((ind, i) => (
-                        <motion.div
-                            key={ind.code}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.05 }}
-                            className="border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:shadow-lg hover:border-blue-500/50 transition-all group"
-                        >
-                            <ind.Icon className="w-10 h-10 text-blue-600 mb-4 group-hover:scale-110 transition-transform" />
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{isAr ? ind.nameAr : ind.nameEn}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{isAr ? ind.nameEn : ind.nameAr}</p>
+                {/* Stats Bar */}
+                <div className="grid grid-cols-3 gap-4 mb-12">
+                    {[
+                        { value: '13+', label: isAr ? 'قطاع صناعي' : 'Industry Sectors' },
+                        { value: '90+', label: isAr ? 'نشاط فرعي' : 'Sub-Activities' },
+                        { value: '18+', label: isAr ? 'وحدة متكاملة' : 'Integrated Modules' },
+                    ].map((stat, i) => (
+                        <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                            className="text-center p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700">
+                            <div className="text-3xl font-black text-blue-600">{stat.value}</div>
+                            <div className="text-xs font-bold text-gray-500 mt-1">{stat.label}</div>
                         </motion.div>
                     ))}
+                </div>
+
+                {/* Sector Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-20">
+                    {INDUSTRY_SECTORS.map((sector, i) => renderSectorCard(sector, i))}
                 </div>
             </div>
         </div>

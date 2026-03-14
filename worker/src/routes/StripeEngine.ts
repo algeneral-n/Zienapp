@@ -8,7 +8,7 @@ export class StripeEngine {
   private stripe: Stripe;
 
   constructor(secretKey: string) {
-    this.stripe = new Stripe(secretKey, { apiVersion: '2023-10-16' });
+    this.stripe = new Stripe(secretKey, { apiVersion: '2025-02-24.acacia' });
   }
 
   async createCustomer(tenantId: string, email: string) {
@@ -84,8 +84,22 @@ export class StripeEngine {
     return await this.stripe.subscriptions.retrieve(subscriptionId);
   }
 
-  async cancelSubscription(subscriptionId: string) {
-    return await this.stripe.subscriptions.del(subscriptionId);
+  async cancelSubscription(subscriptionId: string, immediate = true) {
+    if (immediate) {
+      return await this.stripe.subscriptions.cancel(subscriptionId);
+    }
+    // Cancel at period end — subscription stays active until current period ends
+    return await this.stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: true,
+    });
+  }
+
+  async updateSubscription(subscriptionId: string, newPriceId: string) {
+    const sub = await this.stripe.subscriptions.retrieve(subscriptionId);
+    return await this.stripe.subscriptions.update(subscriptionId, {
+      items: [{ id: sub.items.data[0].id, price: newPriceId }],
+      proration_behavior: 'create_prorations',
+    });
   }
 
   async reportUsage(subscriptionItemId: string, quantity: number) {

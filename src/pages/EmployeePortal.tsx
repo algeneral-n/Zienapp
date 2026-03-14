@@ -6,6 +6,7 @@ import { useCompany } from '../contexts/CompanyContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 import { generateRAREAnalysis, RAREAgentType } from '../services/aiService';
+import { CompanyRole } from '../types';
 import {
   Clock, Calendar, Wallet, FileText,
   CheckCircle2, AlertCircle, User, LayoutDashboard,
@@ -200,7 +201,7 @@ export default function EmployeePortal() {
       pageCode: 'employee_portal',
       moduleCode: activeTab,
       companyName: company?.name || 'Company',
-      userRole: role || 'employee',
+      userRole: role || CompanyRole.EMPLOYEE,
       language,
       theme: mode,
       mode: 'analyze',
@@ -665,7 +666,7 @@ export default function EmployeePortal() {
 
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <div className="text-xs font-bold">{profile?.fullName || user?.name || t('employee')}</div>
+                <div className="text-xs font-bold">{profile?.fullName || t('employee')}</div>
                 <div className="text-[10px] text-blue-600 font-bold uppercase tracking-widest">{role || 'employee'}</div>
               </div>
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg" />

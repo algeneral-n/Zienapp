@@ -15,8 +15,8 @@ export default function ProtectedLayout() {
 
     const pageKey = location.pathname.replace(/^\//, '') || 'dashboard';
     const activeModuleCodes = (modules || [])
-        .filter((m: { is_active?: boolean }) => m.is_active)
-        .map((m: { module_code?: string; module_id?: string }) => m.module_code || m.module_id || '');
+        .filter((m: { isActive?: boolean }) => m.isActive)
+        .map((m: { moduleCode?: string; moduleId?: string }) => m.moduleCode || m.moduleId || '');
 
     return (
         <div className="relative min-h-screen">

@@ -22,11 +22,14 @@ import { handleLogistics as handleLogisticsV2 } from './routes/logistics';
 import { handleMeetings } from './routes/meetings';
 import { handleEmail } from './routes/email';
 import { handleGuest } from './routes/guest';
+import { handleOnboarding } from './routes/onboarding';
 import { handleMarketing } from './routes/marketing';
 import { handleVoice } from './routes/voice';
 import { handleNotifications } from './routes/notifications';
 import { handleSupreme } from './routes/supreme';
 import { corsHeaders, handleCors, getAllowedOrigin } from './cors';
+import { withCorrelation } from './middleware/correlation';
+import { toAppError } from './utils/errors';
 
 export interface Env {
   ENVIRONMENT: string;
@@ -74,107 +77,111 @@ export default {
       }
 
       if (path.startsWith('/api/auth/')) {
-        return handleAuth(request, env, path);
+        return withCorrelation(handleAuth)(request, env, path);
+      }
+
+      if (path.startsWith('/api/onboarding/')) {
+        return withCorrelation(handleOnboarding)(request, env, path);
       }
 
       if (path === '/api/ai/public' && request.method === 'POST') {
-        return handlePublicAI(request, env);
+        return withCorrelation(handlePublicAI)(request, env, path);
       }
 
       if (path === '/api/ai/tts' && request.method === 'POST') {
-        return handleTTS(request, env);
+        return withCorrelation(handleTTS)(request, env, path);
       }
 
       if (path.startsWith('/api/ai/')) {
-        return handleAI(request, env, path);
+        return withCorrelation(handleAI)(request, env, path);
       }
 
       if (path.startsWith('/api/billing/') || path === '/.well-known/apple-developer-merchantid-domain-association') {
-        return handleBilling(request, env, path);
+        return withCorrelation(handleBilling)(request, env, path);
       }
 
       if (path.startsWith('/api/marketing/')) {
-        return handleMarketing(request, env, path);
+        return withCorrelation(handleMarketing)(request, env, path);
       }
 
       if (path.startsWith('/api/voice/')) {
-        return handleVoice(request, env, path);
+        return withCorrelation(handleVoice)(request, env, path);
       }
 
       if (path.startsWith('/api/provision/') || path.startsWith('/api/pricing/')) {
-        return handleProvision(request, env, path);
+        return withCorrelation(handleProvision)(request, env, path);
       }
 
       if (path.startsWith('/api/integrations/')) {
-        return handleIntegrations(request, env, path);
+        return withCorrelation(handleIntegrations)(request, env, path);
       }
 
       if (path.startsWith('/api/accounting/')) {
-        return handleAccounting(request, env, path);
+        return withCorrelation(handleAccounting)(request, env, path);
       }
 
       if (path.startsWith('/api/control-room/')) {
-        return handleControlRoom(request, env, path);
+        return withCorrelation(handleControlRoom)(request, env, path);
       }
 
       if (path.startsWith('/api/store/')) {
-        return handleStore(request, env, path);
+        return withCorrelation(handleStore)(request, env, path);
       }
 
       if (path.startsWith('/api/hr/')) {
-        return handleHR(request, env, path);
+        return withCorrelation(handleHR)(request, env, path);
       }
 
       if (path.startsWith('/api/crm/')) {
-        return handleCRM(request, env, path);
+        return withCorrelation(handleCRM)(request, env, path);
       }
 
       if (path.startsWith('/api/founder/')) {
-        return handleFounder(request, env, path);
+        return withCorrelation(handleFounder)(request, env, path);
       }
 
       if (path.startsWith('/api/vonage/')) {
-        return handleVonage(request, env, path);
+        return withCorrelation(handleVonage)(request, env, path);
       }
 
       if (path.startsWith('/api/chat/')) {
-        return handleChat(request, env, path);
+        return withCorrelation(handleChat)(request, env, path);
       }
 
       if (path.startsWith('/api/projects/')) {
-        return handleProjects(request, env, path);
+        return withCorrelation(handleProjects)(request, env, path);
       }
 
       if (path.startsWith('/api/logistics-v2/')) {
-        return handleLogisticsV2(request, env, path.replace('/api/logistics-v2', '/api/logistics'));
+        return withCorrelation(handleLogisticsV2)(request, env, path.replace('/api/logistics-v2', '/api/logistics'));
       }
 
       if (path.startsWith('/api/meetings/')) {
-        return handleMeetings(request, env, path);
+        return withCorrelation(handleMeetings)(request, env, path);
       }
 
       if (path.startsWith('/api/email/')) {
-        return handleEmail(request, env, path);
+        return withCorrelation(handleEmail)(request, env, path);
       }
 
       if (path.startsWith('/api/guest/')) {
-        return handleGuest(request, env, path);
+        return withCorrelation(handleGuest)(request, env, path);
       }
 
       if (path.startsWith('/api/notifications/')) {
-        return handleNotifications(request, env, path);
+        return withCorrelation(handleNotifications)(request, env, path);
       }
 
       if (path.startsWith('/api/supreme/')) {
-        return handleSupreme(request, env, path);
+        return withCorrelation(handleSupreme)(request, env, path);
       }
 
       // 404
       return jsonResponse({ error: 'Not found', path }, 404);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Internal server error';
-      console.error('Worker error:', message);
-      return jsonResponse({ error: message }, 500);
+      const appErr = toAppError(err);
+      console.error('Worker error:', appErr.code, appErr.message);
+      return jsonResponse({ error: appErr.message, code: appErr.code }, appErr.status);
     }
   },
 };

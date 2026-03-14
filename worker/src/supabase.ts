@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Env } from '../index';
+import type { Env } from './index';
+import { ROLE_LEVEL, getRoleLevel } from './permissions';
 
 /**
  * Create a Supabase client scoped to a user's JWT.
@@ -98,6 +99,7 @@ export interface AuthContext {
   companyRole: string | null;
   roleLevel: number;
   enabledModules: string[];
+  permissions: string[];
 }
 
 export async function requireAuthFull(
@@ -117,9 +119,10 @@ export async function requireAuthFull(
     .maybeSingle();
   const platformRole = platformRoleRow?.role_code || null;
 
-  // Fetch company role + enabled modules if companyId provided
+  // Fetch company role + enabled modules + permissions if companyId provided
   let companyRole: string | null = null;
   let enabledModules: string[] = [];
+  let permissions: string[] = [];
 
   if (companyId) {
     const membership = await checkMembership(env, userId, companyId);
@@ -134,23 +137,22 @@ export async function requireAuthFull(
     enabledModules = (modules || [])
       .map((m: any) => m.modules_catalog?.code)
       .filter(Boolean);
+
+    // Fetch effective permissions via DB function
+    const { data: perms } = await admin.rpc('user_effective_permissions', {
+      _user_id: userId,
+      _company_id: companyId,
+    });
+    permissions = (perms || []).map((p: any) => p.code);
   }
 
-  // Compute effective role level
+  // Compute effective role level using canonical ROLE_LEVEL map
   const effectiveRole = companyRole || platformRole || 'user';
-  const ROLE_LEVELS: Record<string, number> = {
-    founder: 100, platform_admin: 95, platform_support: 90,
-    company_gm: 85, assistant_gm: 80, executive_secretary: 75,
-    department_manager: 65, hr_officer: 60, accountant: 60,
-    supervisor: 55, senior_employee: 45, sales_rep: 45,
-    employee: 35, field_employee: 30, driver: 25,
-    new_hire: 20, trainee: 15, client_user: 10,
-  };
-  const roleLevel = ROLE_LEVELS[effectiveRole] ?? 0;
+  const roleLevel = getRoleLevel(effectiveRole);
 
   return {
     userId, email, supabase, companyId,
-    platformRole, companyRole, roleLevel, enabledModules,
+    platformRole, companyRole, roleLevel, enabledModules, permissions,
   };
 }
 
@@ -165,9 +167,10 @@ export function guardEndpoint(
     requireModule?: string;
     minLevel?: number;
     requirePlatformRole?: string[];
+    requirePermission?: string;
   } = {},
 ): void {
-  const { requireCompany = true, requireModule, minLevel = 0, requirePlatformRole } = options;
+  const { requireCompany = true, requireModule, minLevel = 0, requirePlatformRole, requirePermission } = options;
 
   // Platform role gate
   if (requirePlatformRole?.length) {
@@ -197,5 +200,10 @@ export function guardEndpoint(
   // Permission level gate
   if (minLevel > 0 && ctx.roleLevel < minLevel) {
     throw new Error(`Insufficient permissions. Required level: ${minLevel}, your level: ${ctx.roleLevel}`);
+  }
+
+  // Granular permission gate
+  if (requirePermission && !ctx.permissions.includes(requirePermission)) {
+    throw new Error(`Missing permission: ${requirePermission}`);
   }
 }

@@ -224,7 +224,7 @@ const Quotes = () => {
     if (!company?.id) return;
     (async () => {
       try {
-        const result = await crmService.listQuotes({ limit: 50 });
+        const result = await crmService.listQuotes({});
         setQuotes((result as any).data ?? result ?? []);
       } catch (err) {
         console.error('Failed to load quotes:', err);
@@ -374,7 +374,7 @@ const Activities = () => {
     if (!form.subject) return;
     setSaving(true);
     try {
-      const act = await crmService.createActivity({ type: form.type as any, subject: form.subject, notes: form.notes || undefined, scheduledAt: form.scheduledAt || undefined });
+      const act = await crmService.createActivity({ activityType: form.type, subject: form.subject, description: form.notes || undefined, dueDate: form.scheduledAt || undefined });
       setActivities(prev => [act, ...prev]);
       setShowCreate(false);
       setForm({ type: 'call', subject: '', notes: '', scheduledAt: '' });

@@ -568,17 +568,21 @@ class _ModulesTab extends ConsumerWidget {
                       onTap: () {
                         final code = mod.moduleCode ?? '';
                         final route = switch (code) {
-                          'projects' => Routes.tasks,
+                          'projects' => Routes.projects,
                           'accounting' => Routes.accounting,
                           'hr' => Routes.hr,
                           'crm' => Routes.crm,
                           'logistics' => Routes.logistics,
-                          'store' || 'pos' || 'ecommerce' => Routes.store,
+                          'store' || 'pos' || 'ecommerce' || 'inventory' => Routes.store,
                           'meetings' => Routes.meetings,
-                          'academy' => Routes.academy,
-                          'ai_agents' => Routes.rareAi,
+                          'academy' || 'training' => Routes.academy,
+                          'rare' || 'ai_agents' => Routes.rareAi,
                           'billing' => Routes.billing,
                           'chat' => Routes.chat,
+                          'documents' || 'client_portal' || 'employee_portal' => Routes.employeePortal,
+                          'recruitment' => Routes.hr,
+                          'analytics' || 'control_room' => Routes.home,
+                          'automation' || 'integrations' => Routes.settings,
                           _ => null,
                         };
                         if (route != null) {
@@ -598,16 +602,25 @@ class _ModulesTab extends ConsumerWidget {
 
   IconData _moduleIcon(String code) {
     return switch (code) {
-      'hr' => Icons.people,
+      'hr' || 'recruitment' => Icons.people,
       'accounting' => Icons.account_balance,
       'crm' => Icons.handshake,
       'logistics' => Icons.local_shipping,
       'store' => Icons.storefront,
       'projects' => Icons.assignment,
       'meetings' => Icons.videocam,
-      'ai_agents' => Icons.smart_toy,
+      'rare' || 'ai_agents' => Icons.smart_toy,
       'inventory' => Icons.inventory,
       'pos' => Icons.point_of_sale,
+      'chat' => Icons.chat_bubble,
+      'documents' => Icons.description,
+      'training' || 'academy' => Icons.school,
+      'client_portal' => Icons.language,
+      'employee_portal' => Icons.badge,
+      'analytics' => Icons.bar_chart,
+      'automation' => Icons.settings_suggest,
+      'control_room' => Icons.dashboard_customize,
+      'integrations' => Icons.extension,
       'ecommerce' => Icons.shopping_cart,
       _ => Icons.extension,
     };

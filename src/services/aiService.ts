@@ -10,8 +10,12 @@ import { supabase } from './supabase';
 import type { RAREMode, RAREContext } from '../types';
 
 export type RAREAgentType =
-  | 'accounting' | 'hr' | 'sales' | 'fleet' | 'pm'
-  | 'meetings' | 'gm' | 'secretary' | 'founder';
+  | 'accounting' | 'hr' | 'sales' | 'fleet'
+  | 'meetings' | 'gm' | 'secretary' | 'founder'
+  | 'general' | 'marketing' | 'projects' | 'store'
+  | 'inventory' | 'maintenance' | 'crm' | 'legal'
+  | 'quality' | 'training' | 'procurement' | 'finance'
+  | 'safety' | 'support' | 'analytics' | 'integrations';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.plt.zien-ai.app';
 

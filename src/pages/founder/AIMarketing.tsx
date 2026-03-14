@@ -2,38 +2,72 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Zap, Shield, Loader2, ToggleLeft, ToggleRight, Plus, Edit3, Trash2, Save, X, Megaphone, Calendar, Target,
+  Route, Wallet, ShieldCheck, CheckCircle, XCircle, Clock, Globe, Eye,
 } from 'lucide-react';
 import {
   listAIPolicies, createAIPolicy, updateAIPolicy, listFeatureFlags, createFeatureFlag, updateFeatureFlag, createAnnouncement,
 } from '../../services/founderService';
 import { supabase } from '../../services/supabase';
-import { LoadingState, ErrorState } from './shared';
+import { LoadingState, ErrorState, founderFetch } from './shared';
+
+type AITab = 'agents' | 'policies' | 'flags' | 'routing' | 'budgets' | 'actions' | 'reviews';
+
+const TAB_META: Record<AITab, { label: string; icon: typeof Zap }> = {
+  agents: { label: 'agents', icon: Zap },
+  policies: { label: 'policies', icon: Shield },
+  flags: { label: 'feature_flags', icon: ToggleRight },
+  routing: { label: 'model_routing', icon: Route },
+  budgets: { label: 'budgets', icon: Wallet },
+  actions: { label: 'action_policies', icon: ShieldCheck },
+  reviews: { label: 'reviews', icon: Shield },
+};
 
 const AIBuilder = () => {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<'agents' | 'policies' | 'flags'>('agents');
+  const [tab, setTab] = useState<AITab>('agents');
   const [agents, setAgents] = useState<any[]>([]);
   const [policies, setPolicies] = useState<any[]>([]);
   const [flags, setFlags] = useState<any[]>([]);
+  const [routingRules, setRoutingRules] = useState<any[]>([]);
+  const [budgetPolicies, setBudgetPolicies] = useState<any[]>([]);
+  const [actionPolicies, setActionPolicies] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreatePolicy, setShowCreatePolicy] = useState(false);
   const [showCreateFlag, setShowCreateFlag] = useState(false);
+  const [showCreateRouting, setShowCreateRouting] = useState(false);
+  const [showCreateBudget, setShowCreateBudget] = useState(false);
+  const [showCreateAction, setShowCreateAction] = useState(false);
   const [newPolicy, setNewPolicy] = useState({ name: '', description: '', policy_type: 'rate_limit', rules: '{}', applies_to: 'all', priority: 10 });
   const [newFlag, setNewFlag] = useState({ flag_key: '', name: '', description: '', is_enabled: false, rollout_percentage: 100 });
+  const [newRouting, setNewRouting] = useState({ agent_type: '', mode: '', model_name: 'gpt-4o-mini', priority: 10, is_active: true });
+  const [newBudget, setNewBudget] = useState({ company_id: '', daily_token_limit: 100000, monthly_token_limit: 2000000, alert_threshold_percent: 80, is_active: true });
+  const [newAction, setNewAction] = useState({ agent_type: '', action_mode: '', permission_tier: 'suggest', min_role_level: 3, preferred_model: '', require_confirmation: false });
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [agentData, policyData, flagData] = await Promise.all([
+        const [agentData, policyData, flagData, { data: routing }, { data: budgets }, { data: actions }] = await Promise.all([
           founderFetch('/api/ai/agents').catch(() => ({ agents: [] })),
           listAIPolicies().catch(() => ({ policies: [] })),
           listFeatureFlags().catch(() => ({ flags: [] })),
+          supabase.from('ai_model_routing_rules').select('*').order('priority', { ascending: false }),
+          supabase.from('ai_budget_policies').select('*').order('created_at', { ascending: false }),
+          supabase.from('ai_action_policies').select('*').eq('is_active', true).order('min_role_level'),
         ]);
         setAgents(agentData.agents || []);
         setPolicies(policyData.policies || []);
         setFlags(flagData.flags || []);
+        setRoutingRules(routing || []);
+        setBudgetPolicies(budgets || []);
+        setActionPolicies(actions || []);
+        // Load pending reviews (may fail if no company context, that's ok)
+        try {
+          const { data: rev } = await supabase.from('ai_action_reviews').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(50);
+          setReviews(rev || []);
+        } catch { /* non-critical */ }
       } catch (e: any) {
         setError(e.message || 'Failed to load AI data');
       } finally {
@@ -94,12 +128,16 @@ const AIBuilder = () => {
       <h2 className="text-2xl font-black uppercase tracking-tighter">{t('rare_ai_builder')}</h2>
 
       {/* Tabs */}
-      <div className="flex gap-2">
-        {(['agents', 'policies', 'flags'] as const).map(t2 => (
-          <button key={t2} onClick={() => setTab(t2)} className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${tab === t2 ? 'bg-blue-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}>
-            {t2 === 'agents' ? `${t('agents')} (${agents.length})` : t2 === 'policies' ? `${t('policies')} (${policies.length})` : `${t('feature_flags')} (${flags.length})`}
-          </button>
-        ))}
+      <div className="flex gap-2 flex-wrap">
+        {(Object.keys(TAB_META) as AITab[]).map(t2 => {
+          const meta = TAB_META[t2];
+          const count = t2 === 'agents' ? agents.length : t2 === 'policies' ? policies.length : t2 === 'flags' ? flags.length : t2 === 'routing' ? routingRules.length : t2 === 'budgets' ? budgetPolicies.length : t2 === 'actions' ? actionPolicies.length : reviews.length;
+          return (
+            <button key={t2} onClick={() => setTab(t2)} className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${tab === t2 ? 'bg-blue-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}>
+              {t(meta.label)} ({count})
+            </button>
+          );
+        })}
       </div>
 
       {/* Agents Tab */}
@@ -219,6 +257,395 @@ const AIBuilder = () => {
             ))}
             {flags.length === 0 && <p className="text-sm text-zinc-400 text-center py-8">{t('no_feature_flags')}</p>}
           </div>
+        </div>
+      )}
+
+      {/* Model Routing Tab */}
+      {tab === 'routing' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-zinc-500">{t('model_routing_desc') || 'AI model routing rules determine which model is used for each agent/mode combination. Higher priority wins.'}</p>
+            <button onClick={() => setShowCreateRouting(!showCreateRouting)} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shrink-0">
+              <Plus size={14} /> New Rule
+            </button>
+          </div>
+          {showCreateRouting && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <input placeholder="Agent type (or * for all)" value={newRouting.agent_type} onChange={e => setNewRouting({ ...newRouting, agent_type: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+                <input placeholder="Mode (or * for all)" value={newRouting.mode} onChange={e => setNewRouting({ ...newRouting, mode: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+                <select value={newRouting.model_name} onChange={e => setNewRouting({ ...newRouting, model_name: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm">
+                  {['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1-mini', 'o1-preview'].map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <input type="number" placeholder="Priority" value={newRouting.priority} onChange={e => setNewRouting({ ...newRouting, priority: Number(e.target.value) })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setShowCreateRouting(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-500">{t('cancel')}</button>
+                <button
+                  onClick={async () => {
+                    setActionLoading('createRouting');
+                    try {
+                      const { error: err } = await supabase.from('ai_model_routing_rules').insert({
+                        agent_type: newRouting.agent_type || '*',
+                        mode: newRouting.mode || '*',
+                        model_name: newRouting.model_name,
+                        priority: newRouting.priority,
+                        is_active: newRouting.is_active,
+                      }).select().single();
+                      if (err) throw err;
+                      const { data } = await supabase.from('ai_model_routing_rules').select('*').order('priority', { ascending: false });
+                      setRoutingRules(data || []);
+                      setShowCreateRouting(false);
+                      setNewRouting({ agent_type: '', mode: '', model_name: 'gpt-4o-mini', priority: 10, is_active: true });
+                    } catch (e: any) { alert(e.message); }
+                    finally { setActionLoading(null); }
+                  }}
+                  disabled={actionLoading === 'createRouting'}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50"
+                >
+                  {actionLoading === 'createRouting' ? <Loader2 size={14} className="animate-spin" /> : t('create')}
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('agent_type')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('mode')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('model')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('priority')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('status')}</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {routingRules.length === 0 ? (
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-zinc-400">{t('no_routing_rules')}</td></tr>
+                ) : routingRules.map(r => (
+                  <tr key={r.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-6 py-4 text-sm font-bold">{r.agent_type || '*'}</td>
+                    <td className="px-6 py-4 text-xs font-medium text-zinc-500">{r.mode || '*'}</td>
+                    <td className="px-6 py-4"><span className="px-2 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-600/10">{r.model_name}</span></td>
+                    <td className="px-6 py-4 text-xs font-medium">{r.priority}</td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={async () => {
+                          setActionLoading(r.id);
+                          await supabase.from('ai_model_routing_rules').update({ is_active: !r.is_active }).eq('id', r.id);
+                          setRoutingRules(prev => prev.map(x => x.id === r.id ? { ...x, is_active: !r.is_active } : x));
+                          setActionLoading(null);
+                        }}
+                        disabled={actionLoading === r.id}
+                        className="p-1"
+                      >
+                        {r.is_active ? <ToggleRight size={20} className="text-emerald-600" /> : <ToggleLeft size={20} className="text-zinc-400" />}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={async () => {
+                          setActionLoading(r.id + '-del');
+                          await supabase.from('ai_model_routing_rules').delete().eq('id', r.id);
+                          setRoutingRules(prev => prev.filter(x => x.id !== r.id));
+                          setActionLoading(null);
+                        }}
+                        disabled={actionLoading === r.id + '-del'}
+                        className="p-1 text-zinc-400 hover:text-red-500"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Budgets Tab */}
+      {tab === 'budgets' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-zinc-500">{t('budget_desc') || 'AI budget policies control daily and monthly token limits per company.'}</p>
+            <button onClick={() => setShowCreateBudget(!showCreateBudget)} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shrink-0">
+              <Plus size={14} /> New Budget
+            </button>
+          </div>
+          {showCreateBudget && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <input placeholder="Company ID (blank = platform-wide)" value={newBudget.company_id} onChange={e => setNewBudget({ ...newBudget, company_id: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+                <input type="number" placeholder="Daily limit" value={newBudget.daily_token_limit} onChange={e => setNewBudget({ ...newBudget, daily_token_limit: Number(e.target.value) })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+                <input type="number" placeholder="Monthly limit" value={newBudget.monthly_token_limit} onChange={e => setNewBudget({ ...newBudget, monthly_token_limit: Number(e.target.value) })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+                <input type="number" placeholder="Alert at %" value={newBudget.alert_threshold_percent} onChange={e => setNewBudget({ ...newBudget, alert_threshold_percent: Number(e.target.value) })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setShowCreateBudget(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-500">{t('cancel')}</button>
+                <button
+                  onClick={async () => {
+                    setActionLoading('createBudget');
+                    try {
+                      const row: any = {
+                        daily_token_limit: newBudget.daily_token_limit,
+                        monthly_token_limit: newBudget.monthly_token_limit,
+                        alert_threshold_percent: newBudget.alert_threshold_percent,
+                        is_active: true,
+                      };
+                      if (newBudget.company_id.trim()) row.company_id = newBudget.company_id.trim();
+                      const { error: err } = await supabase.from('ai_budget_policies').insert(row);
+                      if (err) throw err;
+                      const { data } = await supabase.from('ai_budget_policies').select('*').order('created_at', { ascending: false });
+                      setBudgetPolicies(data || []);
+                      setShowCreateBudget(false);
+                      setNewBudget({ company_id: '', daily_token_limit: 100000, monthly_token_limit: 2000000, alert_threshold_percent: 80, is_active: true });
+                    } catch (e: any) { alert(e.message); }
+                    finally { setActionLoading(null); }
+                  }}
+                  disabled={actionLoading === 'createBudget'}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50"
+                >
+                  {actionLoading === 'createBudget' ? <Loader2 size={14} className="animate-spin" /> : t('create')}
+                </button>
+              </div>
+            </div>
+          )}
+          {budgetPolicies.length === 0 ? (
+            <p className="text-sm text-zinc-400 text-center py-8">{t('no_budgets') || 'No budget policies configured.'}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {budgetPolicies.map(b => (
+                <div key={b.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-bold">{b.company_id ? `Company: ${b.company_id.slice(0, 8)}...` : 'Platform-wide'}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          setActionLoading(b.id);
+                          await supabase.from('ai_budget_policies').update({ is_active: !b.is_active }).eq('id', b.id);
+                          setBudgetPolicies(prev => prev.map(x => x.id === b.id ? { ...x, is_active: !x.is_active } : x));
+                          setActionLoading(null);
+                        }}
+                        disabled={actionLoading === b.id}
+                        className="p-1"
+                      >
+                        {b.is_active ? <ToggleRight size={20} className="text-emerald-600" /> : <ToggleLeft size={20} className="text-zinc-400" />}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setActionLoading(b.id + '-del');
+                          await supabase.from('ai_budget_policies').delete().eq('id', b.id);
+                          setBudgetPolicies(prev => prev.filter(x => x.id !== b.id));
+                          setActionLoading(null);
+                        }}
+                        disabled={actionLoading === b.id + '-del'}
+                        className="p-1 text-zinc-400 hover:text-red-500"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('daily_limit')}</div>
+                      <div className="text-lg font-black mt-1">{b.daily_token_limit === -1 ? 'Unlimited' : (b.daily_token_limit || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('monthly_limit')}</div>
+                      <div className="text-lg font-black mt-1">{b.monthly_token_limit === -1 ? 'Unlimited' : (b.monthly_token_limit || 0).toLocaleString()}</div>
+                    </div>
+                  </div>
+                  {b.alert_threshold_percent && (
+                    <p className="text-[10px] text-zinc-500 mt-3">Alert at {b.alert_threshold_percent}% usage</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Action Policies Tab */}
+      {tab === 'actions' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-zinc-500">{t('action_policy_desc') || 'Action policies determine permission tiers, confirmation requirements, and model preferences for each agent + mode combination.'}</p>
+            <button onClick={() => setShowCreateAction(!showCreateAction)} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shrink-0">
+              <Plus size={14} /> New Policy
+            </button>
+          </div>
+          {showCreateAction && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <input placeholder="Agent type (or * for all)" value={newAction.agent_type} onChange={e => setNewAction({ ...newAction, agent_type: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+                <input placeholder="Action mode (or * for all)" value={newAction.action_mode} onChange={e => setNewAction({ ...newAction, action_mode: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+                <select value={newAction.permission_tier} onChange={e => setNewAction({ ...newAction, permission_tier: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm">
+                  {['auto_execute', 'suggest', 'require_approval', 'deny'].map(t2 => <option key={t2} value={t2}>{t2.replace(/_/g, ' ')}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <input type="number" placeholder="Min role level" value={newAction.min_role_level} onChange={e => setNewAction({ ...newAction, min_role_level: Number(e.target.value) })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+                <input placeholder="Preferred model (optional)" value={newAction.preferred_model} onChange={e => setNewAction({ ...newAction, preferred_model: e.target.value })} className="bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-3 text-sm" />
+                <label className="flex items-center gap-2 px-3">
+                  <input type="checkbox" checked={newAction.require_confirmation} onChange={e => setNewAction({ ...newAction, require_confirmation: e.target.checked })} className="rounded" />
+                  <span className="text-xs font-bold">Require Confirmation</span>
+                </label>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setShowCreateAction(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-500">{t('cancel')}</button>
+                <button
+                  onClick={async () => {
+                    setActionLoading('createAction');
+                    try {
+                      const row: any = {
+                        agent_type: newAction.agent_type || '*',
+                        action_mode: newAction.action_mode || '*',
+                        permission_tier: newAction.permission_tier,
+                        min_role_level: newAction.min_role_level,
+                        require_confirmation: newAction.require_confirmation,
+                        is_active: true,
+                      };
+                      if (newAction.preferred_model.trim()) row.preferred_model = newAction.preferred_model.trim();
+                      const { error: err } = await supabase.from('ai_action_policies').insert(row);
+                      if (err) throw err;
+                      const { data } = await supabase.from('ai_action_policies').select('*').eq('is_active', true).order('min_role_level');
+                      setActionPolicies(data || []);
+                      setShowCreateAction(false);
+                      setNewAction({ agent_type: '', action_mode: '', permission_tier: 'suggest', min_role_level: 3, preferred_model: '', require_confirmation: false });
+                    } catch (e: any) { alert(e.message); }
+                    finally { setActionLoading(null); }
+                  }}
+                  disabled={actionLoading === 'createAction'}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50"
+                >
+                  {actionLoading === 'createAction' ? <Loader2 size={14} className="animate-spin" /> : t('create')}
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('scope')}</th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('agent')}</th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('mode')}</th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('tier')}</th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('min_role')}</th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('model')}</th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t('confirm')}</th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {actionPolicies.length === 0 ? (
+                  <tr><td colSpan={8} className="px-6 py-8 text-center text-sm text-zinc-400">{t('no_action_policies')}</td></tr>
+                ) : actionPolicies.map(a => {
+                  const tierColors: Record<string, string> = {
+                    auto_execute: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10',
+                    suggest: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10',
+                    require_approval: 'bg-red-50 text-red-600 dark:bg-red-500/10',
+                    deny: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800',
+                  };
+                  return (
+                    <tr key={a.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                      <td className="px-4 py-3 text-xs">{a.company_id ? 'Company' : 'Platform'}</td>
+                      <td className="px-4 py-3 text-xs font-bold">{a.agent_type || '*'}</td>
+                      <td className="px-4 py-3 text-xs">{a.action_mode || '*'}</td>
+                      <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${tierColors[a.permission_tier] || ''}`}>{a.permission_tier}</span></td>
+                      <td className="px-4 py-3 text-xs font-medium">{a.min_role_level}</td>
+                      <td className="px-4 py-3 text-xs font-mono">{a.preferred_model || '—'}</td>
+                      <td className="px-4 py-3">{a.require_confirmation ? <ShieldCheck size={14} className="text-amber-500" /> : <span className="text-zinc-300">—</span>}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={async () => {
+                            setActionLoading(a.id + '-del');
+                            await supabase.from('ai_action_policies').update({ is_active: false }).eq('id', a.id);
+                            setActionPolicies(prev => prev.filter(x => x.id !== a.id));
+                            setActionLoading(null);
+                          }}
+                          disabled={actionLoading === a.id + '-del'}
+                          className="p-1 text-zinc-400 hover:text-red-500"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Reviews Tab — Pending AI Action Approvals */}
+      {tab === 'reviews' && (
+        <div className="space-y-4">
+          <p className="text-xs text-zinc-500">{t('review_desc') || 'Pending AI actions that require manager approval before execution.'}</p>
+          {reviews.length === 0 ? (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-12 text-center">
+              <CheckCircle size={32} className="mx-auto text-emerald-400 mb-3" />
+              <p className="text-sm text-zinc-500 font-medium">{t('no_pending_reviews') || 'No pending reviews. All clear.'}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {reviews.map(r => (
+                <div key={r.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-50 text-amber-600 dark:bg-amber-500/10">{r.permission_tier || 'require_approval'}</span>
+                        <span className="text-[10px] text-zinc-400 font-mono">{r.agent_type || '—'} / {r.action_mode || '—'}</span>
+                      </div>
+                      <p className="text-sm font-medium truncate">{r.action_code || r.payload?.prompt?.slice(0, 120) || 'AI Action'}</p>
+                      {r.payload?.prompt && (
+                        <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{r.payload.prompt}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 text-[10px] text-zinc-400">
+                        <span className="flex items-center gap-1"><Clock size={10} /> {new Date(r.created_at).toLocaleString()}</span>
+                        {r.requested_model && <span className="font-mono">{r.requested_model}</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={async () => {
+                          setActionLoading(r.id);
+                          try {
+                            await founderFetch('/api/ai/approve-action', 'POST', { reviewId: r.id, companyId: r.company_id, decision: 'approved' });
+                            setReviews(prev => prev.filter(x => x.id !== r.id));
+                          } catch (e: any) { alert(e.message); }
+                          finally { setActionLoading(null); }
+                        }}
+                        disabled={actionLoading === r.id}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        {actionLoading === r.id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+                        {t('approve')}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setActionLoading(r.id);
+                          try {
+                            await founderFetch('/api/ai/approve-action', 'POST', { reviewId: r.id, companyId: r.company_id, decision: 'denied' });
+                            setReviews(prev => prev.filter(x => x.id !== r.id));
+                          } catch (e: any) { alert(e.message); }
+                          finally { setActionLoading(null); }
+                        }}
+                        disabled={actionLoading === r.id}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {actionLoading === r.id ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
+                        {t('deny')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -370,4 +797,7 @@ const MarketingSystem = () => {
 // ─── Integration Control (Founder manages catalog + tenant integrations) ────
 
 
-export { AIBuilder, MarketingSystem };
+// InternalMarketing is the same as MarketingSystem (tenant-facing campaigns)
+const InternalMarketing = MarketingSystem;
+
+export { AIBuilder, MarketingSystem, InternalMarketing };
